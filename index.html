@@ -690,12 +690,7 @@ let cashTendered=0;
 let currentOrderTotal=0;
 let currentPayMethod='cash';
 
-// ══════ CATEGORIES ══════
-const CATS=[
-  {id:'all',label:'All Items'},{id:'bento',label:'Bento Sets'},{id:'donburi',label:'Donburi'},
-  {id:'ramen',label:'Ramen & Udon'},{id:'tempura',label:'Tempura'},{id:'svm',label:'Super Value'},
-  {id:'alacarte',label:'Ala Carte'},{id:'drinks',label:'Drinks'},
-];
+// CATS is declared below as dynamic let
 
 // ══════ HELPERS ══════
 const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
