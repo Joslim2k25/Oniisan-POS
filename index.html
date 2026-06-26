@@ -308,11 +308,30 @@ button{cursor:pointer;font-family:inherit}
           <div class="role-card-desc">Time In/Out · POS · Kitchen Display</div>
         </div>
       </div>
-      <div class="role-card" onclick="selectRole('admin')">
-        <div class="role-card-icon admin">👑</div>
-        <div>
-          <div class="role-card-title">Admin / Manager / Owner</div>
-          <div class="role-card-desc">Full access · Reports · Employee Management</div>
+
+      <!-- ADMIN CARD WITH INLINE PIN -->
+      <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px" onclick="document.getElementById('adminPinInput').focus()">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="role-card-icon admin">👑</div>
+          <div>
+            <div class="role-card-title">Admin / Manager / Owner</div>
+            <div class="role-card-desc">Full access · Reports · Employee Management</div>
+          </div>
+        </div>
+        <div onclick="event.stopPropagation()" style="display:flex;gap:8px">
+          <input id="adminPinInput" type="password" maxlength="4" placeholder="Enter PIN"
+            style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:800;letter-spacing:6px;text-align:center;outline:none;font-family:inherit"
+            oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkAdminPin()"
+            onkeydown="if(event.key==='Enter')checkAdminPin()"
+            onfocus="this.style.borderColor='var(--red)'"
+            onblur="this.style.borderColor='var(--border)'"/>
+          <button onclick="checkAdminPin()"
+            style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">
+            Login
+          </button>
+        </div>
+        <div id="adminPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">
+          Incorrect PIN. Try again.
         </div>
       </div>
     </div>
@@ -878,20 +897,29 @@ const ADMIN_PINS = [
   {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
 ];
 
-function verifyPIN(){
-  const entered = String(pinBuffer).trim();
-  // Check hardcoded PINs first (always works)
+function checkAdminPin(){
+  const input = document.getElementById('adminPinInput');
+  const errEl = document.getElementById('adminPinError');
+  const entered = input.value.trim();
+  if(entered.length < 4) return;
+
+  // Check hardcoded first
   let emp = ADMIN_PINS.find(e=>e.pin===entered);
-  // Also check loaded employees from Supabase
+  // Also check Supabase-loaded employees
   if(!emp && employees.length){
     emp = employees.find(e=>String(e.pin).trim()===entered&&(e.role==='owner'||e.role==='admin'));
   }
+
   if(emp){
-    closePIN();
-    if(pinCallback) pinCallback(emp);
+    errEl.style.display='none';
+    input.value='';
+    input.style.borderColor='var(--border)';
+    onAdminPINSuccess(emp);
   } else {
-    document.getElementById('pinError').textContent='Incorrect PIN. Try again.';
-    pinBuffer=''; updatePinDisplay();
+    errEl.style.display='block';
+    input.value='';
+    input.style.borderColor='var(--red)';
+    input.focus();
   }
 }
 
