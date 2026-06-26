@@ -18,8 +18,6 @@ body{font-family:'Segoe UI',sans-serif;background:#f0f0f0;color:#1a1a1a;font-siz
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
 button{cursor:pointer;font-family:inherit}
-
-/* TOPBAR */
 .topbar{height:50px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
 .brand{display:flex;align-items:center;gap:10px}
 .brand-badge{width:36px;height:36px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px;font-style:italic}
@@ -35,41 +33,29 @@ button{cursor:pointer;font-family:inherit}
 .btn-sm:hover{background:var(--red);color:#fff}
 .btn-green{background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700}
 .btn-green:hover{background:#196f3d}
-
-/* TABS */
 .tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;overflow-x:auto;flex-shrink:0}
 .tabs::-webkit-scrollbar{height:0}
-.tab{padding:11px 14px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;margin-bottom:-2px;display:flex;align-items:center;gap:4px}
+.tab{padding:11px 14px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;margin-bottom:-2px}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--red);border-bottom-color:var(--red)}
-.tab.locked-tab{color:#ccc}
-.lock-icon{font-size:10px}
-
-/* BODY */
 .body{flex:1;overflow-y:auto;padding:16px;background:#f0f0f0}
-
-/* CARDS */
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
 .card-title{font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .red-bar{width:4px;height:16px;background:var(--red);border-radius:2px;flex-shrink:0}
-
-/* METRICS */
 .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .metric{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center}
 .metric-val{font-size:18px;font-weight:800;margin-bottom:2px}
 .metric-val.gr{color:var(--green)}.metric-val.re{color:var(--red)}.metric-val.go{color:var(--gold)}.metric-val.bl{color:var(--blue)}
 .metric-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-
-/* TABLE */
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{background:#f8f8f8;padding:8px 10px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)}
-.tbl td{padding:8px 10px;border-bottom:1px solid #f5f5f5;color:var(--text)}
+.tbl th{background:#f8f8f8;padding:8px 10px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 10px;border-bottom:1px solid #f5f5f5}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:#fafafa}
 .tbl .num{text-align:right;font-weight:700}
 .tbl .gr{color:var(--green)}.tbl .re{color:var(--red)}.tbl .go{color:var(--gold)}
 
-/* ── ROLE SELECT SCREEN ── */
+/* ROLE SCREEN */
 #roleScreen{background:#fff;align-items:center;justify-content:center}
 .role-select-wrap{width:100%;max-width:480px;padding:24px}
 .role-brand{text-align:center;margin-bottom:32px}
@@ -82,10 +68,10 @@ button{cursor:pointer;font-family:inherit}
 .role-card-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .role-card-icon.cashier{background:#f0f0f0}
 .role-card-icon.admin{background:var(--gold-light)}
-.role-card-title{font-size:16px;font-weight:800;color:var(--text)}
+.role-card-title{font-size:16px;font-weight:800}
 .role-card-desc{font-size:12px;color:var(--muted);margin-top:2px}
 
-/* ── LOGIN / TIME RECORD ── */
+/* LOGIN */
 #loginScreen{background:#fff;align-items:center;overflow-y:auto}
 .login-header{width:100%;text-align:center;padding:20px 16px 14px;border-bottom:1px solid var(--border)}
 .login-brand{font-size:28px;font-weight:900;color:var(--red);letter-spacing:3px}
@@ -94,8 +80,6 @@ button{cursor:pointer;font-family:inherit}
 .login-body{width:100%;max-width:540px;padding:16px}
 .lcard{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
 .lcard-label{font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px}
-
-/* employees */
 .emp-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #f5f5f5;cursor:pointer;border-radius:8px}
 .emp-row:hover{background:#fafafa}
 .emp-row.selected{background:var(--red-light)}
@@ -110,8 +94,6 @@ button{cursor:pointer;font-family:inherit}
 .role-badge.admin{background:#eaf2fb;color:#1a5fa8}
 .role-badge.cashier{background:#f0f0f0;color:#888}
 .emp-elapsed{font-size:12px;font-weight:700;color:var(--green)}
-
-/* time buttons */
 .time-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .time-btn{flex:1;min-width:80px;padding:12px 8px;border-radius:10px;border:2px solid;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;text-transform:uppercase}
 .time-btn.tin{border-color:var(--green);background:var(--green-light);color:var(--green)}
@@ -147,14 +129,14 @@ button{cursor:pointer;font-family:inherit}
 .mcard:hover{border-color:var(--red);background:var(--red-light)}
 .mcard:active{transform:scale(.97)}
 .mcard-cat{font-size:9px;font-weight:800;text-transform:uppercase;color:#bbb;margin-bottom:2px}
-.mcard-name{font-size:11px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:2px}
+.mcard-name{font-size:11px;font-weight:700;line-height:1.3;margin-bottom:2px}
 .mcard-desc{font-size:9px;color:#aaa;margin-bottom:2px}
 .mcard-price{font-size:13px;font-weight:800;color:var(--red)}
 .order-panel{width:230px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
 .order-head{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .order-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .sel-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-bottom:6px}
-.sel-row select{flex:1;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:11px;font-weight:600;color:var(--text)}
+.sel-row select{flex:1;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:11px;font-weight:600}
 .pmethods{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .pmethod{padding:4px 8px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer}
 .pmethod.active{background:var(--blue);color:#fff;border-color:var(--blue)}
@@ -229,7 +211,7 @@ button{cursor:pointer;font-family:inherit}
 .dtr-act.res{background:var(--blue-light);color:var(--blue)}
 .dtr-photo{width:30px;height:30px;border-radius:6px;object-fit:cover;border:1px solid var(--border)}
 
-/* EMPLOYEE MANAGEMENT */
+/* EMPLOYEE MGMT */
 .emp-mgmt-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f5f5f5}
 .emp-mgmt-row:hover{background:#fafafa}
 .emp-mgmt-info{flex:1}
@@ -239,6 +221,32 @@ button{cursor:pointer;font-family:inherit}
 .act-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer}
 .act-btn.edit{background:var(--blue-light);color:var(--blue)}
 .act-btn.del{background:var(--red-light);color:var(--red)}
+
+/* PRODUCT MGMT */
+.prod-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f5f5f5}
+.prod-row:hover{background:#fafafa}
+.prod-info{flex:1}
+.prod-name{font-size:13px;font-weight:700}
+.prod-meta{font-size:11px;color:var(--muted)}
+.prod-price{font-size:14px;font-weight:800;color:var(--red);min-width:60px;text-align:right}
+.prod-actions{display:flex;gap:4px;margin-left:8px}
+
+/* EXPENSES */
+.exp-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f5f5f5}
+.exp-row:hover{background:#fafafa}
+.exp-cat{font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px;background:var(--blue-light);color:var(--blue);white-space:nowrap}
+.exp-desc{flex:1;font-size:12px;color:var(--text)}
+.exp-amt{font-size:13px;font-weight:800;color:var(--red)}
+.exp-del{color:#ccc;cursor:pointer;font-size:16px;font-weight:800;padding:0 4px}
+.exp-del:hover{color:var(--red)}
+
+/* PAYMENT / DENOM */
+.denom-btn{padding:10px 6px;border-radius:10px;border:2px solid var(--border);background:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:all .1s}
+.denom-btn:hover{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.denom-btn:active{transform:scale(.95)}
+.pay-method-btn{padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer}
+.pay-method-btn:hover{border-color:var(--blue);color:var(--blue)}
+.pay-method-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
 /* RECEIPT */
 .receipt-header{text-align:center;padding-bottom:12px;border-bottom:1px dashed var(--border);margin-bottom:12px}
@@ -252,8 +260,8 @@ button{cursor:pointer;font-family:inherit}
 /* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal{background:#fff;border-radius:16px;padding:24px;width:340px;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:15px;font-weight:800;margin-bottom:14px;text-align:center;color:var(--text)}
+.modal{background:#fff;border-radius:16px;padding:24px;width:360px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:14px;text-align:center}
 .modal-btns{display:flex;gap:8px;margin-top:14px}
 .mbtn{flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:700}
 .mbtn.primary{background:var(--red);color:#fff}
@@ -262,37 +270,29 @@ button{cursor:pointer;font-family:inherit}
 #camCanvas{display:none}
 .photo-preview{width:100%;border-radius:10px;margin-top:8px;max-height:200px;object-fit:cover;display:none}
 
-/* PIN MODAL */
-.pin-modal{background:#fff;border-radius:20px;padding:28px 24px;width:320px;text-align:center}
-.pin-display{font-size:32px;letter-spacing:12px;font-weight:800;background:#f8f8f8;border-radius:12px;padding:12px 16px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:center;color:var(--text)}
-.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.pin-key{padding:14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:18px;font-weight:700;color:var(--text)}
-.pin-key:hover{background:#f0f0f0}
-.pin-key:active{transform:scale(.95)}
-.pin-key.del{background:var(--red-light);color:var(--red);border-color:#f5b7b1}
-.pin-error{color:var(--red);font-size:12px;font-weight:700;margin-bottom:8px;min-height:18px}
-.pin-cancel{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#f5f5f5;color:var(--muted);font-size:13px;font-weight:700}
+/* OFFLINE BANNER */
+.offline-banner{position:fixed;top:0;left:0;right:0;background:var(--gold);color:#fff;font-size:12px;font-weight:800;text-align:center;padding:6px 16px;z-index:1000;display:none}
+.offline-banner.show{display:flex;align-items:center;justify-content:center;gap:8px}
+.sync-badge{background:#fff;color:var(--gold);font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px}
 
 /* LOADING / TOAST */
 .loading-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--red);z-index:999;display:none}
 .loading-bar.active{display:block;animation:loadpulse 1s ease-in-out infinite}
 @keyframes loadpulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;display:none}
-/* DENOMINATION BUTTONS */
-.denom-btn{padding:10px 6px;border-radius:10px;border:2px solid var(--border);background:#fff;font-size:14px;font-weight:800;color:var(--text);cursor:pointer;transition:all .1s}
-.denom-btn:hover{border-color:var(--green);background:var(--green-light);color:var(--green)}
-.denom-btn:active{transform:scale(.95)}
-.pay-method-btn{padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .1s}
-.pay-method-btn:hover{border-color:var(--blue);color:var(--blue)}
-.pay-method-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 @media print{.no-print{display:none!important}.screen{display:block!important}body{background:#fff}}
 </style>
 </head>
 <body>
 <div class="loading-bar" id="loadingBar"></div>
 <div class="toast" id="toast"></div>
+<div class="offline-banner" id="offlineBanner">
+  <span>OFFLINE MODE — Data saved locally</span>
+  <span class="sync-badge" id="syncBadge">0 pending</span>
+  <button onclick="syncQueue()" style="background:#fff;color:var(--gold);border:none;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:800;cursor:pointer">Sync Now</button>
+</div>
 
-<!-- ═══ ROLE SELECT SCREEN ═══ -->
+<!-- ROLE SELECT -->
 <div class="screen active" id="roleScreen">
   <div class="role-select-wrap">
     <div class="role-brand">
@@ -308,14 +308,12 @@ button{cursor:pointer;font-family:inherit}
           <div class="role-card-desc">Time In/Out · POS · Kitchen Display</div>
         </div>
       </div>
-
-      <!-- ADMIN CARD WITH INLINE PIN -->
       <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px" onclick="document.getElementById('adminPinInput').focus()">
         <div style="display:flex;align-items:center;gap:16px">
           <div class="role-card-icon admin">👑</div>
           <div>
             <div class="role-card-title">Admin / Manager / Owner</div>
-            <div class="role-card-desc">Full access · Reports · Employee Management</div>
+            <div class="role-card-desc">Full access · Reports · Products · Expenses</div>
           </div>
         </div>
         <div onclick="event.stopPropagation()" style="display:flex;gap:8px">
@@ -325,20 +323,15 @@ button{cursor:pointer;font-family:inherit}
             onkeydown="if(event.key==='Enter')checkAdminPin()"
             onfocus="this.style.borderColor='var(--red)'"
             onblur="this.style.borderColor='var(--border)'"/>
-          <button onclick="checkAdminPin()"
-            style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">
-            Login
-          </button>
+          <button onclick="checkAdminPin()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Login</button>
         </div>
-        <div id="adminPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">
-          Incorrect PIN. Try again.
-        </div>
+        <div id="adminPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">Incorrect PIN. Try again.</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══ LOGIN / TIME RECORD ═══ -->
+<!-- LOGIN / TIME RECORD -->
 <div class="screen" id="loginScreen">
   <div class="login-header">
     <div class="login-brand">ONIISAN</div>
@@ -362,10 +355,14 @@ button{cursor:pointer;font-family:inherit}
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
     <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role</button>
+    <div class="lcard" style="margin-top:12px">
+      <div class="lcard-label">RECENT ORDERS TODAY (Last 8)</div>
+      <div id="recentOrdersList"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Loading...</div></div>
+    </div>
   </div>
 </div>
 
-<!-- ═══ ADMIN SCREEN ═══ -->
+<!-- ADMIN SCREEN -->
 <div class="screen" id="adminScreen">
   <div class="topbar no-print">
     <div class="brand">
@@ -387,6 +384,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="kitchen">Kitchen</div>
     <div class="tab" data-tab="sales">Sales Log</div>
     <div class="tab" data-tab="daily">Daily Report</div>
+    <div class="tab" data-tab="expenses">Expenses</div>
     <div class="tab" data-tab="monthly">Monthly</div>
     <div class="tab" data-tab="xread">X Reading</div>
     <div class="tab" data-tab="zread">Z Reading</div>
@@ -397,13 +395,13 @@ button{cursor:pointer;font-family:inherit}
   <div class="body" id="adminBody"></div>
 </div>
 
-<!-- ═══ POS SCREEN ═══ -->
+<!-- POS SCREEN -->
 <div class="screen" id="posScreen">
   <div class="pos-topbar no-print">
     <div class="pos-brand">Oniisan Tempura · SM Bicutan</div>
     <div class="pos-acts">
       <button class="pos-btn" onclick="goScreen('kitchenScreen');renderKitchen()">Kitchen</button>
-      <button class="pos-btn" id="posBackBtn" onclick="goBackFromPOS()">← Back</button>
+      <button class="pos-btn" onclick="goBackFromPOS()">← Back</button>
     </div>
   </div>
   <div class="pos-body">
@@ -441,10 +439,7 @@ button{cursor:pointer;font-family:inherit}
       <div class="order-items" id="orderItemsWrap"><div class="order-empty">No items yet</div></div>
       <div class="order-foot">
         <div class="subtotals" id="subtotalsDiv"></div>
-        <div class="total-row-pos">
-          <span class="total-lbl">TOTAL</span>
-          <span class="total-amt" id="orderTotal">₱0</span>
-        </div>
+        <div class="total-row-pos"><span class="total-lbl">TOTAL</span><span class="total-amt" id="orderTotal">₱0</span></div>
         <button class="charge-btn" onclick="openCharge()">Charge</button>
         <button class="clear-btn" onclick="clearOrder()">Clear order</button>
       </div>
@@ -452,7 +447,7 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<!-- ═══ KITCHEN SCREEN ═══ -->
+<!-- KITCHEN SCREEN -->
 <div class="screen" id="kitchenScreen">
   <div class="kitchen-top no-print">
     <div class="kitchen-title">Kitchen Display<span class="kitchen-badge">SM BICUTAN</span></div>
@@ -461,7 +456,7 @@ button{cursor:pointer;font-family:inherit}
   <div class="kitchen-grid" id="kitchenGrid"></div>
 </div>
 
-<!-- ═══ CAMERA MODAL ═══ -->
+<!-- CAMERA MODAL -->
 <div class="modal-overlay" id="camModal">
   <div class="modal">
     <div class="modal-title" id="camModalTitle">Take Photo</div>
@@ -476,7 +471,7 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<!-- ═══ PAYMENT MODAL ═══ -->
+<!-- PAYMENT MODAL -->
 <div class="modal-overlay" id="receiptModal">
   <div class="modal" style="width:420px;max-width:98vw">
     <div class="receipt-header">
@@ -489,8 +484,6 @@ button{cursor:pointer;font-family:inherit}
     <hr class="receipt-divider"/>
     <div id="receiptSubtotals" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
     <div class="receipt-total" style="margin-bottom:14px"><span>TOTAL DUE</span><span id="receiptTotal" style="font-size:22px"></span></div>
-
-    <!-- PAYMENT METHOD TABS -->
     <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:8px">PAYMENT METHOD</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="payModalMethods">
       <button class="pay-method-btn active" data-pm="cash" onclick="selectPayMethod('cash')">Cash</button>
@@ -501,8 +494,6 @@ button{cursor:pointer;font-family:inherit}
       <button class="pay-method-btn" data-pm="grabfood" onclick="selectPayMethod('grabfood')">GrabFood</button>
       <button class="pay-method-btn" data-pm="foodpanda" onclick="selectPayMethod('foodpanda')">FoodPanda</button>
     </div>
-
-    <!-- CASH SECTION -->
     <div id="cashSection">
       <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:8px">CUSTOMER CASH</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
@@ -513,18 +504,16 @@ button{cursor:pointer;font-family:inherit}
         <button class="denom-btn" onclick="addDenom(500)">₱500</button>
         <button class="denom-btn" onclick="addDenom(1000)">₱1,000</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:11px;color:var(--muted);font-weight:700">Cash Tendered:</div>
         <div style="font-size:20px;font-weight:900;color:var(--blue)" id="cashTendered">₱0.00</div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--green-light);border-radius:10px;border:1px solid #a9dfbf;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;padding:10px;background:var(--green-light);border-radius:10px;border:1px solid #a9dfbf;margin-bottom:8px">
         <div style="font-size:13px;color:var(--green);font-weight:800">CHANGE:</div>
         <div style="font-size:24px;font-weight:900;color:var(--green)" id="changeAmt">₱0.00</div>
       </div>
       <button class="denom-btn" style="width:100%;background:#f0f0f0;color:var(--muted);border-color:#ddd;font-size:11px;padding:7px" onclick="resetDenom()">Reset</button>
     </div>
-
-    <!-- CASHLESS SECTION -->
     <div id="cashlessSection" style="display:none">
       <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:13px;color:var(--blue);font-weight:800;margin-bottom:4px" id="cashlessLabel">GCash Payment</div>
@@ -532,8 +521,7 @@ button{cursor:pointer;font-family:inherit}
         <div style="font-size:28px;font-weight:900;color:var(--blue);margin-top:8px" id="cashlessAmt"></div>
       </div>
     </div>
-
-    <div class="receipt-footer">Thank you for dining! · ありがとうございます</div>
+    <div class="receipt-footer">Thank you! · ありがとうございます</div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="mbtn secondary" onclick="closeReceipt()">Cancel</button>
       <button class="mbtn primary" id="confirmBtn" onclick="confirmCharge()" style="opacity:.4" disabled>Confirm Payment</button>
@@ -541,43 +529,21 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<!-- ═══ PIN MODAL ═══ -->
-<div class="modal-overlay" id="pinModal">
-  <div class="pin-modal">
-    <div class="modal-title" id="pinModalTitle">Enter PIN</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="pinModalSub">Enter your 4-digit PIN</div>
-    <div class="pin-display" id="pinDisplay">– – – –</div>
-    <div class="pin-error" id="pinError"></div>
-    <div class="pin-keypad" id="pinKeypad"></div>
-    <button class="pin-cancel" onclick="closePIN()">Cancel</button>
-  </div>
-</div>
-
-<!-- ═══ EMPLOYEE MODAL ═══ -->
+<!-- EMPLOYEE MODAL -->
 <div class="modal-overlay" id="empModal">
   <div class="modal">
     <div class="modal-title" id="empModalTitle">Add Employee</div>
     <input type="hidden" id="empModalId"/>
-    <div class="input-group">
-      <div class="input-label">Full Name</div>
-      <input class="inp" id="empModalName" placeholder="e.g. Juan dela Cruz"/>
-    </div>
-    <div class="input-group">
-      <div class="input-label">Initials (2-3 letters)</div>
-      <input class="inp" id="empModalInitials" placeholder="e.g. JC" maxlength="3"/>
-    </div>
-    <div class="input-group">
-      <div class="input-label">Role</div>
+    <div class="input-group"><div class="input-label">Full Name</div><input class="inp" id="empModalName" placeholder="e.g. Juan dela Cruz"/></div>
+    <div class="input-group"><div class="input-label">Initials (2-3 letters)</div><input class="inp" id="empModalInitials" placeholder="e.g. JC" maxlength="3"/></div>
+    <div class="input-group"><div class="input-label">Role</div>
       <select class="inp" id="empModalRole">
         <option value="cashier">Cashier / Staff</option>
         <option value="admin">Admin / Manager</option>
         <option value="owner">Owner</option>
       </select>
     </div>
-    <div class="input-group">
-      <div class="input-label">4-digit PIN</div>
-      <input class="inp" id="empModalPin" type="password" placeholder="e.g. 1234" maxlength="4"/>
-    </div>
+    <div class="input-group"><div class="input-label">4-digit PIN</div><input class="inp" id="empModalPin" type="password" placeholder="e.g. 1234" maxlength="4"/></div>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeEmpModal()">Cancel</button>
       <button class="mbtn primary" onclick="saveEmployee()">Save</button>
@@ -585,169 +551,231 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="prodModal">
+  <div class="modal">
+    <div class="modal-title" id="prodModalTitle">Add Product</div>
+    <input type="hidden" id="prodModalId"/>
+    <div class="input-group"><div class="input-label">Product Name</div><input class="inp" id="prodModalName" placeholder="e.g. Ebi Tempura"/></div>
+    <div class="input-group"><div class="input-label">Category</div>
+      <select class="inp" id="prodModalCat">
+        <option value="bento">Bento Sets</option>
+        <option value="donburi">Donburi</option>
+        <option value="ramen">Ramen & Udon</option>
+        <option value="tempura">Tempura</option>
+        <option value="svm">Super Value</option>
+        <option value="alacarte">Ala Carte</option>
+        <option value="drinks">Drinks</option>
+      </select>
+    </div>
+    <div class="input-group"><div class="input-label">Price (₱)</div><input class="inp" id="prodModalPrice" type="number" placeholder="0" min="0"/></div>
+    <div class="input-group"><div class="input-label">Description (optional)</div><input class="inp" id="prodModalDesc" placeholder="e.g. w/ Miso Soup"/></div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeProdModal()">Cancel</button>
+      <button class="mbtn primary" onclick="saveProduct()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSE MODAL -->
+<div class="modal-overlay" id="expModal">
+  <div class="modal">
+    <div class="modal-title">Add Expense</div>
+    <div class="input-group"><div class="input-label">Category</div>
+      <select class="inp" id="expModalCat">
+        <option value="Cost of Sales">Cost of Sales</option>
+        <option value="Shipping Fee">Shipping Fee</option>
+        <option value="Office Supplies">Office Supplies</option>
+        <option value="Utilities">Utilities</option>
+        <option value="Salaries">Salaries</option>
+        <option value="Rent">Rent</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Repairs & Maintenance">Repairs & Maintenance</option>
+        <option value="Miscellaneous">Miscellaneous</option>
+      </select>
+    </div>
+    <div class="input-group"><div class="input-label">Description</div><input class="inp" id="expModalDesc" placeholder="e.g. Vegetables from supplier"/></div>
+    <div class="input-group"><div class="input-label">Amount (₱)</div><input class="inp" id="expModalAmt" type="number" placeholder="0" min="0"/></div>
+    <input type="hidden" id="expModalDate"/>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeExpModal()">Cancel</button>
+      <button class="mbtn primary" onclick="saveExpense()">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════ SUPABASE ══════
-const SUPA_URL = 'https://edbneihfxiwkvczjecei.supabase.co';
-const SUPA_KEY = 'sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
+const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-// ══════ LOCAL CACHE ══════
-const LS = {
+// ══════ LOCAL STORAGE ══════
+const LS={
   get:(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d}catch{return d}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
 
-// ══════ STATE ══════
-let employees = []; // loaded from Supabase
-let selectedEmp = null;
-let currentRole = 'cashier';
-let currentLoginEmp = null; // employee who logged in via PIN
-let currentCat = 'all';
-let order = {};
-let selectedPM = 'cash';
-let kitchenTickets = LS.get('kitchen_tickets',[]);
-let camStream = null;
-let pendingTimeAction = null;
-let pendingPhotoEmpId = null;
-let orCounter = LS.get('or_counter',1000);
-let pinBuffer = '';
-let pinCallback = null; // function to call after PIN verified
+// ══════ OFFLINE QUEUE ══════
+const QUEUE_KEY='oniisan_offline_q';
+function addToQueue(type,data){const q=LS.get(QUEUE_KEY,[]);q.push({type,data,ts:new Date().toISOString()});LS.set(QUEUE_KEY,q);updateSyncBadge();}
+function updateSyncBadge(){const q=LS.get(QUEUE_KEY,[]);const b=document.getElementById('syncBadge');if(b)b.textContent=q.length+' pending';}
+async function syncQueue(){
+  if(!navigator.onLine){showToast('No internet connection');return;}
+  const q=LS.get(QUEUE_KEY,[]);
+  if(!q.length){showToast('All data synced!');return;}
+  setLoading(true);
+  const failed=[];
+  for(const item of q){
+    try{
+      if(item.type==='txn'){const{error}=await sb.from('transactions').insert([item.data]);if(error)failed.push(item);}
+      else if(item.type==='dtr'){const{error}=await sb.from('time_records').insert([item.data]);if(error)failed.push(item);}
+      else if(item.type==='expense'){const{error}=await sb.from('expenses').insert([item.data]);if(error)failed.push(item);}
+    }catch(e){failed.push(item);}
+  }
+  LS.set(QUEUE_KEY,failed);
+  setLoading(false);
+  updateSyncBadge();
+  const synced=q.length-failed.length;
+  showToast(synced>0?`Synced ${synced} records!`:'Sync failed — check connection');
+}
 
-// ══════ MENU DATA ══════
-const CATS = [
+// Online/offline events
+window.addEventListener('online',()=>{
+  document.getElementById('offlineBanner').classList.remove('show');
+  showToast('Back online! Syncing...');
+  setTimeout(syncQueue,1000);
+});
+window.addEventListener('offline',()=>{
+  document.getElementById('offlineBanner').classList.add('show');
+  showToast('Offline — saving locally');
+});
+if(!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
+updateSyncBadge();
+
+// ══════ STATE ══════
+let employees=[];
+let MENU=[];
+let selectedEmp=null;
+let currentRole='cashier';
+let currentLoginEmp=null;
+let currentCat='all';
+let order={};
+let selectedPM='cash';
+let kitchenTickets=LS.get('kitchen_tickets',[]);
+let camStream=null;
+let pendingTimeAction=null;
+let pendingPhotoEmpId=null;
+let orCounter=LS.get('or_counter',1000);
+let cashTendered=0;
+let currentOrderTotal=0;
+let currentPayMethod='cash';
+
+// ══════ CATEGORIES ══════
+const CATS=[
   {id:'all',label:'All Items'},{id:'bento',label:'Bento Sets'},{id:'donburi',label:'Donburi'},
   {id:'ramen',label:'Ramen & Udon'},{id:'tempura',label:'Tempura'},{id:'svm',label:'Super Value'},
   {id:'alacarte',label:'Ala Carte'},{id:'drinks',label:'Drinks'},
 ];
-const MENU = [
-  {id:1,cat:'bento',name:'Bento Set A',desc:'w/ Miso Soup',price:350},
-  {id:2,cat:'bento',name:'Bento Set B',desc:'w/ Miso Soup',price:320},
-  {id:3,cat:'bento',name:'Bento Set C',desc:'w/ Miso Soup',price:285},
-  {id:4,cat:'bento',name:'Bento Set D',desc:'w/ Miso Soup',price:420},
-  {id:5,cat:'bento',name:'Bento Set E',desc:'w/ Miso Soup',price:370},
-  {id:6,cat:'bento',name:'Bento Set F',desc:'w/ Miso Soup',price:340},
-  {id:7,cat:'bento',name:'Bento Set G',desc:'w/ Miso Soup',price:380},
-  {id:8,cat:'bento',name:'Bento Set H',desc:'w/ Miso Soup',price:250},
-  {id:10,cat:'donburi',name:'Beef Teriyaki Don',price:235},
-  {id:11,cat:'donburi',name:'Chicken Teriyaki Don',price:225},
-  {id:12,cat:'donburi',name:'Salmon Teriyaki Don',price:280},
-  {id:13,cat:'donburi',name:'Pork Katsudon',price:225},
-  {id:14,cat:'donburi',name:'Pork Tonkatsu Don',price:225},
-  {id:15,cat:'donburi',name:'Beef Gyudon',price:235},
-  {id:16,cat:'donburi',name:'Special Tendon Tempura',price:280},
-  {id:17,cat:'donburi',name:'Chukadon',price:188},
-  {id:18,cat:'donburi',name:'Chicken Karaage Don',price:195},
-  {id:19,cat:'donburi',name:'Oyakodon',price:195},
-  {id:20,cat:'ramen',name:'Beef Udon',price:250},
-  {id:21,cat:'ramen',name:'Ebi Miso Ramen',price:280},
-  {id:22,cat:'ramen',name:'Tonkatsu Ramen',price:250},
-  {id:23,cat:'ramen',name:'Udon Tempura',price:230},
-  {id:24,cat:'ramen',name:'Seafoods Ramen',price:280},
-  {id:25,cat:'ramen',name:'Tantanmen',price:250},
-  {id:26,cat:'ramen',name:'Dragon Soul',price:250},
-  {id:27,cat:'ramen',name:'Spicy Miso Ramen',price:250},
-  {id:28,cat:'ramen',name:'Shoyu Ramen',price:250},
-  {id:29,cat:'ramen',name:'Shio Ramen',price:250},
-  {id:30,cat:'tempura',name:'Ebi Tempura',desc:'P50/pc',price:50},
-  {id:31,cat:'tempura',name:'Crabstick Tempura',desc:'P50/pc',price:50},
-  {id:32,cat:'tempura',name:'Kani Tempura',price:200},
-  {id:33,cat:'tempura',name:'Kakiage Tempura',price:75},
-  {id:40,cat:'svm',name:'Pork Tonkatsu SVM',price:175},
-  {id:41,cat:'svm',name:'Ebi Tempura SVM',price:200},
-  {id:42,cat:'svm',name:'Ramen SVM',price:250},
-  {id:43,cat:'svm',name:'Salmon Teriyaki SVM',price:250},
-  {id:44,cat:'svm',name:'Kani Tempura SVM',price:200},
-  {id:45,cat:'svm',name:'Karaage LQ SVM',price:175},
-  {id:46,cat:'svm',name:'Musubi SVM',price:180},
-  {id:47,cat:'svm',name:'Gyoza SVM',price:175},
-  {id:50,cat:'alacarte',name:'Chahan',price:50},
-  {id:51,cat:'alacarte',name:'Gyoza',price:100},
-  {id:52,cat:'alacarte',name:'Okonomiyaki',price:250},
-  {id:53,cat:'alacarte',name:'Karaage Leg Quarter',price:150},
-  {id:54,cat:'alacarte',name:'Onigiri',price:60},
-  {id:55,cat:'alacarte',name:'Spam Musubi',price:60},
-  {id:56,cat:'alacarte',name:'Takoyaki',price:150},
-  {id:57,cat:'alacarte',name:'California Maki',price:60},
-  {id:58,cat:'alacarte',name:'Miso Soup',price:30},
-  {id:59,cat:'alacarte',name:'Japanese Rice',price:30},
-  {id:60,cat:'drinks',name:'Red Iced Tea',price:60},
-  {id:61,cat:'drinks',name:'Iced Green Tea',price:60},
-  {id:62,cat:'drinks',name:'Bottled Water',price:30},
-  {id:63,cat:'drinks',name:'Coke',price:40},
-];
 
 // ══════ HELPERS ══════
-const fmt = n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtn = n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2});
-const tsNow = ()=>new Date().toISOString();
-const timeStr = ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
-const dateStr = ts=>new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});
-const getTodayKey = ()=>new Date().toISOString().slice(0,10);
-const getMonthKey = ()=>new Date().toISOString().slice(0,7);
-const msToHM = ms=>{const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h+'h '+m+'m';};
+const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtn=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2});
+const tsNow=()=>new Date().toISOString();
+const timeStr=ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+const dateStr=ts=>new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});
+const getTodayKey=()=>new Date().toISOString().slice(0,10);
+const getMonthKey=()=>new Date().toISOString().slice(0,7);
+const msToHM=ms=>{const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h+'h '+m+'m';};
 function showToast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',dur);}
 function setLoading(on){document.getElementById('loadingBar').classList.toggle('active',on);}
 
 // ══════ SCREEN NAV ══════
 function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-// ══════ ROLE SELECT ══════
-function selectRole(role){
-  if(role==='cashier'){
-    currentRole='cashier';
-    goScreen('loginScreen');
-    loadEmployees(); // load in background
-    document.getElementById('openPosBtn').textContent='OPEN POS';
+// ══════ ADMIN PINS ══════
+const ADMIN_PINS=[
+  {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
+  {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
+];
+
+function checkAdminPin(){
+  const input=document.getElementById('adminPinInput');
+  const errEl=document.getElementById('adminPinError');
+  const entered=input.value.trim();
+  if(entered.length<4)return;
+  let emp=ADMIN_PINS.find(e=>e.pin===entered);
+  if(!emp&&employees.length) emp=employees.find(e=>String(e.pin).trim()===entered&&(e.role==='owner'||e.role==='admin'));
+  if(emp){
+    errEl.style.display='none';input.value='';
+    onAdminPINSuccess(emp);
   } else {
-    // Show PIN immediately — hardcoded PINs work without Supabase
-    openPIN('Admin / Owner Login','Enter your 4-digit PIN', onAdminPINSuccess);
-    loadEmployees(); // also load in background for updated PINs
+    errEl.style.display='block';input.value='';input.focus();
   }
 }
 
 function onAdminPINSuccess(emp){
-  currentRole = emp.role;
-  currentLoginEmp = emp;
+  currentRole=emp.role;currentLoginEmp=emp;
   try{
-    document.getElementById('currentRolePill').textContent = emp.name;
-    document.getElementById('currentRolePill').className = 'role-pill '+emp.role;
-    document.getElementById('adminRoleSub').textContent = 'SM Bicutan · '+emp.name;
+    document.getElementById('currentRolePill').textContent=emp.name;
+    document.getElementById('currentRolePill').className='role-pill '+emp.role;
+    document.getElementById('adminRoleSub').textContent='SM Bicutan · '+emp.name;
   }catch(e){}
   goScreen('adminScreen');
   setActiveTab('dashboard');
   renderTabContent('dashboard');
 }
 
-function openPosOrAdmin(){
-  if(currentRole==='cashier'){
-    goScreen('posScreen');renderMenu();
+// ══════ ROLE SELECT ══════
+function selectRole(role){
+  if(role==='cashier'){
+    currentRole='cashier';
+    goScreen('loginScreen');
+    loadEmployees();
+    loadProducts();
+    renderRecentOrders();
+    document.getElementById('openPosBtn').textContent='OPEN POS';
   } else {
-    goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');
+    loadEmployees();
+    loadProducts();
   }
-}
-function goBackFromPOS(){
-  if(currentRole==='cashier') goScreen('loginScreen');
-  else {goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
 }
 
-// ══════ LOAD EMPLOYEES FROM SUPABASE ══════
+function openPosOrAdmin(){
+  if(currentRole==='cashier'){goScreen('posScreen');renderMenu();}
+  else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
+}
+
+function goBackFromPOS(){
+  if(currentRole==='cashier'){goScreen('loginScreen');renderRecentOrders();}
+  else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
+}
+
+// ══════ LOAD DATA ══════
 async function loadEmployees(){
-  const {data,error}=await sb.from('employees').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('role',{ascending:false});
-  if(error||!data){
-    employees=LS.get('employees_cache',[]);
-  } else {
-    employees=data;
-    LS.set('employees_cache',data);
-  }
+  const{data,error}=await sb.from('employees').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('role',{ascending:false});
+  if(!error&&data&&data.length){employees=data;LS.set('employees_cache',data);}
+  else{const c=LS.get('employees_cache',[]);if(c.length)employees=c;}
   renderEmpList();
 }
 
+async function loadProducts(){
+  const{data,error}=await sb.from('products').select('*').eq('is_active',true).order('category').order('name');
+  if(!error&&data&&data.length){
+    MENU=data.map(p=>({id:p.id,cat:p.category,name:p.name,desc:p.description||'',price:Number(p.price)}));
+    LS.set('products_cache',MENU);
+  } else {
+    const c=LS.get('products_cache',[]);if(c.length)MENU=c;
+  }
+}
+
+// ══════ EMP STATUS ══════
+function getEmpStatus(id){return LS.get('empstat_'+id,{status:'out',since:null,breakStart:null,totalWork:0});}
+function saveEmpStatus(id,s){LS.set('empstat_'+id,s);}
+
 // ══════ EMPLOYEE LIST ══════
 function renderEmpList(){
-  if(!employees.length){
-    document.getElementById('empList').innerHTML='<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No employees found</div>';
-    return;
-  }
+  if(!employees.length){document.getElementById('empList').innerHTML='<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No employees found</div>';return;}
   document.getElementById('empList').innerHTML=employees.map(e=>{
     const stat=getEmpStatus(e.id);
     const photo=LS.get('empphoto_'+e.id,null);
@@ -755,17 +783,12 @@ function renderEmpList(){
     const statusText=isIn?'IN since '+timeStr(stat.since):isBrk?'On Break':'No log today';
     const dotCls=isIn?'in':isBrk?'brk':'';
     const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatarHtml=photo
-      ?`<div class="emp-avatar"><img src="${photo}" alt="${e.name}"/></div>`
-      :`<div class="emp-avatar" style="background:${isIn?'#eafaf1':isBrk?'#fef9e7':'#eee'};color:${isIn?'#1e8449':isBrk?'#c8900a':'#999'}">${initials}</div>`;
+    const avatarHtml=photo?`<div class="emp-avatar"><img src="${photo}" alt="${e.name}"/></div>`:`<div class="emp-avatar" style="background:${isIn?'#eafaf1':isBrk?'#fef9e7':'#eee'};color:${isIn?'#1e8449':isBrk?'#c8900a':'#999'}">${initials}</div>`;
     const elapsed=isIn&&stat.since?msToHM(Date.now()-new Date(stat.since).getTime()+(stat.totalWork||0)):'';
     return `<div class="emp-row${selectedEmp===e.id?' selected':''}" onclick="selectEmp('${e.id}')">
       <span class="emp-dot ${dotCls}"></span>${avatarHtml}
       <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="emp-name">${e.name}</span>
-          <span class="role-badge ${e.role}">${e.role}</span>
-        </div>
+        <div style="display:flex;align-items:center;gap:6px"><span class="emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div>
         <div class="emp-sub">${statusText}</div>
       </div>
       ${elapsed?`<div class="emp-elapsed">${elapsed}</div>`:''}
@@ -774,17 +797,33 @@ function renderEmpList(){
 }
 function selectEmp(id){selectedEmp=id;renderEmpList();}
 
-// ══════ EMP STATUS (localStorage) ══════
-function getEmpStatus(id){return LS.get('empstat_'+id,{status:'out',since:null,breakStart:null,totalWork:0});}
-function saveEmpStatus(id,s){LS.set('empstat_'+id,s);}
+// ══════ RECENT ORDERS ══════
+async function renderRecentOrders(){
+  const el=document.getElementById('recentOrdersList');
+  if(!el)return;
+  const txns=await sbGetTransactions();
+  const last8=txns.slice(-8).reverse();
+  if(!last8.length){el.innerHTML='<div style="text-align:center;padding:16px;color:#ccc;font-size:12px">No orders yet today</div>';return;}
+  el.innerHTML=last8.map(t=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);width:60px">${timeStr(t.ts)}</div>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:700">${t.table_name||'—'} · ${t.or_num||'—'}</div>
+        <div style="font-size:10px;color:var(--muted)">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:800;color:var(--green)">${fmt(t.total||0)}</div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">${t.payment_method||'cash'}</div>
+      </div>
+    </div>`).join('');
+}
 
 // ══════ TIME ACTION ══════
 function timeAction(action){
   if(!selectedEmp){showToast('Select an employee first.');return;}
   const emp=employees.find(e=>e.id===selectedEmp);
   if(!emp){showToast('Employee not found.');return;}
-  pendingTimeAction=action;
-  pendingPhotoEmpId=selectedEmp;
+  pendingTimeAction=action;pendingPhotoEmpId=selectedEmp;
   openCam(`${action.toUpperCase()} — ${emp.name}`);
 }
 
@@ -793,29 +832,17 @@ async function doTimeAction(action,empId,photoDataUrl){
   const emp=employees.find(e=>e.id===empId);
   const now=tsNow();
   const rec={emp_id:empId,emp_name:emp?.name,action,ts:now,photo_url:photoDataUrl,branch:'SM Bicutan',total_work:0,break_duration:0};
-  if(action==='in'){
-    if(stat.status==='in'){showToast('Already timed in!');return;}
-    stat.status='in';stat.since=now;stat.totalWork=stat.totalWork||0;
-  } else if(action==='brk'){
-    if(stat.status!=='in'){showToast('Not timed in!');return;}
-    stat.status='break';stat.breakStart=now;
-  } else if(action==='res'){
-    if(stat.status!=='break'){showToast('Not on break!');return;}
-    rec.break_duration=Date.now()-new Date(stat.breakStart).getTime();
-    stat.status='in';stat.breakStart=null;
-  } else if(action==='out'){
-    if(stat.status==='out'){showToast('Not timed in!');return;}
-    const worked=(stat.totalWork||0)+(stat.since?Date.now()-new Date(stat.since).getTime():0);
-    rec.total_work=worked;
-    stat.totalWork=0;stat.status='out';stat.since=null;
-  }
+  if(action==='in'){if(stat.status==='in'){showToast('Already timed in!');return;}stat.status='in';stat.since=now;stat.totalWork=stat.totalWork||0;}
+  else if(action==='brk'){if(stat.status!=='in'){showToast('Not timed in!');return;}stat.status='break';stat.breakStart=now;}
+  else if(action==='res'){if(stat.status!=='break'){showToast('Not on break!');return;}rec.break_duration=Date.now()-new Date(stat.breakStart).getTime();stat.status='in';stat.breakStart=null;}
+  else if(action==='out'){if(stat.status==='out'){showToast('Not timed in!');return;}const worked=(stat.totalWork||0)+(stat.since?Date.now()-new Date(stat.since).getTime():0);rec.total_work=worked;stat.totalWork=0;stat.status='out';stat.since=null;}
   saveEmpStatus(empId,stat);
-  const dk=getTodayKey();
-  const cache=LS.get('dtr_'+empId+'_'+dk,[]);
-  cache.push(rec);LS.set('dtr_'+empId+'_'+dk,cache);
-  await sb.from('time_records').insert([rec]);
-  renderEmpList();
-  showToast('Time record saved!');
+  // save locally first
+  const dk=getTodayKey();const cache=LS.get('dtr_'+empId+'_'+dk,[]);cache.push(rec);LS.set('dtr_'+empId+'_'+dk,cache);
+  // try Supabase, queue if offline
+  if(navigator.onLine){const{error}=await sb.from('time_records').insert([rec]);if(error)addToQueue('dtr',rec);}
+  else addToQueue('dtr',rec);
+  renderEmpList();showToast('Time record saved!');
 }
 
 // ══════ CAMERA ══════
@@ -827,9 +854,7 @@ function openCam(title){
   document.getElementById('camActionBtn').onclick=capturePhoto;
   document.getElementById('camInstruct').textContent='Position yourself then click Capture';
   document.getElementById('camModal').classList.add('open');
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}).then(s=>{
-    camStream=s;document.getElementById('camPreview').srcObject=s;
-  }).catch(()=>{
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}).then(s=>{camStream=s;document.getElementById('camPreview').srcObject=s;}).catch(()=>{
     document.getElementById('camInstruct').textContent='Camera not available. Click Skip.';
     document.getElementById('camActionBtn').textContent='Skip';
     document.getElementById('camActionBtn').onclick=()=>finishCam(null);
@@ -837,11 +862,9 @@ function openCam(title){
 }
 function capturePhoto(){
   const v=document.getElementById('camPreview'),c=document.getElementById('camCanvas');
-  c.width=v.videoWidth||320;c.height=v.videoHeight||240;
-  c.getContext('2d').drawImage(v,0,0);
+  c.width=v.videoWidth||320;c.height=v.videoHeight||240;c.getContext('2d').drawImage(v,0,0);
   const url=c.toDataURL('image/jpeg',.7);
-  document.getElementById('photoPreview').src=url;
-  document.getElementById('photoPreview').style.display='block';
+  document.getElementById('photoPreview').src=url;document.getElementById('photoPreview').style.display='block';
   document.getElementById('camPreview').style.display='none';
   document.getElementById('camInstruct').textContent='Click Save to confirm.';
   document.getElementById('camActionBtn').textContent='Save';
@@ -855,80 +878,13 @@ function finishCam(url){
     pendingTimeAction=null;pendingPhotoEmpId=null;
   }
 }
-function closeCam(){
-  document.getElementById('camModal').classList.remove('open');
-  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
-}
-
-// ══════ PIN MODAL ══════
-function buildPinKeypad(){
-  const kp=document.getElementById('pinKeypad');
-  kp.innerHTML=[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinKey('${n}')">${n}</button>`).join('')
-    +`<button class="pin-key" onclick="pinKey('clr')" style="font-size:12px">CLR</button>`
-    +`<button class="pin-key" onclick="pinKey('0')">0</button>`
-    +`<button class="pin-key del" onclick="pinKey('del')">⌫</button>`;
-}
-
-function openPIN(title, sub, callback){
-  pinBuffer='';
-  pinCallback=callback;
-  document.getElementById('pinModalTitle').textContent=title||'Enter PIN';
-  document.getElementById('pinModalSub').textContent=sub||'Enter your 4-digit PIN';
-  document.getElementById('pinDisplay').textContent='– – – –';
-  document.getElementById('pinError').textContent='';
-  buildPinKeypad();
-  document.getElementById('pinModal').classList.add('open');
-}
-function closePIN(){document.getElementById('pinModal').classList.remove('open');pinBuffer='';pinCallback=null;}
-
-function pinKey(k){
-  if(k==='clr'){pinBuffer='';updatePinDisplay();return;}
-  if(k==='del'){pinBuffer=pinBuffer.slice(0,-1);updatePinDisplay();return;}
-  if(pinBuffer.length>=4)return;
-  pinBuffer+=k;updatePinDisplay();
-  if(pinBuffer.length===4)setTimeout(verifyPIN,100);
-}
-function updatePinDisplay(){
-  document.getElementById('pinDisplay').textContent=Array.from({length:4},(_,i)=>i<pinBuffer.length?'●':'–').join(' ');
-}
-// ══════ HARDCODED ADMIN PINS (no Supabase needed) ══════
-const ADMIN_PINS = [
-  {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
-  {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
-];
-
-function checkAdminPin(){
-  const input = document.getElementById('adminPinInput');
-  const errEl = document.getElementById('adminPinError');
-  const entered = input.value.trim();
-  if(entered.length < 4) return;
-
-  // Check hardcoded first
-  let emp = ADMIN_PINS.find(e=>e.pin===entered);
-  // Also check Supabase-loaded employees
-  if(!emp && employees.length){
-    emp = employees.find(e=>String(e.pin).trim()===entered&&(e.role==='owner'||e.role==='admin'));
-  }
-
-  if(emp){
-    errEl.style.display='none';
-    input.value='';
-    input.style.borderColor='var(--border)';
-    onAdminPINSuccess(emp);
-  } else {
-    errEl.style.display='block';
-    input.value='';
-    input.style.borderColor='var(--red)';
-    input.focus();
-  }
-}
+function closeCam(){document.getElementById('camModal').classList.remove('open');if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}}
 
 // ══════ ADMIN TABS ══════
 function setActiveTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));}
 document.getElementById('adminTabs').addEventListener('click',e=>{
   const tab=e.target.closest('.tab');if(!tab)return;
-  const id=tab.dataset.tab;
-  setActiveTab(id);
+  const id=tab.dataset.tab;setActiveTab(id);
   if(id==='pos'){goScreen('posScreen');renderMenu();}
   else if(id==='kitchen'){goScreen('kitchenScreen');renderKitchen();}
   else renderTabContent(id);
@@ -937,93 +893,122 @@ function renderTabContent(tab){
   if(tab==='dashboard')renderDashboard();
   else if(tab==='sales')renderSalesLog();
   else if(tab==='daily')renderDailyReportForm();
+  else if(tab==='expenses')renderExpenses();
   else if(tab==='monthly')renderMonthly();
   else if(tab==='xread')renderXReading();
   else if(tab==='zread')renderZReading();
   else if(tab==='dtr')renderDTR();
   else if(tab==='employees')renderEmployeeMgmt();
-  else if(tab==='products')renderProducts();
+  else if(tab==='products')renderProductMgmt();
 }
 
-// ══════ OFFLINE QUEUE ══════
-const QUEUE_KEY = 'oniisan_offline_queue';
-function addToQueue(type, data){
-  const q = LS.get(QUEUE_KEY,[]);
-  q.push({type, data, ts: tsNow()});
-  LS.set(QUEUE_KEY, q);
-}
-async function syncQueue(){
-  const q = LS.get(QUEUE_KEY,[]);
-  if(!q.length) return;
-  const failed=[];
-  for(const item of q){
-    try{
-      if(item.type==='txn'){
-        const {error}=await sb.from('transactions').insert([item.data]);
-        if(error) failed.push(item);
-      } else if(item.type==='dtr'){
-        const {error}=await sb.from('time_records').insert([item.data]);
-        if(error) failed.push(item);
-      } else if(item.type==='daily_report'){
-        const {data:ex}=await sb.from('daily_reports').select('id').eq('date_key',item.data.date_key).single();
-        const fn=ex?sb.from('daily_reports').update(item.data).eq('date_key',item.data.date_key):sb.from('daily_reports').insert([item.data]);
-        const {error}=await fn;
-        if(error) failed.push(item);
-      }
-    }catch(e){failed.push(item);}
-  }
-  LS.set(QUEUE_KEY, failed);
-  if(q.length-failed.length>0) showToast(`Synced ${q.length-failed.length} offline records!`);
-}
-
-// Listen for online event to auto-sync
-window.addEventListener('online', ()=>{showToast('Back online — syncing...');setTimeout(syncQueue,1000);});
-
-// ══════ ONLINE CHECK ══════
-function isOnline(){return navigator.onLine;}
-function showOfflineBanner(show){
-  let b=document.getElementById('offlineBanner');
-  if(!b){
-    b=document.createElement('div');b.id='offlineBanner';
-    b.style.cssText='position:fixed;top:0;left:0;right:0;background:#c8900a;color:#fff;font-size:12px;font-weight:800;text-align:center;padding:6px;z-index:1000;display:none';
-    b.textContent='OFFLINE MODE — Data saved locally, will sync when connected';
-    document.body.appendChild(b);
-  }
-  b.style.display=show?'block':'none';
-}
-window.addEventListener('online',()=>showOfflineBanner(false));
-window.addEventListener('offline',()=>showOfflineBanner(true));
-if(!navigator.onLine) showOfflineBanner(true);
+// ══════ SUPABASE QUERIES ══════
 async function sbGetTransactions(dateKey){
   const d=dateKey||getTodayKey();
-  const {data,error}=await sb.from('transactions').select('*').gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
-  if(error)return LS.get('txn_'+d,[]);
-  LS.set('txn_'+d,data||[]);return data||[];
+  if(navigator.onLine){
+    const{data,error}=await sb.from('transactions').select('*').gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
+    if(!error){LS.set('txn_'+d,data||[]);return data||[];}
+  }
+  return LS.get('txn_'+d,[]);
 }
+
 async function sbSaveTxn(txn){
   setLoading(true);
-  const {error}=await sb.from('transactions').insert([{
-    or_num:txn.orNum,ts:txn.ts,table_name:txn.table,items:txn.items,
-    subtotal:txn.subtotal,discount:txn.discount,discount_amount:txn.discountAmount,
-    total:txn.total,payment_method:txn.paymentMethod,branch:'SM Bicutan'
-  }]);
+  const row={or_num:txn.orNum,ts:txn.ts,table_name:txn.table,items:txn.items,subtotal:txn.subtotal,discount:txn.discount,discount_amount:txn.discountAmount,total:txn.total,payment_method:txn.paymentMethod,branch:'SM Bicutan'};
+  // Save to local cache immediately
+  const dk=getTodayKey();const cache=LS.get('txn_'+dk,[]);cache.push({...row,id:Date.now()});LS.set('txn_'+dk,cache);
+  if(navigator.onLine){const{error}=await sb.from('transactions').insert([row]);if(error)addToQueue('txn',row);}
+  else addToQueue('txn',row);
   setLoading(false);
-  if(error){showToast('Saved locally (offline)');console.error(error);}
-  else showToast('Order saved!');
+  showToast(navigator.onLine?'Order saved!':'Saved offline — will sync later');
 }
+
 async function sbGetDailyReport(dk){
   const d=dk||getTodayKey();
-  const {data}=await sb.from('daily_reports').select('*').eq('date_key',d).single();
-  return data||LS.get('dailyrep_'+d,{date_key:d,expenses:0,grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,discount_staff:0,other_deductions:0,notes:''});
+  if(navigator.onLine){const{data}=await sb.from('daily_reports').select('*').eq('date_key',d).single();if(data){LS.set('dailyrep_'+d,data);return data;}}
+  return LS.get('dailyrep_'+d,{date_key:d,expenses:0,grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,discount_staff:0,other_deductions:0,notes:''});
 }
+
 async function sbSaveDailyReport(rep){
   setLoading(true);
-  const {data:ex}=await sb.from('daily_reports').select('id').eq('date_key',rep.date_key).single();
-  const fn=ex?sb.from('daily_reports').update(rep).eq('date_key',rep.date_key):sb.from('daily_reports').insert([rep]);
-  const {error}=await fn;
-  setLoading(false);
   LS.set('dailyrep_'+rep.date_key,rep);
-  showToast(error?'Saved locally':'Daily report saved!');
+  if(navigator.onLine){const{data:ex}=await sb.from('daily_reports').select('id').eq('date_key',rep.date_key).single();const fn=ex?sb.from('daily_reports').update(rep).eq('date_key',rep.date_key):sb.from('daily_reports').insert([rep]);const{error}=await fn;if(error)showToast('Saved locally');else showToast('Daily report saved!');}
+  else showToast('Saved offline');
+  setLoading(false);
+}
+
+// ══════ EXPENSES ══════
+async function sbGetExpenses(dateKey){
+  const d=dateKey||getTodayKey();
+  if(navigator.onLine){const{data,error}=await sb.from('expenses').select('*').eq('date_key',d).eq('branch','SM Bicutan').order('created_at');if(!error){LS.set('exp_'+d,data||[]);return data||[];}}
+  return LS.get('exp_'+d,[]);
+}
+
+async function renderExpenses(dateKey){
+  const key=dateKey||getTodayKey();
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  const exps=await sbGetExpenses(key);
+  const total=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const byCat={};exps.forEach(e=>{byCat[e.category]=(byCat[e.category]||0)+(e.amount||0);});
+
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Expenses — ${dateStr(key+'T12:00:00')}</div>
+    <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderExpenses(this.value)"/>
+    <button class="btn-green" onclick="openExpModal('${key}')">+ Add Expense</button>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Summary by Category</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${Object.entries(byCat).map(([cat,amt])=>`<div class="sum-row deduct"><span class="sum-label">${cat}</span><span class="sum-val">${fmt(amt)}</span></div>`).join('')}
+      <div class="sum-row gross-row" style="grid-column:span 2"><span class="sum-label">TOTAL EXPENSES</span><span class="sum-val">${fmt(total)}</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Expense Log</div>
+    ${exps.length?`<table class="tbl">
+      <thead><tr><th>Time</th><th>Category</th><th>Description</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>${exps.map(e=>`<tr>
+        <td style="font-size:11px;color:var(--muted)">${timeStr(e.created_at)}</td>
+        <td><span class="exp-cat">${e.category}</span></td>
+        <td>${e.description||'—'}</td>
+        <td class="num re">${fmt(e.amount)}</td>
+        <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`:'<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No expenses logged today</div>'}
+  </div>`;
+}
+
+function openExpModal(dateKey){
+  document.getElementById('expModalDate').value=dateKey||getTodayKey();
+  document.getElementById('expModalAmt').value='';
+  document.getElementById('expModalDesc').value='';
+  document.getElementById('expModal').classList.add('open');
+}
+function closeExpModal(){document.getElementById('expModal').classList.remove('open');}
+
+async function saveExpense(){
+  const cat=document.getElementById('expModalCat').value;
+  const desc=document.getElementById('expModalDesc').value.trim();
+  const amt=+document.getElementById('expModalAmt').value||0;
+  const dateKey=document.getElementById('expModalDate').value;
+  if(!amt){showToast('Enter an amount.');return;}
+  const rec={date_key:dateKey,category:cat,description:desc,amount:amt,branch:'SM Bicutan'};
+  setLoading(true);
+  if(navigator.onLine){const{error}=await sb.from('expenses').insert([rec]);if(error){addToQueue('expense',rec);showToast('Saved offline');}else showToast('Expense saved!');}
+  else{addToQueue('expense',rec);showToast('Saved offline');}
+  // update local cache
+  const cache=LS.get('exp_'+dateKey,[]);cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});LS.set('exp_'+dateKey,cache);
+  setLoading(false);
+  closeExpModal();
+  renderExpenses(dateKey);
+}
+
+async function deleteExpense(id,dateKey){
+  if(!confirm('Delete this expense?'))return;
+  if(navigator.onLine){await sb.from('expenses').delete().eq('id',id);}
+  const cache=LS.get('exp_'+dateKey,[]).filter(e=>String(e.id)!==String(id));LS.set('exp_'+dateKey,cache);
+  renderExpenses(dateKey);
 }
 
 // ══════ DASHBOARD ══════
@@ -1032,11 +1017,12 @@ async function renderDashboard(){
   const txns=await sbGetTransactions();
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
   const rep=await sbGetDailyReport();
-  const ded=(rep.expenses||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0);
+  const exps=await sbGetExpenses();
+  const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const ded=(rep.expenses||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0)+expTotal;
   const net=gross-ded;
   const today=new Date().toLocaleDateString('en-PH',{year:'numeric',month:'2-digit',day:'2-digit'});
-  const itemMap={};
-  txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
+  const itemMap={};txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
   const topItems=Object.values(itemMap).sort((a,b)=>b.qty-a.qty).slice(0,8);
   const pmBreak={};txns.forEach(t=>{pmBreak[t.payment_method]=(pmBreak[t.payment_method]||0)+(t.total||0);});
   document.getElementById('adminBody').innerHTML=`
@@ -1053,22 +1039,13 @@ async function renderDashboard(){
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><div class="red-bar"></div>Payment Breakdown</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${['cash','gcash','maya','gotyme','grabfood','foodpanda'].map(pm=>`
-        <div style="flex:1;min-width:80px;background:#f8f8f8;border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:15px;font-weight:800;color:#1a5fa8">${fmtn(pmBreak[pm]||0)}</div>
-          <div style="font-size:10px;color:#888;text-transform:uppercase;font-weight:700">${pm}</div>
-        </div>`).join('')}
+      ${['cash','gcash','maya','gotyme','card','grabfood','foodpanda'].map(pm=>`<div style="flex:1;min-width:70px;background:#f8f8f8;border-radius:8px;padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--blue)">${fmtn(pmBreak[pm]||0)}</div><div style="font-size:9px;color:#888;text-transform:uppercase;font-weight:700">${pm}</div></div>`).join('')}
     </div>
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Top Items Today</div>
-    <table class="tbl">
-      <thead><tr><th>#</th><th>Item</th><th>Qty</th><th class="num">Amount</th></tr></thead>
-      <tbody>${topItems.length?topItems.map((i,idx)=>`
-        <tr><td style="font-weight:800;color:${idx===0?'var(--red)':idx===1?'var(--gold)':'#ccc'}">#${idx+1}</td>
-        <td>${i.name}</td><td>×${i.qty}</td><td class="num gr">${fmt(i.amt)}</td></tr>
-      `).join(''):'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:20px">No sales yet</td></tr>'}</tbody>
-    </table>
+    <table class="tbl"><thead><tr><th>#</th><th>Item</th><th>Qty</th><th class="num">Amount</th></tr></thead>
+    <tbody>${topItems.length?topItems.map((i,idx)=>`<tr><td style="font-weight:800;color:${idx===0?'var(--red)':idx===1?'var(--gold)':'#ccc'}">#${idx+1}</td><td>${i.name}</td><td>×${i.qty}</td><td class="num gr">${fmt(i.amt)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:20px">No sales yet</td></tr>'}</tbody></table>
   </div>`;
 }
 
@@ -1078,8 +1055,7 @@ async function renderSalesLog(dateKey){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const txns=await sbGetTransactions(key);
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const itemMap={};
-  txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
+  const itemMap={};txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
   const itemSummary=Object.values(itemMap).sort((a,b)=>b.amt-a.amt);
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -1088,25 +1064,15 @@ async function renderSalesLog(dateKey){
   </div>
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><div class="red-bar"></div>Items Sold</div>
-    <table class="tbl">
-      <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>
-      <tbody>${itemSummary.length?itemSummary.map(i=>`<tr><td>${i.name}</td><td class="num">${i.qty}</td><td class="num gr">${fmt(i.amt)}</td></tr>`).join('')
-        +'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">'+itemSummary.reduce((s,i)=>s+i.qty,0)+'</td><td class="num gr">'+fmt(gross)+'</td></tr>'
-        :'<tr><td colspan="3" style="text-align:center;color:#ccc;padding:20px">No sales for this date</td></tr>'}</tbody>
-    </table>
+    <table class="tbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>
+    <tbody>${itemSummary.length?itemSummary.map(i=>`<tr><td>${i.name}</td><td class="num">${i.qty}</td><td class="num gr">${fmt(i.amt)}</td></tr>`).join('')+'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">'+itemSummary.reduce((s,i)=>s+i.qty,0)+'</td><td class="num gr">'+fmt(gross)+'</td></tr>'
+    :'<tr><td colspan="3" style="text-align:center;color:#ccc;padding:20px">No sales</td></tr>'}</tbody></table>
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Transaction Log</div>
-    <table class="tbl">
-      <thead><tr><th>OR#</th><th>Time</th><th>Table</th><th>Payment</th><th>Discount</th><th class="num">Total</th></tr></thead>
-      <tbody>${txns.length?txns.map(t=>`
-        <tr><td style="font-weight:700">${t.or_num||'—'}</td>
-        <td>${timeStr(t.ts)}</td><td>${t.table_name||'—'}</td>
-        <td style="text-transform:uppercase;font-size:11px;font-weight:700">${t.payment_method||'cash'}</td>
-        <td style="font-size:11px">${t.discount==='none'?'—':(t.discount||'—').toUpperCase()}</td>
-        <td class="num gr">${fmt(t.total||0)}</td></tr>`).join('')
-        :'<tr><td colspan="6" style="text-align:center;color:#ccc;padding:20px">No transactions</td></tr>'}</tbody>
-    </table>
+    <table class="tbl"><thead><tr><th>OR#</th><th>Time</th><th>Table</th><th>Payment</th><th>Discount</th><th class="num">Total</th></tr></thead>
+    <tbody>${txns.length?txns.map(t=>`<tr><td style="font-weight:700">${t.or_num||'—'}</td><td>${timeStr(t.ts)}</td><td>${t.table_name||'—'}</td><td style="text-transform:uppercase;font-size:11px;font-weight:700">${t.payment_method||'cash'}</td><td style="font-size:11px">${t.discount==='none'?'—':(t.discount||'—').toUpperCase()}</td><td class="num gr">${fmt(t.total||0)}</td></tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;color:#ccc;padding:20px">No transactions</td></tr>'}</tbody></table>
   </div>`;
 }
 
@@ -1116,9 +1082,12 @@ async function renderDailyReportForm(dateKey){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const txns=await sbGetTransactions(key);
   const rep=await sbGetDailyReport(key);
+  const exps=await sbGetExpenses(key);
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const pmSales={cash:0,gcash:0,maya:0,gotyme:0,grabfood:0,foodpanda:0};
+  const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const pmSales={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
   txns.forEach(t=>{if(pmSales[t.payment_method]!==undefined)pmSales[t.payment_method]+=(t.total||0);});
+
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Report — ${dateStr(key+'T12:00:00')}</div>
@@ -1133,26 +1102,27 @@ async function renderDailyReportForm(dateKey){
     </div>
   </div>
   <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Deductions</div>
+    <div class="card-title"><div class="red-bar"></div>Expenses Logged Today</div>
+    <div class="sum-row deduct"><span class="sum-label">Total Expenses (from Expenses tab)</span><span class="sum-val">${fmt(expTotal)}</span></div>
+    <button onclick="setActiveTab('expenses');renderTabContent('expenses')" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;cursor:pointer">View / Add Expenses →</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Other Deductions</div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">Daily Expenses (₱)</div><input class="inp" type="number" id="dr_expenses" value="${rep.expenses||0}" min="0"/></div>
       <div class="input-group"><div class="input-label">GrabFood Commission (₱)</div><input class="inp" type="number" id="dr_grabfood" value="${rep.grabfood||0}" min="0"/></div>
-    </div>
-    <div class="input-row">
       <div class="input-group"><div class="input-label">FoodPanda Commission (₱)</div><input class="inp" type="number" id="dr_foodpanda" value="${rep.foodpanda||0}" min="0"/></div>
+    </div>
+    <div class="input-row">
       <div class="input-group"><div class="input-label">GCash Fee (₱)</div><input class="inp" type="number" id="dr_gcash_fee" value="${rep.gcash_fee||0}" min="0"/></div>
-    </div>
-    <div class="input-row">
       <div class="input-group"><div class="input-label">Maya Fee (₱)</div><input class="inp" type="number" id="dr_maya_fee" value="${rep.maya_fee||0}" min="0"/></div>
+    </div>
+    <div class="input-row">
       <div class="input-group"><div class="input-label">GoTyme Fee (₱)</div><input class="inp" type="number" id="dr_gotyme_fee" value="${rep.gotyme_fee||0}" min="0"/></div>
-    </div>
-    <div class="input-row">
       <div class="input-group"><div class="input-label">PWD Discount VAT (₱)</div><input class="inp" type="number" id="dr_discount_pwd" value="${rep.discount_pwd||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">Senior Citizen VAT (₱)</div><input class="inp" type="number" id="dr_discount_senior" value="${rep.discount_senior||0}" min="0"/></div>
     </div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">Staff Meal (₱)</div><input class="inp" type="number" id="dr_discount_staff" value="${rep.discount_staff||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">Other Deductions (₱)</div><input class="inp" type="number" id="dr_other" value="${rep.other_deductions||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">Senior Citizen VAT (₱)</div><input class="inp" type="number" id="dr_discount_senior" value="${rep.discount_senior||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">Other (₱)</div><input class="inp" type="number" id="dr_other" value="${rep.other_deductions||0}" min="0"/></div>
     </div>
     <div class="input-group"><div class="input-label">Notes</div><textarea class="inp" id="dr_notes" rows="2">${rep.notes||''}</textarea></div>
     <button class="save-btn" onclick="saveDailyReportForm('${key}')">Save to Cloud</button>
@@ -1160,34 +1130,33 @@ async function renderDailyReportForm(dateKey){
   </div>
   <div class="card" id="net_summary_card">
     <div class="card-title"><div class="red-bar"></div>Net Summary</div>
-    <div id="net_summary_inner">${buildNetSummary(gross,rep)}</div>
+    <div id="net_summary_inner">${buildNetSummary(gross,rep,expTotal)}</div>
   </div>`;
 }
 
-function buildNetSummary(gross,rep){
-  const ded=(rep.expenses||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0);
+function buildNetSummary(gross,rep,expTotal){
+  const ded=(expTotal||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0);
   const net=gross-ded;
   return `<div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
-  ${rep.expenses>0?`<div class="sum-row deduct"><span class="sum-label">— Daily Expenses</span><span class="sum-val">-${fmt(rep.expenses)}</span></div>`:''}
-  ${rep.grabfood>0?`<div class="sum-row deduct"><span class="sum-label">— GrabFood</span><span class="sum-val">-${fmt(rep.grabfood)}</span></div>`:''}
-  ${rep.foodpanda>0?`<div class="sum-row deduct"><span class="sum-label">— FoodPanda</span><span class="sum-val">-${fmt(rep.foodpanda)}</span></div>`:''}
-  ${rep.gcash_fee>0?`<div class="sum-row deduct"><span class="sum-label">— GCash Fee</span><span class="sum-val">-${fmt(rep.gcash_fee)}</span></div>`:''}
-  ${rep.maya_fee>0?`<div class="sum-row deduct"><span class="sum-label">— Maya Fee</span><span class="sum-val">-${fmt(rep.maya_fee)}</span></div>`:''}
-  ${rep.gotyme_fee>0?`<div class="sum-row deduct"><span class="sum-label">— GoTyme Fee</span><span class="sum-val">-${fmt(rep.gotyme_fee)}</span></div>`:''}
-  ${rep.discount_pwd>0?`<div class="sum-row deduct"><span class="sum-label">— PWD VAT</span><span class="sum-val">-${fmt(rep.discount_pwd)}</span></div>`:''}
-  ${rep.discount_senior>0?`<div class="sum-row deduct"><span class="sum-label">— Senior VAT</span><span class="sum-val">-${fmt(rep.discount_senior)}</span></div>`:''}
-  ${rep.discount_staff>0?`<div class="sum-row deduct"><span class="sum-label">— Staff Meal</span><span class="sum-val">-${fmt(rep.discount_staff)}</span></div>`:''}
-  ${rep.other_deductions>0?`<div class="sum-row deduct"><span class="sum-label">— Other</span><span class="sum-val">-${fmt(rep.other_deductions)}</span></div>`:''}
+  ${(expTotal||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Total Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
+  ${(rep.grabfood||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GrabFood</span><span class="sum-val">-${fmt(rep.grabfood)}</span></div>`:''}
+  ${(rep.foodpanda||0)>0?`<div class="sum-row deduct"><span class="sum-label">— FoodPanda</span><span class="sum-val">-${fmt(rep.foodpanda)}</span></div>`:''}
+  ${(rep.gcash_fee||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GCash Fee</span><span class="sum-val">-${fmt(rep.gcash_fee)}</span></div>`:''}
+  ${(rep.maya_fee||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Maya Fee</span><span class="sum-val">-${fmt(rep.maya_fee)}</span></div>`:''}
+  ${(rep.gotyme_fee||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GoTyme Fee</span><span class="sum-val">-${fmt(rep.gotyme_fee)}</span></div>`:''}
+  ${(rep.discount_pwd||0)>0?`<div class="sum-row deduct"><span class="sum-label">— PWD VAT</span><span class="sum-val">-${fmt(rep.discount_pwd)}</span></div>`:''}
+  ${(rep.discount_senior||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Senior VAT</span><span class="sum-val">-${fmt(rep.discount_senior)}</span></div>`:''}
+  ${(rep.other_deductions||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Other</span><span class="sum-val">-${fmt(rep.other_deductions)}</span></div>`:''}
   <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
   <div class="sum-row net-row"><span class="sum-label">NET SALES</span><span class="sum-val">${fmt(net)}</span></div>`;
 }
 
 async function saveDailyReportForm(key){
-  const rep={date_key:key,expenses:+document.getElementById('dr_expenses').value||0,grabfood:+document.getElementById('dr_grabfood').value||0,foodpanda:+document.getElementById('dr_foodpanda').value||0,gcash_fee:+document.getElementById('dr_gcash_fee').value||0,maya_fee:+document.getElementById('dr_maya_fee').value||0,gotyme_fee:+document.getElementById('dr_gotyme_fee').value||0,discount_pwd:+document.getElementById('dr_discount_pwd').value||0,discount_senior:+document.getElementById('dr_discount_senior').value||0,discount_staff:+document.getElementById('dr_discount_staff').value||0,other_deductions:+document.getElementById('dr_other').value||0,notes:document.getElementById('dr_notes').value,branch:'SM Bicutan'};
+  const rep={date_key:key,expenses:0,grabfood:+document.getElementById('dr_grabfood').value||0,foodpanda:+document.getElementById('dr_foodpanda').value||0,gcash_fee:+document.getElementById('dr_gcash_fee').value||0,maya_fee:+document.getElementById('dr_maya_fee').value||0,gotyme_fee:+document.getElementById('dr_gotyme_fee').value||0,discount_pwd:+document.getElementById('dr_discount_pwd').value||0,discount_senior:+document.getElementById('dr_discount_senior').value||0,discount_staff:0,other_deductions:+document.getElementById('dr_other').value||0,notes:document.getElementById('dr_notes').value,branch:'SM Bicutan'};
   await sbSaveDailyReport(rep);
-  const txns=await sbGetTransactions(key);
-  const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  document.getElementById('net_summary_inner').innerHTML=buildNetSummary(gross,rep);
+  const txns=await sbGetTransactions(key);const gross=txns.reduce((s,t)=>s+(t.total||0),0);
+  const exps=await sbGetExpenses(key);const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
+  document.getElementById('net_summary_inner').innerHTML=buildNetSummary(gross,rep,expTotal);
 }
 
 // ══════ MONTHLY ══════
@@ -1195,19 +1164,20 @@ async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
-  const {data:allTxns}=await sb.from('transactions').select('*').gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts');
-  const {data:allReps}=await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31');
-  const txns=allTxns||[];const reps=allReps||[];
-  const dayMap={};
-  txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
+  const{data:allTxns}=navigator.onLine?await sb.from('transactions').select('*').gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts'):{data:null};
+  const{data:allReps}=navigator.onLine?await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
+  const{data:allExps}=navigator.onLine?await sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
+  const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];
+  const dayMap={};txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
   const days=Object.keys(dayMap).sort();
   let mGross=0,mNet=0,mTxns=0;
   const rows=days.map(dk=>{
     const g=dayMap[dk].gross;
-    const rep=reps.find(r=>r.date_key===dk)||{expenses:0,grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,discount_staff:0,other_deductions:0};
-    const ded=(rep.expenses||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0);
+    const rep=reps.find(r=>r.date_key===dk)||{grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,other_deductions:0};
+    const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
+    const ded=dayExps+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
     const n=g-ded;mGross+=g;mNet+=n;mTxns+=dayMap[dk].txns.length;
-    return {dk,gross:g,net:n,txns:dayMap[dk].txns.length};
+    return{dk,gross:g,net:n,txns:dayMap[dk].txns.length};
   });
   const months=[];for(let y=2025;y<=2026;y++)for(let m=1;m<=12;m++){const ms=y+'-'+String(m).padStart(2,'0');months.push({val:ms,label:new Date(y,m-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'})});}
   document.getElementById('adminBody').innerHTML=`
@@ -1222,15 +1192,9 @@ async function renderMonthly(monthKey){
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Daily Breakdown</div>
-    <table class="tbl">
-      <thead><tr><th>Date</th><th class="num">Gross</th><th class="num">Net</th><th class="num">Txns</th></tr></thead>
-      <tbody>${rows.length?rows.map(r=>`
-        <tr style="cursor:pointer" onclick="setActiveTab('daily');renderDailyReportForm('${r.dk}')">
-          <td style="font-weight:700">${dateStr(r.dk+'T12:00:00')}</td>
-          <td class="num gr">${fmt(r.gross)}</td><td class="num go">${fmt(r.net)}</td><td class="num">${r.txns}</td>
-        </tr>`).join('')+'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num gr">'+fmt(mGross)+'</td><td class="num go">'+fmt(mNet)+'</td><td class="num">'+mTxns+'</td></tr>'
-        :'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:30px">No records this month</td></tr>'}</tbody>
-    </table>
+    <table class="tbl"><thead><tr><th>Date</th><th class="num">Gross</th><th class="num">Net</th><th class="num">Txns</th></tr></thead>
+    <tbody>${rows.length?rows.map(r=>`<tr style="cursor:pointer" onclick="setActiveTab('daily');renderDailyReportForm('${r.dk}')"><td style="font-weight:700">${dateStr(r.dk+'T12:00:00')}</td><td class="num gr">${fmt(r.gross)}</td><td class="num go">${fmt(r.net)}</td><td class="num">${r.txns}</td></tr>`).join('')+'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num gr">'+fmt(mGross)+'</td><td class="num go">'+fmt(mNet)+'</td><td class="num">'+mTxns+'</td></tr>'
+    :'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:30px">No records this month</td></tr>'}</tbody></table>
   </div>`;
 }
 
@@ -1241,35 +1205,30 @@ async function renderXReading(){
   const pmBreak={};txns.forEach(t=>{pmBreak[t.payment_method]=(pmBreak[t.payment_method]||0)+(t.total||0);});
   const now=new Date();
   document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px">
-    <div class="red-bar"></div>X Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}
-    <span style="font-size:11px;color:var(--muted);font-weight:400">(Interim — does not close day)</span>
-  </div>
-  <div class="card">${buildReadingContent(txns,gross,pmBreak,now)}
-    <button class="print-btn no-print" onclick="window.print()">Print X Reading</button>
-  </div>`;
+  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>X Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}<span style="font-size:11px;color:var(--muted);font-weight:400">(Interim)</span></div>
+  <div class="card">${buildReadingContent(txns,gross,pmBreak,now)}<button class="print-btn no-print" onclick="window.print()">Print X Reading</button></div>`;
 }
+
 async function renderZReading(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const txns=await sbGetTransactions();const rep=await sbGetDailyReport();
+  const exps=await sbGetExpenses();const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const ded=(rep.expenses||0)+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.discount_staff||0)+(rep.other_deductions||0);
+  const ded=expTotal+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
   const net=gross-ded;
   const pmBreak={};txns.forEach(t=>{pmBreak[t.payment_method]=(pmBreak[t.payment_method]||0)+(t.total||0);});
   const now=new Date();
   document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px">
-    <div class="red-bar"></div>Z Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}
-    <span style="font-size:11px;color:var(--red);font-weight:700">(End of Day)</span>
-  </div>
+  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Z Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}<span style="font-size:11px;color:var(--red);font-weight:700">(End of Day)</span></div>
   <div class="card">${buildReadingContent(txns,gross,pmBreak,now)}
     <div style="margin-top:12px;padding-top:12px;border-top:1.5px dashed var(--border)">
-      <div class="card-title"><div class="red-bar"></div>Deductions &amp; Net</div>
-      ${buildNetSummary(gross,rep)}
+      <div class="card-title"><div class="red-bar"></div>Deductions & Net</div>
+      ${buildNetSummary(gross,rep,expTotal)}
     </div>
     <button class="print-btn no-print" style="margin-top:10px" onclick="window.print()">Print Z Reading</button>
   </div>`;
 }
+
 function buildReadingContent(txns,gross,pmBreak,now){
   const itemMap={};txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
   const items=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
@@ -1278,7 +1237,7 @@ function buildReadingContent(txns,gross,pmBreak,now){
   <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:12px"><span>Total Transactions</span><span>${txns.length}</span></div>
   <div style="border-top:1px dashed var(--border);padding-top:10px;margin-bottom:10px">
     <div style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">PAYMENT METHODS</div>
-    ${['cash','gcash','maya','gotyme','grabfood','foodpanda'].map(pm=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="text-transform:uppercase;color:var(--muted);font-weight:700">${pm}</span><span style="font-weight:700">${fmt(pmBreak[pm]||0)}</span></div>`).join('')}
+    ${['cash','gcash','maya','gotyme','card','grabfood','foodpanda'].map(pm=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="text-transform:uppercase;color:var(--muted);font-weight:700">${pm}</span><span style="font-weight:700">${fmt(pmBreak[pm]||0)}</span></div>`).join('')}
   </div>
   <div style="border-top:1px dashed var(--border);padding-top:10px">
     <div style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">ITEMS SOLD</div>
@@ -1290,11 +1249,12 @@ function buildReadingContent(txns,gross,pmBreak,now){
 // ══════ DTR ══════
 async function renderDTR(){
   const today=getTodayKey();
-  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading DTR...</div>';
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const cards=await Promise.all(employees.map(async e=>{
     const stat=getEmpStatus(e.id);
-    const {data:records}=await sb.from('time_records').select('*').eq('emp_id',e.id).gte('ts',today+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').order('ts');
-    const recs=records||LS.get('dtr_'+e.id+'_'+today,[]);
+    let recs=[];
+    if(navigator.onLine){const{data}=await sb.from('time_records').select('*').eq('emp_id',e.id).gte('ts',today+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').order('ts');recs=data||[];}
+    else recs=LS.get('dtr_'+e.id+'_'+today,[]);
     const photo=LS.get('empphoto_'+e.id,null);
     const isIn=stat.status==='in';
     const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -1307,10 +1267,7 @@ async function renderDTR(){
       ${recs.length?`<div style="padding-left:46px">${recs.map(r=>{const lbl={in:'TIME IN',out:'TIME OUT',brk:'BREAK',res:'RESUME'}[r.action]||r.action;const cls={in:'in',out:'out',brk:'brk',res:'res'}[r.action]||'in';return `<div class="dtr-row"><span class="dtr-act ${cls}">${lbl}</span><span style="flex:1">${timeStr(r.ts)}</span>${(r.total_work||0)>0?`<span style="color:var(--muted);font-size:11px">${msToHM(r.total_work)}</span>`:''} ${r.photo_url?`<img src="${r.photo_url}" class="dtr-photo" alt=""/>`:''}  </div>`;}).join('')}</div>`:`<div style="font-size:11px;color:#ccc;padding-left:46px">No logs today</div>`}
     </div>`;
   }));
-  document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px">
-    <div class="red-bar"></div>DTR — ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
-  </div>${cards.join('')}`;
+  document.getElementById('adminBody').innerHTML=`<div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>DTR — ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>${cards.join('')}`;
 }
 
 // ══════ EMPLOYEE MANAGEMENT ══════
@@ -1324,24 +1281,21 @@ async function renderEmployeeMgmt(){
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>SM Bicutan Staff (${employees.length})</div>
-    <div id="empMgmtList">
-      ${employees.map(e=>{
-        const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-        const photo=LS.get('empphoto_'+e.id,null);
-        const avatarHtml=photo?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"/>`:`<div class="emp-avatar">${initials}</div>`;
-        return `<div class="emp-mgmt-row">
-          ${avatarHtml}
-          <div class="emp-mgmt-info">
-            <div class="emp-mgmt-name">${e.name} <span class="role-badge ${e.role}">${e.role}</span></div>
-            <div class="emp-mgmt-meta">PIN: ${'●'.repeat(e.pin?.length||4)} · Initials: ${initials}</div>
-          </div>
-          <div class="emp-mgmt-actions">
-            <button class="act-btn edit" onclick="openEmpModal('${e.id}')">Edit</button>
-            <button class="act-btn del" onclick="deleteEmployee('${e.id}','${e.name}')">Delete</button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
+    ${employees.map(e=>{
+      const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const photo=LS.get('empphoto_'+e.id,null);
+      const avatarHtml=photo?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"/>`:`<div class="emp-avatar">${initials}</div>`;
+      return `<div class="emp-mgmt-row">${avatarHtml}
+        <div class="emp-mgmt-info">
+          <div class="emp-mgmt-name">${e.name} <span class="role-badge ${e.role}">${e.role}</span></div>
+          <div class="emp-mgmt-meta">PIN: ${'●'.repeat(e.pin?.length||4)} · Initials: ${initials}</div>
+        </div>
+        <div class="emp-mgmt-actions">
+          <button class="act-btn edit" onclick="openEmpModal('${e.id}')">Edit</button>
+          <button class="act-btn del" onclick="deleteEmployee('${e.id}','${e.name}')">Delete</button>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -1371,126 +1325,188 @@ async function saveEmployee(){
   if(id){({error}=await sb.from('employees').update(record).eq('id',id));}
   else{({error}=await sb.from('employees').insert([record]));}
   setLoading(false);
-  if(error){showToast('Error saving employee.');console.error(error);return;}
-  closeEmpModal();
-  showToast(id?'Employee updated!':'Employee added!');
-  await loadEmployees();
-  renderEmployeeMgmt();
+  if(error){showToast('Error saving.');return;}
+  closeEmpModal();showToast(id?'Employee updated!':'Employee added!');
+  await loadEmployees();renderEmployeeMgmt();
 }
 
 async function deleteEmployee(id,name){
-  if(!confirm(`Delete ${name}? This cannot be undone.`))return;
-  setLoading(true);
+  if(!confirm(`Delete ${name}?`))return;
   await sb.from('employees').update({is_active:false}).eq('id',id);
-  setLoading(false);
-  showToast('Employee removed.');
-  await loadEmployees();
-  renderEmployeeMgmt();
+  showToast('Employee removed.');await loadEmployees();renderEmployeeMgmt();
 }
 
-// ══════ PRODUCTS ══════
-function renderProducts(){
+// ══════ PRODUCT MANAGEMENT ══════
+async function renderProductMgmt(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  await loadProducts();
+  const byCat={};MENU.forEach(p=>{if(!byCat[p.cat])byCat[p.cat]=[];byCat[p.cat].push(p);});
+
   document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Products — SM Bicutan</div>
-  ${CATS.filter(c=>c.id!=='all').map(cat=>`
-  <div class="card" style="margin-bottom:10px">
-    <div class="card-title"><div class="red-bar"></div>${cat.label}</div>
-    <table class="tbl"><thead><tr><th>Item</th><th>Description</th><th class="num">Price</th></tr></thead>
-    <tbody>${MENU.filter(m=>m.cat===cat.id).map(m=>`<tr><td style="font-weight:600">${m.name}</td><td style="color:var(--muted);font-size:11px">${m.desc||'—'}</td><td class="num gr">${fmt(m.price)}</td></tr>`).join('')}</tbody></table>
-  </div>`).join('')}`;
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Product Management</div>
+    <label class="btn-green" style="cursor:pointer">
+      📥 Bulk Upload CSV
+      <input type="file" accept=".csv" style="display:none" onchange="bulkUploadCSV(this)"/>
+    </label>
+    <button class="btn-green" onclick="openProdModal()">+ Add Product</button>
+  </div>
+  <div class="card" style="margin-bottom:10px;background:var(--blue-light);border-color:#a9cce3">
+    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, price, description<br/>Categories: bento, donburi, ramen, tempura, svm, alacarte, drinks</div>
+  </div>
+  ${CATS.filter(c=>c.id!=='all').map(cat=>{
+    const items=byCat[cat.id]||[];
+    return `<div class="card" style="margin-bottom:10px">
+      <div class="card-title"><div class="red-bar"></div>${cat.label} (${items.length})</div>
+      ${items.map(p=>`<div class="prod-row">
+        <div class="prod-info">
+          <div class="prod-name">${p.name}</div>
+          ${p.desc?`<div class="prod-meta">${p.desc}</div>`:''}
+        </div>
+        <div class="prod-price">${fmt(p.price)}</div>
+        <div class="prod-actions">
+          <button class="act-btn edit" onclick="openProdModal('${p.id}')">Edit</button>
+          <button class="act-btn del" onclick="deleteProduct('${p.id}','${p.name}')">Delete</button>
+        </div>
+      </div>`).join('')}
+      ${!items.length?'<div style="text-align:center;padding:12px;color:#ccc;font-size:12px">No items in this category</div>':''}
+    </div>`;
+  }).join('')}`;
+}
+
+function openProdModal(prodId){
+  const prod=prodId?MENU.find(p=>String(p.id)===String(prodId)):null;
+  document.getElementById('prodModalTitle').textContent=prod?'Edit Product':'Add Product';
+  document.getElementById('prodModalId').value=prod?.id||'';
+  document.getElementById('prodModalName').value=prod?.name||'';
+  document.getElementById('prodModalCat').value=prod?.cat||'bento';
+  document.getElementById('prodModalPrice').value=prod?.price||'';
+  document.getElementById('prodModalDesc').value=prod?.desc||'';
+  document.getElementById('prodModal').classList.add('open');
+}
+function closeProdModal(){document.getElementById('prodModal').classList.remove('open');}
+
+async function saveProduct(){
+  const id=document.getElementById('prodModalId').value;
+  const name=document.getElementById('prodModalName').value.trim();
+  const category=document.getElementById('prodModalCat').value;
+  const price=+document.getElementById('prodModalPrice').value||0;
+  const description=document.getElementById('prodModalDesc').value.trim();
+  if(!name){showToast('Product name is required.');return;}
+  if(!price){showToast('Price is required.');return;}
+  setLoading(true);
+  const record={name,category,price,description,is_active:true,branch:'SM Bicutan'};
+  let error;
+  if(id){({error}=await sb.from('products').update(record).eq('id',id));}
+  else{({error}=await sb.from('products').insert([record]));}
+  setLoading(false);
+  if(error){showToast('Error saving product.');console.error(error);return;}
+  closeProdModal();showToast(id?'Product updated!':'Product added!');
+  await loadProducts();renderProductMgmt();
+}
+
+async function deleteProduct(id,name){
+  if(!confirm(`Delete "${name}"?`))return;
+  await sb.from('products').update({is_active:false}).eq('id',id);
+  showToast('Product removed.');await loadProducts();renderProductMgmt();
+}
+
+async function bulkUploadCSV(input){
+  const file=input.files[0];if(!file)return;
+  const text=await file.text();
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const parts=line.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+    if(parts.length<3)continue;
+    const[name,category,price,...rest]=parts;
+    const description=rest.join(',').trim();
+    if(!name||!category||isNaN(+price))continue;
+    rows.push({name,category:category.toLowerCase(),price:+price,description,is_active:true,branch:'SM Bicutan'});
+  }
+  if(!rows.length){showToast('No valid rows found in CSV.');return;}
+  setLoading(true);
+  const{error}=await sb.from('products').insert(rows);
+  setLoading(false);
+  if(error){showToast('Upload failed: '+error.message);return;}
+  showToast(`Uploaded ${rows.length} products!`);
+  await loadProducts();renderProductMgmt();
+  input.value='';
 }
 
 // ══════ POS MENU ══════
 function renderMenu(){
   document.getElementById('catSidebar').innerHTML=CATS.map(c=>`<div class="cat-item${currentCat===c.id?' active':''}" onclick="filterCat('${c.id}')">${c.label}</div>`).join('');
   const items=currentCat==='all'?MENU:MENU.filter(i=>i.cat===currentCat);
-  document.getElementById('menuGrid').innerHTML=items.map(item=>`
-    <div class="mcard" onclick="addItem(${item.id})">
+  document.getElementById('menuGrid').innerHTML=items.length?items.map(item=>`
+    <div class="mcard" onclick="addItem('${item.id}')">
       <div class="mcard-cat">${CATS.find(c=>c.id===item.cat)?.label||''}</div>
       <div class="mcard-name">${item.name}</div>
       ${item.desc?`<div class="mcard-desc">${item.desc}</div>`:''}
       <div class="mcard-price">${fmt(item.price)}</div>
-    </div>`).join('');
+    </div>`).join(''):'<div style="text-align:center;padding:40px;color:#ccc;grid-column:span 3">No items in this category</div>';
 }
 function filterCat(c){currentCat=c;renderMenu();}
 
 // ══════ ORDER ══════
 const getDisc=()=>document.getElementById('discountSelect')?.value||'none';
 const calcDisc=(sub,d)=>d==='pwd'||d==='senior'?sub*.2:d==='staff'?sub*.5:0;
-function addItem(id){const item=MENU.find(i=>i.id===id);if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
+function addItem(id){const item=MENU.find(i=>String(i.id)===String(id));if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
 function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0)delete order[id];}renderOrderPanel();}
 function deleteItem(id){delete order[id];renderOrderPanel();}
 function clearOrder(){order={};renderOrderPanel();}
+
 function renderOrderPanel(){
   const items=Object.values(order);const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
   const disc=getDisc();const discAmt=calcDisc(sub,disc);const total=sub-discAmt;
   document.getElementById('orderItemsWrap').innerHTML=items.length?items.map(i=>`
     <div class="oitem"><div class="oitem-name">${i.name}</div>
-    <div class="qty-ctrl"><button class="qbtn" onclick="removeItemQty(${i.id})">−</button>
+    <div class="qty-ctrl"><button class="qbtn" onclick="removeItemQty('${i.id}')">−</button>
     <span style="font-size:11px;font-weight:800;min-width:18px;text-align:center">${i.qty}</span>
-    <button class="qbtn" onclick="addItem(${i.id})">+</button></div>
+    <button class="qbtn" onclick="addItem('${i.id}')">+</button></div>
     <div class="oitem-price">${fmt(i.price*i.qty)}</div>
-    <span class="oitem-del" onclick="deleteItem(${i.id})">×</span></div>`).join(''):'<div class="order-empty">No items yet</div>';
+    <span class="oitem-del" onclick="deleteItem('${i.id}')">×</span></div>`).join(''):'<div class="order-empty">No items yet</div>';
   document.getElementById('subtotalsDiv').innerHTML=discAmt>0?`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div><div class="subtotal-row disc"><span>Discount (${disc})</span><span>-${fmt(discAmt)}</span></div>`:'';
   document.getElementById('orderTotal').textContent=fmt(total);
 }
+
 document.getElementById('pmethods').addEventListener('click',e=>{
   const pm=e.target.closest('.pmethod');if(!pm)return;
   document.querySelectorAll('.pmethod').forEach(p=>p.classList.remove('active'));
   pm.classList.add('active');selectedPM=pm.dataset.pm;
 });
 
-// ══════ PAYMENT / DENOMINATION ══════
-let cashTendered = 0;
-let currentOrderTotal = 0;
-let currentPayMethod = 'cash';
-
+// ══════ PAYMENT ══════
 function selectPayMethod(pm){
-  currentPayMethod = pm;
+  currentPayMethod=pm;
   document.querySelectorAll('.pay-method-btn').forEach(b=>b.classList.toggle('active',b.dataset.pm===pm));
-  const isCash = pm==='cash';
-  document.getElementById('cashSection').style.display = isCash?'block':'none';
-  document.getElementById('cashlessSection').style.display = isCash?'none':'block';
-  const labels = {gcash:'GCash',maya:'Maya',gotyme:'GoTyme',card:'Credit/Debit Card',grabfood:'GrabFood',foodpanda:'FoodPanda'};
-  if(!isCash){
-    document.getElementById('cashlessLabel').textContent = (labels[pm]||pm)+' Payment';
-    document.getElementById('cashlessAmt').textContent = fmt(currentOrderTotal);
-  }
-  // enable confirm for cashless always, cash only if enough
+  const isCash=pm==='cash';
+  document.getElementById('cashSection').style.display=isCash?'block':'none';
+  document.getElementById('cashlessSection').style.display=isCash?'none':'block';
+  const labels={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',card:'Credit/Debit Card',grabfood:'GrabFood',foodpanda:'FoodPanda'};
+  if(!isCash){document.getElementById('cashlessLabel').textContent=(labels[pm]||pm)+' Payment';document.getElementById('cashlessAmt').textContent=fmt(currentOrderTotal);}
   updateConfirmBtn();
 }
 
 function addDenom(amount){
-  cashTendered += amount;
-  document.getElementById('cashTendered').textContent = fmt(cashTendered);
-  const change = cashTendered - currentOrderTotal;
-  document.getElementById('changeAmt').textContent = fmt(Math.max(0,change));
-  document.getElementById('changeAmt').style.color = change>=0?'var(--green)':'var(--red)';
+  cashTendered+=amount;
+  document.getElementById('cashTendered').textContent=fmt(cashTendered);
+  const change=cashTendered-currentOrderTotal;
+  document.getElementById('changeAmt').textContent=fmt(Math.max(0,change));
+  document.getElementById('changeAmt').style.color=change>=0?'var(--green)':'var(--red)';
   updateConfirmBtn();
 }
 
-function resetDenom(){
-  cashTendered=0;
-  document.getElementById('cashTendered').textContent='₱0.00';
-  document.getElementById('changeAmt').textContent='₱0.00';
-  document.getElementById('changeAmt').style.color='var(--green)';
-  updateConfirmBtn();
-}
+function resetDenom(){cashTendered=0;document.getElementById('cashTendered').textContent='₱0.00';document.getElementById('changeAmt').textContent='₱0.00';document.getElementById('changeAmt').style.color='var(--green)';updateConfirmBtn();}
+function updateConfirmBtn(){const btn=document.getElementById('confirmBtn');const ok=currentPayMethod!=='cash'||cashTendered>=currentOrderTotal;btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';}
 
-function updateConfirmBtn(){
-  const btn=document.getElementById('confirmBtn');
-  const ok = currentPayMethod!=='cash' || cashTendered>=currentOrderTotal;
-  btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
-}
-
-// ══════ CHARGE ══════
 function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String(orCounter).padStart(4,'0');}
 
 function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
   const disc=getDisc();const discAmt=calcDisc(sub,disc);const total=sub-discAmt;
-  currentOrderTotal=total; cashTendered=0; currentPayMethod='cash';
+  currentOrderTotal=total;cashTendered=0;currentPayMethod='cash';
   const d=new Date();const orNum=nextOR();
   document.getElementById('receiptDate').textContent=d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('receiptOrNum').textContent='OR: '+orNum;
@@ -1499,12 +1515,9 @@ function openCharge(){
   document.getElementById('receiptTotal').textContent=fmt(total);
   document.getElementById('cashlessAmt').textContent=fmt(total);
   document.getElementById('receiptModal').dataset.orNum=orNum;
-  // reset UI
-  resetDenom();
-  selectPayMethod('cash');
+  resetDenom();selectPayMethod('cash');
   document.getElementById('receiptModal').classList.add('open');
 }
-
 function closeReceipt(){document.getElementById('receiptModal').classList.remove('open');}
 
 async function confirmCharge(){
@@ -1513,12 +1526,12 @@ async function confirmCharge(){
   const disc=getDisc();const discAmt=calcDisc(sub,disc);const total=sub-discAmt;
   const table=document.getElementById('tableSelect').value;
   const orNum=document.getElementById('receiptModal').dataset.orNum;
-  const change=currentPayMethod==='cash'?Math.max(0,cashTendered-total):0;
-  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change};
+  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0};
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   order={};renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
+  renderRecentOrders();
 }
 
 // ══════ KITCHEN ══════
@@ -1541,6 +1554,7 @@ const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',mon
 document.getElementById('roleDate').textContent=dateText;
 document.getElementById('loginDate').textContent=dateText;
 loadEmployees();
+loadProducts();
 </script>
 </body>
 </html>
