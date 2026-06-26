@@ -673,26 +673,30 @@ function setLoading(on){document.getElementById('loadingBar').classList.toggle('
 function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 // ══════ ROLE SELECT ══════
-async function selectRole(role){
+function selectRole(role){
   if(role==='cashier'){
     currentRole='cashier';
     goScreen('loginScreen');
-    await loadEmployees();
+    loadEmployees(); // load in background
     document.getElementById('openPosBtn').textContent='OPEN POS';
   } else {
-    // make sure employees are loaded first
-    if(!employees.length) await loadEmployees();
-    openPIN('Admin/Owner Login','Enter your 4-digit PIN', emp=>{
-      currentRole = emp.role;
-      currentLoginEmp = emp;
-      document.getElementById('currentRolePill').textContent = emp.name;
-      document.getElementById('currentRolePill').className = 'role-pill '+emp.role;
-      document.getElementById('adminRoleSub').textContent = 'SM Bicutan · '+emp.name;
-      goScreen('adminScreen');
-      setActiveTab('dashboard');
-      renderTabContent('dashboard');
-    });
+    // Show PIN immediately — hardcoded PINs work without Supabase
+    openPIN('Admin / Owner Login','Enter your 4-digit PIN', onAdminPINSuccess);
+    loadEmployees(); // also load in background for updated PINs
   }
+}
+
+function onAdminPINSuccess(emp){
+  currentRole = emp.role;
+  currentLoginEmp = emp;
+  try{
+    document.getElementById('currentRolePill').textContent = emp.name;
+    document.getElementById('currentRolePill').className = 'role-pill '+emp.role;
+    document.getElementById('adminRoleSub').textContent = 'SM Bicutan · '+emp.name;
+  }catch(e){}
+  goScreen('adminScreen');
+  setActiveTab('dashboard');
+  renderTabContent('dashboard');
 }
 
 function openPosOrAdmin(){
@@ -868,17 +872,19 @@ function pinKey(k){
 function updatePinDisplay(){
   document.getElementById('pinDisplay').textContent=Array.from({length:4},(_,i)=>i<pinBuffer.length?'●':'–').join(' ');
 }
+// ══════ HARDCODED ADMIN PINS (no Supabase needed) ══════
+const ADMIN_PINS = [
+  {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
+  {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
+];
+
 function verifyPIN(){
   const entered = String(pinBuffer).trim();
-  // Check loaded employees first
-  let emp = employees.find(e=>String(e.pin).trim()===entered && (e.role==='owner'||e.role==='admin'));
-  // Hardcoded fallback in case Supabase not loaded
-  if(!emp){
-    const fallback=[
-      {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
-      {id:'f_admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
-    ];
-    emp = fallback.find(e=>e.pin===entered);
+  // Check hardcoded PINs first (always works)
+  let emp = ADMIN_PINS.find(e=>e.pin===entered);
+  // Also check loaded employees from Supabase
+  if(!emp && employees.length){
+    emp = employees.find(e=>String(e.pin).trim()===entered&&(e.role==='owner'||e.role==='admin'));
   }
   if(emp){
     closePIN();
