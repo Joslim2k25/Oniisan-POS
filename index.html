@@ -391,6 +391,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="dtr">DTR</div>
     <div class="tab" data-tab="employees">Employees</div>
     <div class="tab" data-tab="products">Products</div>
+    <div class="tab" data-tab="categories">Categories</div>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
@@ -577,7 +578,25 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<!-- EXPENSE MODAL -->
+<!-- CATEGORY MODAL -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal">
+    <div class="modal-title" id="catModalTitle">Add Category</div>
+    <input type="hidden" id="catModalId"/>
+    <div class="input-group">
+      <div class="input-label">Category Name</div>
+      <input class="inp" id="catModalName" placeholder="e.g. Desserts"/>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Slug (no spaces, lowercase)</div>
+      <input class="inp" id="catModalSlug" placeholder="e.g. desserts"/>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeCatModal()">Cancel</button>
+      <button class="mbtn primary" onclick="saveCategory()">Save</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="expModal">
   <div class="modal">
     <div class="modal-title">Add Expense</div>
@@ -726,18 +745,40 @@ function onAdminPINSuccess(emp){
   renderTabContent('dashboard');
 }
 
+// ══════ CATEGORIES (dynamic) ══════
+let CATS=[
+  {id:'all',label:'All Items',slug:'all'},
+  {id:'bento',label:'Bento Sets',slug:'bento'},
+  {id:'donburi',label:'Donburi',slug:'donburi'},
+  {id:'ramen',label:'Ramen & Udon',slug:'ramen'},
+  {id:'tempura',label:'Tempura',slug:'tempura'},
+  {id:'svm',label:'Super Value',slug:'svm'},
+  {id:'alacarte',label:'Ala Carte',slug:'alacarte'},
+  {id:'drinks',label:'Drinks',slug:'drinks'},
+];
+
+async function loadCategories(){
+  const{data,error}=await sb.from('categories').select('*').eq('is_active',true).order('sort_order').order('name');
+  if(!error&&data&&data.length){
+    CATS=[{id:'all',label:'All Items',slug:'all'},...data.map(c=>({id:c.slug,label:c.name,slug:c.slug,dbId:c.id}))];
+    LS.set('categories_cache',CATS);
+  } else {
+    const c=LS.get('categories_cache',null);if(c&&c.length)CATS=c;
+  }
+}
+
 // ══════ ROLE SELECT ══════
 function selectRole(role){
   if(role==='cashier'){
     currentRole='cashier';
     goScreen('loginScreen');
     loadEmployees();
-    loadProducts();
+    loadCategories().then(loadProducts);
     renderRecentOrders();
     document.getElementById('openPosBtn').textContent='OPEN POS';
   } else {
     loadEmployees();
-    loadProducts();
+    loadCategories().then(loadProducts);
   }
 }
 
@@ -900,6 +941,7 @@ function renderTabContent(tab){
   else if(tab==='dtr')renderDTR();
   else if(tab==='employees')renderEmployeeMgmt();
   else if(tab==='products')renderProductMgmt();
+  else if(tab==='categories')renderCategoryMgmt();
 }
 
 // ══════ SUPABASE QUERIES ══════
@@ -1379,7 +1421,9 @@ function openProdModal(prodId){
   document.getElementById('prodModalTitle').textContent=prod?'Edit Product':'Add Product';
   document.getElementById('prodModalId').value=prod?.id||'';
   document.getElementById('prodModalName').value=prod?.name||'';
-  document.getElementById('prodModalCat').value=prod?.cat||'bento';
+  // populate categories dynamically
+  const catSelect=document.getElementById('prodModalCat');
+  catSelect.innerHTML=CATS.filter(c=>c.id!=='all').map(c=>`<option value="${c.slug}"${prod?.cat===c.slug?' selected':''}>${c.label}</option>`).join('');
   document.getElementById('prodModalPrice').value=prod?.price||'';
   document.getElementById('prodModalDesc').value=prod?.desc||'';
   document.getElementById('prodModal').classList.add('open');
@@ -1432,6 +1476,64 @@ async function bulkUploadCSV(input){
   showToast(`Uploaded ${rows.length} products!`);
   await loadProducts();renderProductMgmt();
   input.value='';
+}
+
+// ══════ CATEGORY MANAGEMENT ══════
+async function renderCategoryMgmt(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  await loadCategories();
+  const cats=CATS.filter(c=>c.id!=='all');
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Category Management</div>
+    <button class="btn-green" onclick="openCatModal()">+ Add Category</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Categories (${cats.length})</div>
+    ${cats.map(c=>`
+    <div class="emp-mgmt-row">
+      <div class="emp-mgmt-info">
+        <div class="emp-mgmt-name">${c.label}</div>
+        <div class="emp-mgmt-meta">Slug: ${c.slug}</div>
+      </div>
+      <div class="emp-mgmt-actions">
+        <button class="act-btn edit" onclick="openCatModal('${c.dbId||c.id}','${c.label}','${c.slug}')">Edit</button>
+        <button class="act-btn del" onclick="deleteCategory('${c.dbId||c.id}','${c.label}')">Delete</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function openCatModal(id,name,slug){
+  document.getElementById('catModalTitle').textContent=id?'Edit Category':'Add Category';
+  document.getElementById('catModalId').value=id||'';
+  document.getElementById('catModalName').value=name||'';
+  document.getElementById('catModalSlug').value=slug||'';
+  document.getElementById('catModal').classList.add('open');
+}
+function closeCatModal(){document.getElementById('catModal').classList.remove('open');}
+
+async function saveCategory(){
+  const id=document.getElementById('catModalId').value;
+  const name=document.getElementById('catModalName').value.trim();
+  let slug=document.getElementById('catModalSlug').value.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(!name){showToast('Category name is required.');return;}
+  if(!slug) slug=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  setLoading(true);
+  const record={name,slug,is_active:true,branch:'SM Bicutan'};
+  let error;
+  if(id){({error}=await sb.from('categories').update(record).eq('id',id));}
+  else{({error}=await sb.from('categories').insert([record]));}
+  setLoading(false);
+  if(error){showToast('Error: '+error.message);return;}
+  closeCatModal();showToast(id?'Category updated!':'Category added!');
+  await loadCategories();renderCategoryMgmt();
+}
+
+async function deleteCategory(id,name){
+  if(!confirm(`Delete category "${name}"? Products in this category will remain but won't show in the category filter.`))return;
+  await sb.from('categories').update({is_active:false}).eq('id',id);
+  showToast('Category removed.');await loadCategories();renderCategoryMgmt();
 }
 
 // ══════ POS MENU ══════
@@ -1554,7 +1656,7 @@ const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',mon
 document.getElementById('roleDate').textContent=dateText;
 document.getElementById('loginDate').textContent=dateText;
 loadEmployees();
-loadProducts();
+loadCategories().then(loadProducts);
 </script>
 </body>
 </html>
