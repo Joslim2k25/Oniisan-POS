@@ -1196,17 +1196,7 @@ function clearCashDeclaration(){
 async function loadExpectedCash(){
   const txns = await sbGetTransactions();
   expectedCashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
-  // check if already declared today
-  const{data}=await sb.from('cash_declarations').select('*').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').order('created_at',{ascending:false}).limit(1);
-  const el=document.getElementById('cashDeclStatus');
-  if(data&&data.length){
-    const d=data[0];
-    const variance=d.variance;
-    if(el) el.innerHTML=`<div style="color:${variance===0?'var(--green)':variance>0?'var(--blue)':'var(--red)'}">
-      Last declaration: ${fmt(d.declared_amount)} — 
-      ${variance===0?'✅ EXACT':variance>0?`⬆️ OVER by ${fmt(variance)}`:`⬇️ SHORT by ${fmt(Math.abs(variance))}`}
-    </div>`;
-  }
+  // Don't show last declaration — privacy
 }
 
 async function computeCashVariance(){
