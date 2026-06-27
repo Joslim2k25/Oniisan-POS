@@ -306,51 +306,28 @@ button{cursor:pointer;font-family:inherit}
       <div class="role-brand-sub">Tempura &amp; Japanese Food · SM Bicutan · Cloud POS</div>
       <div class="role-brand-date" id="roleDate"></div>
     </div>
-    <div class="role-cards">
-      <!-- CASHIER CARD - requires PIN -->
-      <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div class="role-card-icon cashier">🧾</div>
-          <div>
-            <div class="role-card-title">Cashier / Staff</div>
-            <div class="role-card-desc">Time In/Out · POS · Kitchen Display</div>
-          </div>
-        </div>
-        <!-- Employee selector -->
-        <div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:8px">
-          <select class="inp" id="cashierEmpSelect" style="font-size:13px;font-weight:600">
-            <option value="">— Select your name —</option>
-          </select>
-          <div style="display:flex;gap:8px">
-            <input id="cashierPinInput" type="password" maxlength="4" placeholder="Enter PIN"
-              style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:800;letter-spacing:6px;text-align:center;outline:none;font-family:inherit"
-              oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkCashierPin()"
-              onkeydown="if(event.key==='Enter')checkCashierPin()"
-              onfocus="this.style.borderColor='var(--red)'"
-              onblur="this.style.borderColor='var(--border)'"/>
-            <button onclick="checkCashierPin()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Login</button>
-          </div>
-          <div id="cashierPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">Incorrect PIN. Try again.</div>
-        </div>
-      </div>
-      <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px" onclick="document.getElementById('adminPinInput').focus()">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div class="role-card-icon admin">👑</div>
-          <div>
-            <div class="role-card-title">Admin / Manager / Owner</div>
-            <div class="role-card-desc">Full access · Reports · Products · Expenses</div>
-          </div>
-        </div>
-        <div onclick="event.stopPropagation()" style="display:flex;gap:8px">
-          <input id="adminPinInput" type="password" maxlength="4" placeholder="Enter PIN"
-            style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:800;letter-spacing:6px;text-align:center;outline:none;font-family:inherit"
-            oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkAdminPin()"
-            onkeydown="if(event.key==='Enter')checkAdminPin()"
+
+    <!-- SINGLE LOGIN WINDOW -->
+    <div style="background:#fff;border:2px solid var(--border);border-radius:16px;padding:20px;margin-top:8px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">SELECT EMPLOYEE</div>
+      
+      <!-- Employee list — click to select -->
+      <div id="roleEmpList" style="margin-bottom:14px;max-height:260px;overflow-y:auto"></div>
+
+      <!-- PIN input — appears after selecting employee -->
+      <div id="pinSection" style="display:none">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px" id="pinSectionLabel">ENTER PIN</div>
+        <div style="display:flex;gap:8px">
+          <input id="unifiedPinInput" type="password" maxlength="4" placeholder="● ● ● ●"
+            style="flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:22px;font-weight:800;letter-spacing:8px;text-align:center;outline:none;font-family:inherit"
+            oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkUnifiedPin()"
+            onkeydown="if(event.key==='Enter')checkUnifiedPin()"
             onfocus="this.style.borderColor='var(--red)'"
             onblur="this.style.borderColor='var(--border)'"/>
-          <button onclick="checkAdminPin()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Login</button>
+          <button onclick="checkUnifiedPin()" style="padding:12px 18px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">GO</button>
         </div>
-        <div id="adminPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">Incorrect PIN. Try again.</div>
+        <div id="unifiedPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center;margin-top:8px">Incorrect PIN. Try again.</div>
+        <button onclick="clearEmpSelection()" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">← Back</button>
       </div>
     </div>
   </div>
@@ -820,37 +797,118 @@ function setLoading(on){document.getElementById('loadingBar').classList.toggle('
 // ══════ SCREEN NAV ══════
 function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-// ══════ CASHIER PIN ══════
-function checkCashierPin(){
-  const empId=document.getElementById('cashierEmpSelect').value;
-  const pin=document.getElementById('cashierPinInput').value.trim();
-  const errEl=document.getElementById('cashierPinError');
-  if(!empId){showToast('Please select your name first.');return;}
-  if(pin.length<4){showToast('Enter your 4-digit PIN.');return;}
-  const emp=employees.find(e=>e.id===empId);
-  if(!emp){showToast('Employee not found.');return;}
-  if(String(emp.pin).trim()===pin){
+// ══════ UNIFIED LOGIN ══════
+let selectedLoginEmp = null;
+
+function renderRoleEmpList(){
+  const el=document.getElementById('roleEmpList');
+  if(!el)return;
+  if(!employees.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div>';
+    return;
+  }
+  el.innerHTML=employees.map(e=>{
+    const stat=getEmpStatus(e.id);
+    const isIn=stat.status==='in';
+    const isBrk=stat.status==='break';
+    const photo=LS.get('empphoto_'+e.id,null);
+    const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const avatarHtml=photo
+      ?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"/>`
+      :`<div style="width:36px;height:36px;border-radius:50%;background:${isIn?'#eafaf1':'#eee'};color:${isIn?'#1e8449':'#999'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initials}</div>`;
+    const isSelected=selectedLoginEmp===e.id;
+    return `<div onclick="selectLoginEmp('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:4px;border:2px solid ${isSelected?'var(--red)':'transparent'};background:${isSelected?'var(--red-light)':'#f8f8f8'}">
+      ${avatarHtml}
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${e.name}</div>
+        <div style="font-size:10px;color:${isIn?'var(--green)':isBrk?'var(--gold)':'var(--muted)'}">${isIn?'Currently IN':isBrk?'On Break':'—'}</div>
+      </div>
+      <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;background:${e.role==='owner'?'#fef9e7':e.role==='admin'?'#eaf2fb':'#f0f0f0'};color:${e.role==='owner'?'#c8900a':e.role==='admin'?'#1a5fa8':'#888'}">${e.role}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectLoginEmp(id){
+  selectedLoginEmp=id;
+  renderRoleEmpList();
+  document.getElementById('pinSection').style.display='block';
+  document.getElementById('unifiedPinInput').value='';
+  document.getElementById('unifiedPinError').style.display='none';
+  const emp=employees.find(e=>e.id===id);
+  document.getElementById('pinSectionLabel').textContent=`ENTER PIN — ${emp?.name||''}`;
+  setTimeout(()=>document.getElementById('unifiedPinInput').focus(),100);
+}
+
+function clearEmpSelection(){
+  selectedLoginEmp=null;
+  document.getElementById('pinSection').style.display='none';
+  document.getElementById('unifiedPinInput').value='';
+  document.getElementById('unifiedPinError').style.display='none';
+  renderRoleEmpList();
+}
+
+function checkUnifiedPin(){
+  const pin=document.getElementById('unifiedPinInput').value.trim();
+  const errEl=document.getElementById('unifiedPinError');
+  if(!selectedLoginEmp){showToast('Select your name first.');return;}
+  if(pin.length<4){showToast('Enter 4-digit PIN.');return;}
+
+  const emp=employees.find(e=>e.id===selectedLoginEmp);
+  // check against employee PIN
+  let matched=emp&&String(emp.pin).trim()===pin;
+  // fallback hardcoded for owner/admin
+  if(!matched){
+    const fallback=[
+      {id:'f_owner',name:'Owner',role:'owner',pin:'1234'},
+      {id:'f_admin',name:'Admin/Manager',role:'admin',pin:'5678'},
+    ];
+    const fb=fallback.find(f=>f.pin===pin&&emp&&(emp.role==='owner'||emp.role==='admin'));
+    if(fb) matched=true;
+  }
+
+  if(matched){
     errEl.style.display='none';
-    document.getElementById('cashierPinInput').value='';
-    currentRole='cashier';
+    document.getElementById('unifiedPinInput').value='';
     currentLoginEmp=emp;
+    currentRole=emp.role;
     selectedEmp=emp.id;
-    goScreen('loginScreen');
-    renderEmpList();
-    loadProducts();
-    renderRecentOrders();
-    renderCashierExpList();
-    document.getElementById('openPosBtn').textContent='OPEN POS';
-    document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+    if(emp.role==='owner'||emp.role==='admin'){
+      // go to admin
+      try{
+        document.getElementById('currentRolePill').textContent=emp.name;
+        document.getElementById('currentRolePill').className='role-pill '+emp.role;
+        document.getElementById('adminRoleSub').textContent='SM Bicutan · '+emp.name;
+      }catch(e){}
+      goScreen('adminScreen');
+      setActiveTab('dashboard');
+      renderTabContent('dashboard');
+    } else {
+      // go to cashier time record
+      goScreen('loginScreen');
+      renderEmpList();
+      loadProducts();
+      renderRecentOrders();
+      renderCashierExpList();
+      document.getElementById('openPosBtn').textContent='OPEN POS';
+      document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    }
     showToast('Welcome, '+emp.name+'!');
+    clearEmpSelection();
   } else {
     errEl.style.display='block';
-    document.getElementById('cashierPinInput').value='';
-    document.getElementById('cashierPinInput').focus();
+    document.getElementById('unifiedPinInput').value='';
+    document.getElementById('unifiedPinInput').focus();
   }
 }
 
-// ══════ ADMIN PINS ══════
+// Keep these for backward compatibility
+function checkCashierPin(){checkUnifiedPin();}
+function checkAdminPin(){
+  const input=document.getElementById('adminPinInput');
+  if(input) input.value='';
+  checkUnifiedPin();
+}
 const ADMIN_PINS=[
   {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
   {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
@@ -931,12 +989,10 @@ async function loadEmployees(){
   if(!error&&data&&data.length){employees=data;LS.set('employees_cache',data);}
   else{const c=LS.get('employees_cache',[]);if(c.length)employees=c;}
   renderEmpList();
-  // populate cashier dropdown on role screen
+  renderRoleEmpList();
+  // populate old cashier dropdown if exists
   const sel=document.getElementById('cashierEmpSelect');
-  if(sel){
-    sel.innerHTML='<option value="">— Select your name —</option>'
-      +employees.map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
-  }
+  if(sel){sel.innerHTML='<option value="">— Select your name —</option>'+employees.map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('');}
 }
 
 async function loadProducts(){
