@@ -211,6 +211,20 @@ button{cursor:pointer;font-family:inherit}
 .dtr-act.res{background:var(--blue-light);color:var(--blue)}
 .dtr-photo{width:30px;height:30px;border-radius:6px;object-fit:cover;border:1px solid var(--border)}
 
+/* INVENTORY */
+.inv-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f5f5f5}
+.inv-row:hover{background:#fafafa}
+.inv-info{flex:1}
+.inv-name{font-size:13px;font-weight:700}
+.inv-meta{font-size:11px;color:var(--muted)}
+.inv-qty{font-size:16px;font-weight:800;min-width:80px;text-align:right}
+.inv-qty.low{color:var(--red)}
+.inv-qty.ok{color:var(--green)}
+.inv-actions{display:flex;gap:4px}
+.stock-in-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--green-light);color:var(--green)}
+.stock-out-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--red-light);color:var(--red)}
+.low-badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107}
+
 /* CASHIER EXPENSE CATS */
 .cat-exp-btn{padding:6px 10px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
 .cat-exp-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
@@ -471,6 +485,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="employees">Employees</div>
     <div class="tab" data-tab="products">Products</div>
     <div class="tab" data-tab="categories">Categories</div>
+    <div class="tab" data-tab="inventory">Inventory</div>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
@@ -742,8 +757,78 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
+<!-- INVENTORY ITEM MODAL -->
+<div class="modal-overlay" id="invModal">
+  <div class="modal" style="width:400px">
+    <div class="modal-title" id="invModalTitle">Add Inventory Item</div>
+    <input type="hidden" id="invModalId"/>
+    <div class="input-group"><div class="input-label">Item Name</div><input class="inp" id="invModalName" placeholder="e.g. Ebi (Shrimp)"/></div>
+    <div class="input-row">
+      <div class="input-group"><div class="input-label">Category</div>
+        <select class="inp" id="invModalCat">
+          <option value="Meat">Meat</option>
+          <option value="Seafood">Seafood</option>
+          <option value="Vegetables">Vegetables</option>
+          <option value="Condiments">Condiments</option>
+          <option value="Packaging">Packaging</option>
+          <option value="Dry Goods">Dry Goods</option>
+          <option value="Beverages">Beverages</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+      <div class="input-group"><div class="input-label">Unit</div>
+        <select class="inp" id="invModalUnit">
+          <option value="pcs">Pcs</option>
+          <option value="kilo">Kilo</option>
+          <option value="grams">Grams</option>
+          <option value="box">Box</option>
+          <option value="pack">Pack</option>
+          <option value="bag">Bag</option>
+          <option value="dozen">Dozen</option>
+          <option value="liters">Liters</option>
+          <option value="ml">ml</option>
+          <option value="can">Can</option>
+          <option value="bottle">Bottle</option>
+          <option value="tray">Tray</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="input-group"><div class="input-label">Current Quantity</div><input class="inp" id="invModalQty" type="number" placeholder="0" min="0" step="0.01"/></div>
+      <div class="input-group"><div class="input-label">Reorder Level</div><input class="inp" id="invModalReorder" type="number" placeholder="0" min="0" step="0.01"/></div>
+    </div>
+    <div class="input-row">
+      <div class="input-group"><div class="input-label">Cost per Unit (₱)</div><input class="inp" id="invModalCost" type="number" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="input-group"><div class="input-label">Supplier</div><input class="inp" id="invModalSupplier" placeholder="e.g. SM Market"/></div>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeInvModal()">Cancel</button>
+      <button class="mbtn primary" onclick="saveInventoryItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK ADJUSTMENT MODAL -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal">
+    <div class="modal-title" id="stockModalTitle">Stock In</div>
+    <input type="hidden" id="stockModalId"/>
+    <input type="hidden" id="stockModalType"/>
+    <div style="background:#f8f8f8;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;font-weight:700" id="stockModalItemInfo"></div>
+    <div class="input-group"><div class="input-label">Quantity</div>
+      <input class="inp" id="stockModalQty" type="number" placeholder="0" min="0.01" step="0.01" style="font-size:18px;font-weight:800;text-align:center"/>
+    </div>
+    <div class="input-group"><div class="input-label">Notes</div>
+      <input class="inp" id="stockModalNotes" placeholder="e.g. Delivery from supplier"/>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeStockModal()">Cancel</button>
+      <button class="mbtn primary" id="stockModalBtn" onclick="saveStockAdjustment()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ══════ SUPABASE ══════
 const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
 const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
@@ -1410,6 +1495,7 @@ function renderTabContent(tab){
   else if(tab==='employees')renderEmployeeMgmt();
   else if(tab==='products')renderProductMgmt();
   else if(tab==='categories')renderCategoryMgmt();
+  else if(tab==='inventory')renderInventory();
 }
 
 // ══════ SUPABASE QUERIES ══════
@@ -2239,7 +2325,186 @@ async function bulkUploadCSV(input){
   input.value='';
 }
 
-// ══════ CATEGORY MANAGEMENT ══════
+// ══════ INVENTORY MANAGEMENT ══════
+async function renderInventory(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading inventory...</div>';
+  const{data:items,error}=await sb.from('inventory').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('category').order('name');
+  const inv=items||[];
+
+  // Group by category
+  const cats={};
+  inv.forEach(i=>{if(!cats[i.category])cats[i.category]=[];cats[i.category].push(i);});
+
+  // Low stock count
+  const lowStock=inv.filter(i=>i.quantity<=i.reorder_level&&i.reorder_level>0);
+
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Inventory — SM Bicutan</div>
+    <label class="btn-green" style="cursor:pointer;font-size:12px;padding:7px 14px">
+      📥 Bulk Upload CSV
+      <input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/>
+    </label>
+    <button class="btn-green" onclick="openInvModal()">+ Add Item</button>
+  </div>
+
+  ${lowStock.length?`
+  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">⚠️</span>
+    <div>
+      <div style="font-size:13px;font-weight:800;color:#856404">${lowStock.length} item(s) LOW STOCK</div>
+      <div style="font-size:11px;color:#856404">${lowStock.map(i=>i.name).join(', ')}</div>
+    </div>
+  </div>`:''}
+
+  <div class="card" style="margin-bottom:10px;background:var(--blue-light);border-color:#a9cce3">
+    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, unit, quantity, reorder_level, cost_per_unit, supplier<br/>
+    Categories: Meat, Seafood, Vegetables, Condiments, Packaging, Dry Goods, Beverages, Others<br/>
+    Units: pcs, kilo, grams, box, pack, bag, dozen, liters, ml, can, bottle, tray</div>
+  </div>
+
+  ${Object.keys(cats).length?Object.entries(cats).map(([cat,items])=>`
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-title"><div class="red-bar"></div>${cat} (${items.length} items)</div>
+    ${items.map(i=>{
+      const isLow=i.reorder_level>0&&i.quantity<=i.reorder_level;
+      const totalValue=(i.quantity||0)*(i.cost_per_unit||0);
+      return `<div class="inv-row">
+        <div class="inv-info">
+          <div class="inv-name">${i.name} ${isLow?'<span class="low-badge">LOW STOCK</span>':''}</div>
+          <div class="inv-meta">Reorder at: ${i.reorder_level} ${i.unit} · Cost: ${fmt(i.cost_per_unit||0)}/${i.unit} · Supplier: ${i.supplier||'—'}</div>
+          <div style="font-size:10px;color:var(--muted)">Total Value: ${fmt(totalValue)}</div>
+        </div>
+        <div style="text-align:right;min-width:100px">
+          <div class="inv-qty ${isLow?'low':'ok'}">${i.quantity} <span style="font-size:11px;font-weight:600">${i.unit}</span></div>
+        </div>
+        <div class="inv-actions">
+          <button class="stock-in-btn" onclick="openStockModal('${i.id}','${i.name}',${i.quantity},'${i.unit}','in')">+IN</button>
+          <button class="stock-out-btn" onclick="openStockModal('${i.id}','${i.name}',${i.quantity},'${i.unit}','out')">-OUT</button>
+          <button class="act-btn edit" onclick="openInvModal('${i.id}')">Edit</button>
+          <button class="act-btn del" onclick="deleteInventoryItem('${i.id}','${i.name}')">Del</button>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f8f8f8;font-size:11px;font-weight:700">
+      <span>Category Total Value</span>
+      <span style="color:var(--blue)">${fmt(items.reduce((s,i)=>s+(i.quantity||0)*(i.cost_per_unit||0),0))}</span>
+    </div>
+  </div>`).join('')
+  :'<div class="card" style="text-align:center;padding:40px;color:#ccc">No inventory items yet. Add items or bulk upload CSV.</div>'}`;
+}
+
+function openInvModal(id){
+  document.getElementById('invModalId').value=id||'';
+  document.getElementById('invModalTitle').textContent=id?'Edit Item':'Add Inventory Item';
+  if(!id){
+    document.getElementById('invModalName').value='';
+    document.getElementById('invModalQty').value='';
+    document.getElementById('invModalReorder').value='';
+    document.getElementById('invModalCost').value='';
+    document.getElementById('invModalSupplier').value='';
+  }
+  document.getElementById('invModal').classList.add('open');
+}
+function closeInvModal(){document.getElementById('invModal').classList.remove('open');}
+
+async function saveInventoryItem(){
+  const id=document.getElementById('invModalId').value;
+  const name=document.getElementById('invModalName').value.trim();
+  const category=document.getElementById('invModalCat').value;
+  const unit=document.getElementById('invModalUnit').value;
+  const quantity=+document.getElementById('invModalQty').value||0;
+  const reorder_level=+document.getElementById('invModalReorder').value||0;
+  const cost_per_unit=+document.getElementById('invModalCost').value||0;
+  const supplier=document.getElementById('invModalSupplier').value.trim();
+  if(!name){showToast('Item name is required.');return;}
+  setLoading(true);
+  const record={name,category,unit,quantity,reorder_level,cost_per_unit,supplier,branch:'SM Bicutan',is_active:true};
+  let error;
+  if(id){({error}=await sb.from('inventory').update(record).eq('id',id));}
+  else{
+    ({error}=await sb.from('inventory').insert([record]));
+    // log initial stock
+    if(!error&&quantity>0){
+      await sb.from('inventory_transactions').insert([{inventory_id:null,item_name:name,transaction_type:'initial',quantity,unit,notes:'Initial stock',performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);
+    }
+  }
+  setLoading(false);
+  if(error){showToast('Error: '+error.message);return;}
+  closeInvModal();
+  showToast(id?'Item updated!':'Item added!');
+  renderInventory();
+}
+
+async function deleteInventoryItem(id,name){
+  if(!confirm(`Delete "${name}" from inventory?`))return;
+  await sb.from('inventory').update({is_active:false}).eq('id',id);
+  showToast('Item removed.');renderInventory();
+}
+
+function openStockModal(id,name,currentQty,unit,type){
+  document.getElementById('stockModalId').value=id;
+  document.getElementById('stockModalType').value=type;
+  document.getElementById('stockModalTitle').textContent=type==='in'?'Stock In':'Stock Out';
+  document.getElementById('stockModalItemInfo').textContent=`${name} — Current: ${currentQty} ${unit}`;
+  document.getElementById('stockModalQty').value='';
+  document.getElementById('stockModalNotes').value='';
+  document.getElementById('stockModalBtn').style.background=type==='in'?'var(--green)':'var(--red)';
+  document.getElementById('stockModal').classList.add('open');
+}
+function closeStockModal(){document.getElementById('stockModal').classList.remove('open');}
+
+async function saveStockAdjustment(){
+  const id=document.getElementById('stockModalId').value;
+  const type=document.getElementById('stockModalType').value;
+  const qty=+document.getElementById('stockModalQty').value||0;
+  const notes=document.getElementById('stockModalNotes').value.trim();
+  if(!qty||qty<=0){showToast('Enter a valid quantity.');return;}
+  setLoading(true);
+
+  // get current item
+  const{data:item}=await sb.from('inventory').select('*').eq('id',id).single();
+  if(!item){showToast('Item not found.');setLoading(false);return;}
+
+  const newQty=type==='in'?item.quantity+qty:Math.max(0,item.quantity-qty);
+
+  // update quantity
+  await sb.from('inventory').update({quantity:newQty}).eq('id',id);
+
+  // log transaction
+  await sb.from('inventory_transactions').insert([{
+    inventory_id:id,item_name:item.name,
+    transaction_type:type,quantity:qty,unit:item.unit,
+    notes,performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'
+  }]);
+
+  setLoading(false);
+  closeStockModal();
+  showToast(`Stock ${type==='in'?'IN':'OUT'} recorded! New qty: ${newQty} ${item.unit}`);
+  renderInventory();
+}
+
+async function bulkUploadInventory(input){
+  const file=input.files[0];if(!file)return;
+  const text=await file.text();
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const parts=line.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+    if(parts.length<3)continue;
+    const[name,category,unit,quantity,reorder_level,cost_per_unit,supplier]=parts;
+    if(!name||!category||!unit)continue;
+    rows.push({name,category,unit,quantity:+quantity||0,reorder_level:+reorder_level||0,cost_per_unit:+cost_per_unit||0,supplier:supplier||'',branch:'SM Bicutan',is_active:true});
+  }
+  if(!rows.length){showToast('No valid rows found.');return;}
+  setLoading(true);
+  const{error}=await sb.from('inventory').insert(rows);
+  setLoading(false);
+  if(error){showToast('Upload failed: '+error.message);return;}
+  showToast(`Uploaded ${rows.length} items!`);
+  renderInventory();
+  input.value='';
+}
 async function renderCategoryMgmt(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   await loadCategories();
