@@ -510,12 +510,16 @@ button{cursor:pointer;font-family:inherit}
           <div class="pmethod" data-pm="grabfood">GrabFood</div>
           <div class="pmethod" data-pm="foodpanda">FoodPanda</div>
         </div>
+        <!-- TOTAL + CHARGE always visible -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1.5px solid var(--border)">
+          <span style="font-size:12px;font-weight:800">TOTAL</span>
+          <span class="total-amt" id="orderTotal" style="font-size:20px;font-weight:900;color:var(--red)">₱0</span>
+        </div>
+        <div id="subtotalsDiv" style="font-size:11px;color:var(--muted);margin-bottom:4px"></div>
+        <button class="charge-btn" onclick="openCharge()" style="margin-top:6px">CHARGE</button>
       </div>
       <div class="order-items" id="orderItemsWrap"><div class="order-empty">No items yet</div></div>
       <div class="order-foot">
-        <button class="charge-btn" onclick="openCharge()">Charge</button>
-        <div class="subtotals" id="subtotalsDiv"></div>
-        <div class="total-row-pos"><span class="total-lbl">TOTAL</span><span class="total-amt" id="orderTotal">₱0</span></div>
         <button class="clear-btn" onclick="clearOrder()">Clear order</button>
       </div>
     </div>
