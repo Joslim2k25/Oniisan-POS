@@ -399,6 +399,7 @@ button{cursor:pointer;font-family:inherit}
           <span style="font-size:22px;font-weight:900" id="varianceAmt">₱0.00</span>
         </div>
         <div style="text-align:center;margin-top:8px;font-size:13px;font-weight:800" id="varianceStatus"></div>
+        <button onclick="clearCashDeclaration()" style="width:100%;margin-top:10px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Clear / Hide Result</button>
       </div>
       <div id="cashDeclStatus" style="margin-top:8px;font-size:11px;text-align:center;color:var(--muted)"></div>
     </div>
@@ -1097,8 +1098,16 @@ function openPosOrAdmin(){
 }
 
 function goBackFromPOS(){
-  if(currentRole==='cashier'){goScreen('loginScreen');renderRecentOrders();}
-  else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
+  if(currentRole==='cashier'){
+    goScreen('loginScreen');
+    renderRecentOrders();
+    renderCashierExpList();
+    loadExpectedCash();
+  } else {
+    goScreen('adminScreen');
+    setActiveTab('dashboard');
+    renderTabContent('dashboard');
+  }
 }
 
 // ══════ LOAD DATA ══════
@@ -1169,6 +1178,15 @@ function selectEmp(id){selectedEmp=id;renderEmpList();}
 
 // ══════ CASH ON HAND ══════
 let expectedCashSales = 0;
+
+function clearCashDeclaration(){
+  document.getElementById('cashOnHandAmt').value='';
+  document.getElementById('cashOnHandAmt').disabled=false;
+  document.getElementById('cashVarianceBox').style.display='none';
+  const btn=document.querySelector('[onclick="saveCashDeclaration()"]');
+  if(btn){btn.disabled=false;btn.textContent='Submit Cash Declaration';btn.style.background='var(--green)';}
+  document.getElementById('cashDeclStatus').innerHTML='';
+}
 
 async function loadExpectedCash(){
   const txns = await sbGetTransactions();
