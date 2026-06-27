@@ -570,12 +570,47 @@ button{cursor:pointer;font-family:inherit}
       <button class="denom-btn" style="width:100%;background:#f0f0f0;color:var(--muted);border-color:#ddd;font-size:11px;padding:7px" onclick="resetDenom()">Reset</button>
     </div>
     <div id="cashlessSection" style="display:none">
+      <!-- Card details -->
+      <div id="cardDetails" style="display:none;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:8px">CARD DETAILS</div>
+        <div class="input-group" style="margin-bottom:8px">
+          <div class="input-label">Card Type</div>
+          <select class="inp" id="cardType">
+            <option value="Visa">Visa</option>
+            <option value="Mastercard">Mastercard</option>
+            <option value="GCash Card">GCash Card</option>
+            <option value="Maya Card">Maya Card</option>
+            <option value="JCB">JCB</option>
+            <option value="UnionPay">UnionPay</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <div class="input-label">Last 4 Digits of Card</div>
+          <input class="inp" id="cardLast4" type="text" maxlength="4" placeholder="e.g. 1234" 
+            oninput="this.value=this.value.replace(/\D/g,'');updateConfirmBtn()"
+            style="letter-spacing:8px;font-size:18px;font-weight:800;text-align:center"/>
+        </div>
+      </div>
       <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:13px;color:var(--blue);font-weight:800;margin-bottom:4px" id="cashlessLabel">GCash Payment</div>
         <div style="font-size:11px;color:var(--muted)">Exact amount — no change needed</div>
         <div style="font-size:28px;font-weight:900;color:var(--blue);margin-top:8px" id="cashlessAmt"></div>
       </div>
     </div>
+
+    <!-- DISCOUNT ID SECTION — shows when PWD or Senior selected -->
+    <div id="discountIdSection" style="display:none;margin-top:12px;background:var(--gold-light);border:1px solid #f9e29a;border-radius:10px;padding:12px">
+      <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px" id="discountIdLabel">PWD DETAILS</div>
+      <div class="input-group" style="margin-bottom:8px">
+        <div class="input-label">Full Name</div>
+        <input class="inp" id="discountName" placeholder="Name of PWD / Senior Citizen"/>
+      </div>
+      <div class="input-group">
+        <div class="input-label" id="discountIdNumLabel">PWD ID Number</div>
+        <input class="inp" id="discountIdNum" placeholder="e.g. PWD-2024-XXXXX"/>
+      </div>
+    </div>
+
     <div class="receipt-footer">Thank you! · ありがとうございます</div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="mbtn secondary" onclick="closeReceipt()">Cancel</button>
@@ -1172,9 +1207,29 @@ async function sbGetTransactions(dateKey){
 
 async function sbSaveTxn(txn){
   setLoading(true);
-  const row={or_num:txn.orNum,ts:txn.ts,table_name:txn.table,items:txn.items,subtotal:txn.subtotal,discount:txn.discount,discount_amount:txn.discountAmount,total:txn.total,payment_method:txn.paymentMethod,branch:'SM Bicutan'};
+  const row={
+    or_num:txn.orNum,
+    ts:txn.ts,
+    table_name:txn.table,
+    items:txn.items,
+    subtotal:txn.subtotal,
+    discount:txn.discount,
+    discount_amount:txn.discountAmount,
+    discount_name:txn.discountName||null,
+    discount_id_num:txn.discountIdNum||null,
+    total:txn.total,
+    payment_method:txn.paymentMethod,
+    card_last4:txn.cardLast4||null,
+    card_type:txn.cardType||null,
+    cash_tendered:txn.cashTendered||null,
+    change_given:txn.change||null,
+    branch:'SM Bicutan'
+  };
   // Save to local cache immediately
-  const dk=getTodayKey();const cache=LS.get('txn_'+dk,[]);cache.push({...row,id:Date.now()});LS.set('txn_'+dk,cache);
+  const dk=getTodayKey();
+  const cache=LS.get('txn_'+dk,[]);
+  cache.push({...row,id:Date.now()});
+  LS.set('txn_'+dk,cache);
   if(navigator.onLine){const{error}=await sb.from('transactions').insert([row]);if(error)addToQueue('txn',row);}
   else addToQueue('txn',row);
   setLoading(false);
@@ -1336,30 +1391,14 @@ async function renderSalesLog(dateKey){
   const staffTxns=txns.filter(t=>t.discount==='staff');
   const pwdDiscAmt=pwdTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const seniorDiscAmt=seniorTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-  const staffDiscAmt=staffTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-  // VAT = discount / 1.12 * 0.12
   const pwdVAT=pwdDiscAmt/1.12*0.12;
   const seniorVAT=seniorDiscAmt/1.12*0.12;
-
-  // Expense by category
-  const expByCat={};
-  exps.forEach(e=>{expByCat[e.category]=(expByCat[e.category]||0)+(e.amount||0);});
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px" class="no-print">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderSalesLog(this.value)"/>
     <button class="btn-green" onclick="window.print()" style="padding:8px 14px">Print / Save PDF</button>
-  </div>
-
-  <!-- PRINT HEADER -->
-  <div style="display:none" class="print-only">
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:22px;font-weight:900;color:var(--red)">ONIISAN TEMPURA</div>
-      <div style="font-size:13px;color:var(--muted)">SM Bicutan Branch</div>
-      <div style="font-size:13px;font-weight:700">Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
-      <div style="font-size:11px;color:var(--muted)">Generated: ${new Date().toLocaleString('en-PH')}</div>
-    </div>
   </div>
 
   <!-- SUMMARY METRICS -->
@@ -1370,22 +1409,82 @@ async function renderSalesLog(dateKey){
     <div class="metric"><div class="metric-val bl">${txns.length}</div><div class="metric-lbl">Transactions</div></div>
   </div>
 
-  <!-- ITEMS SOLD -->
+  <!-- TRANSACTION LOG - PER PUNCHED -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Items Sold — ${totalQty} total items</div>
+    <div class="card-title"><div class="red-bar"></div>Transaction Log — Per Sales Invoice (${txns.length} transactions)</div>
+    ${txns.length?txns.map(t=>`
+    <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <!-- Transaction Header -->
+      <div style="background:#f8f8f8;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-size:14px;font-weight:900;color:var(--red)">${t.or_num||'—'}</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:10px">${timeStr(t.ts)}</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:8px">· ${t.table_name||'—'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--blue-light);color:var(--blue);padding:3px 8px;border-radius:10px">${t.payment_method||'cash'}${t.card_type?' · '+t.card_type:''}${t.card_last4?' *'+t.card_last4:''}</span>
+          ${t.discount&&t.discount!=='none'?`<span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--gold-light);color:var(--gold);padding:3px 8px;border-radius:10px">${t.discount.toUpperCase()}</span>`:''}
+          <span style="font-size:15px;font-weight:900;color:var(--green)">${fmt(t.total||0)}</span>
+          <button onclick="voidTransaction('${t.id||t.or_num}','${t.or_num}')" style="padding:3px 10px;background:var(--red-light);color:var(--red);border:1px solid #f5b7b1;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">VOID</button>
+        </div>
+      </div>
+      <!-- Items -->
+      <div style="padding:10px 14px">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr style="color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase">
+            <th style="text-align:left;padding:3px 0">Item</th>
+            <th style="text-align:center;padding:3px 0">Qty</th>
+            <th style="text-align:right;padding:3px 0">Unit Price</th>
+            <th style="text-align:right;padding:3px 0">Amount</th>
+          </tr></thead>
+          <tbody>
+            ${(t.items||[]).map(i=>`<tr>
+              <td style="padding:4px 0;font-weight:600">${i.name}</td>
+              <td style="text-align:center;font-weight:800">${i.qty}</td>
+              <td style="text-align:right;color:var(--muted)">${fmt(i.price)}</td>
+              <td style="text-align:right;font-weight:700;color:var(--green)">${fmt(i.price*i.qty)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <!-- Subtotal, discount, total -->
+        <div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px">
+          ${(t.subtotal||0)!==(t.total||0)?`
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px">
+            <span>Subtotal</span><span>${fmt(t.subtotal||0)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--red);margin-bottom:3px">
+            <span>Discount (${(t.discount||'').toUpperCase()})${t.discount_name?' — '+t.discount_name:''}${t.discount_id_num?' ['+t.discount_id_num+']':''}</span>
+            <span>-${fmt(t.discount_amount||0)}</span>
+          </div>`:''}
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900">
+            <span>TOTAL</span><span style="color:var(--green)">${fmt(t.total||0)}</span>
+          </div>
+          ${t.payment_method==='cash'?`
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:3px">
+            <span>Cash Tendered</span><span>${fmt(t.cash_tendered||0)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--blue);font-weight:700">
+            <span>Change</span><span>${fmt(t.change_given||0)}</span>
+          </div>`:''}
+        </div>
+      </div>
+    </div>`).join('')
+    :'<div style="text-align:center;padding:30px;color:#ccc">No transactions for this date</div>'}
+  </div>
+
+  <!-- ITEMS SOLD SUMMARY -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Items Sold Summary — ${totalQty} total items</div>
     <table class="tbl">
-      <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Total Amount</th></tr></thead>
+      <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty</th><th class="num">Total Amount</th></tr></thead>
       <tbody>
-        ${itemSummary.length?itemSummary.map((i,idx)=>`
-          <tr>
-            <td style="color:var(--muted);font-size:11px">${idx+1}</td>
-            <td style="font-weight:600">${i.name}</td>
-            <td class="num" style="font-weight:800">${i.qty}</td>
-            <td class="num" style="color:var(--muted)">${fmt(i.qty>0?i.amt/i.qty:0)}</td>
-            <td class="num gr">${fmt(i.amt)}</td>
-          </tr>`).join('')
-          +'<tr style="background:#f0f0f0;font-weight:800"><td colspan="2">TOTAL</td><td class="num">'+totalQty+'</td><td class="num">—</td><td class="num gr">'+fmt(gross)+'</td></tr>'
-        :'<tr><td colspan="5" style="text-align:center;color:#ccc;padding:20px">No sales for this date</td></tr>'}
+        ${itemSummary.map((i,idx)=>`<tr>
+          <td style="color:var(--muted);font-size:11px">${idx+1}</td>
+          <td style="font-weight:600">${i.name}</td>
+          <td class="num" style="font-weight:800">${i.qty}</td>
+          <td class="num gr">${fmt(i.amt)}</td>
+        </tr>`).join('')}
+        <tr style="background:#f0f0f0;font-weight:800"><td colspan="2">TOTAL</td><td class="num">${totalQty}</td><td class="num gr">${fmt(gross)}</td></tr>
       </tbody>
     </table>
   </div>
@@ -1396,43 +1495,37 @@ async function renderSalesLog(dateKey){
     <table class="tbl">
       <thead><tr><th>Payment Method</th><th class="num">Transactions</th><th class="num">Amount</th><th class="num">% of Total</th></tr></thead>
       <tbody>
-        ${Object.entries(pmBreak).filter(([,v])=>v>0).map(([pm,amt])=>`
-          <tr>
-            <td style="text-transform:capitalize;font-weight:600">${pm==='card'?'Credit/Debit Card':pm.charAt(0).toUpperCase()+pm.slice(1)}</td>
-            <td class="num">${txns.filter(t=>t.payment_method===pm).length}</td>
-            <td class="num bl" style="font-weight:700">${fmt(amt)}</td>
-            <td class="num" style="color:var(--muted)">${gross>0?(amt/gross*100).toFixed(1):'0'}%</td>
-          </tr>`).join('')}
+        ${Object.entries(pmBreak).filter(([,v])=>v>0).map(([pm,amt])=>`<tr>
+          <td style="text-transform:capitalize;font-weight:600">${pm==='card'?'Credit/Debit Card':pm.charAt(0).toUpperCase()+pm.slice(1)}</td>
+          <td class="num">${txns.filter(t=>t.payment_method===pm).length}</td>
+          <td class="num bl" style="font-weight:700">${fmt(amt)}</td>
+          <td class="num" style="color:var(--muted)">${gross>0?(amt/gross*100).toFixed(1):'0'}%</td>
+        </tr>`).join('')}
         <tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${txns.length}</td><td class="num gr">${fmt(gross)}</td><td class="num">100%</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- DISCOUNTS & VAT -->
+  <!-- DISCOUNTS -->
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><div class="red-bar"></div>Discounts & VAT</div>
     <table class="tbl">
-      <thead><tr><th>Discount Type</th><th class="num">Transactions</th><th class="num">Discount Amount</th><th class="num">VAT (12%)</th></tr></thead>
+      <thead><tr><th>OR#</th><th>Type</th><th>Name</th><th>ID Number</th><th class="num">Discount</th><th class="num">VAT</th></tr></thead>
       <tbody>
-        ${pwdDiscAmt>0?`<tr><td style="font-weight:600">PWD (20%)</td><td class="num">${pwdTxns.length}</td><td class="num re">${fmt(pwdDiscAmt)}</td><td class="num re">${fmt(pwdVAT)}</td></tr>`:''}
-        ${seniorDiscAmt>0?`<tr><td style="font-weight:600">Senior Citizen (20%)</td><td class="num">${seniorTxns.length}</td><td class="num re">${fmt(seniorDiscAmt)}</td><td class="num re">${fmt(seniorVAT)}</td></tr>`:''}
-        ${staffDiscAmt>0?`<tr><td style="font-weight:600">Staff Meal (50%)</td><td class="num">${staffTxns.length}</td><td class="num re">${fmt(staffDiscAmt)}</td><td class="num" style="color:var(--muted)">N/A</td></tr>`:''}
-        ${(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)===0?'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>':''}
-        ${(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)>0?`<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${pwdTxns.length+seniorTxns.length+staffTxns.length}</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
+        ${[...pwdTxns,...seniorTxns,...staffTxns].length?[...pwdTxns,...seniorTxns,...staffTxns].map(t=>{
+          const vat=(t.discount_amount||0)/1.12*0.12;
+          return `<tr>
+            <td style="font-weight:700;font-size:11px">${t.or_num}</td>
+            <td><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--gold-light);color:var(--gold)">${(t.discount||'').toUpperCase()}</span></td>
+            <td style="font-size:11px">${t.discount_name||'—'}</td>
+            <td style="font-size:11px">${t.discount_id_num||'—'}</td>
+            <td class="num re">${fmt(t.discount_amount||0)}</td>
+            <td class="num re">${fmt(vat)}</td>
+          </tr>`;}).join('')
+        :'<tr><td colspan="6" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>'}
+        ${[...pwdTxns,...seniorTxns,...staffTxns].length?`<tr style="background:#f0f0f0;font-weight:800"><td colspan="4">TOTAL</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
       </tbody>
     </table>
-  </div>
-
-  <!-- EXPENSES -->
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Expenses</div>
-    ${exps.length?`<table class="tbl">
-      <thead><tr><th>Category</th><th>Description</th><th class="num">Amount</th></tr></thead>
-      <tbody>
-        ${exps.map(e=>`<tr><td><span class="exp-cat">${e.category}</span></td><td style="font-size:11px">${e.description||'—'}</td><td class="num re">${fmt(e.amount)}</td></tr>`).join('')}
-        <tr style="background:#f0f0f0;font-weight:800"><td colspan="2">TOTAL EXPENSES</td><td class="num re">${fmt(expTotal)}</td></tr>
-      </tbody>
-    </table>`:'<div style="text-align:center;padding:12px;color:#ccc;font-size:12px">No expenses logged</div>'}
   </div>
 
   <!-- NET SUMMARY -->
@@ -1445,28 +1538,18 @@ async function renderSalesLog(dateKey){
     ${(pwdVAT+seniorVAT)>0?`<div class="sum-row deduct"><span class="sum-label">— VAT Deduction</span><span class="sum-val">-${fmt(pwdVAT+seniorVAT)}</span></div>`:''}
     <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
     <div class="sum-row net-row"><span class="sum-label">NET SALES</span><span class="sum-val">${fmt(gross-expTotal-pwdDiscAmt-seniorDiscAmt-(pwdVAT+seniorVAT))}</span></div>
-  </div>
-
-  <!-- TRANSACTION LOG -->
-  <div class="card" style="margin-top:14px">
-    <div class="card-title"><div class="red-bar"></div>Transaction Log (${txns.length} transactions)</div>
-    <table class="tbl">
-      <thead><tr><th>OR#</th><th>Time</th><th>Table</th><th>Items</th><th>Payment</th><th>Discount</th><th class="num">Total</th></tr></thead>
-      <tbody>
-        ${txns.length?txns.map(t=>`
-          <tr>
-            <td style="font-weight:700;font-size:11px">${t.or_num||'—'}</td>
-            <td style="font-size:11px">${timeStr(t.ts)}</td>
-            <td style="font-size:11px">${t.table_name||'—'}</td>
-            <td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).map(i=>i.name+'×'+i.qty).join(', ')}</td>
-            <td style="text-transform:uppercase;font-size:10px;font-weight:700">${t.payment_method||'cash'}</td>
-            <td style="font-size:10px">${t.discount==='none'||!t.discount?'—':t.discount.toUpperCase()+(t.discount_amount>0?' (-'+fmt(t.discount_amount)+')':'')}</td>
-            <td class="num gr" style="font-weight:800">${fmt(t.total||0)}</td>
-          </tr>`).join('')
-        :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:20px">No transactions</td></tr>'}
-      </tbody>
-    </table>
   </div>`;
+}
+
+async function voidTransaction(id, orNum){
+  if(!confirm(`VOID transaction ${orNum}?\n\nThis will mark it as voided in the records.`))return;
+  if(navigator.onLine){
+    await sb.from('transactions').update({is_voided:true,voided_at:tsNow()}).eq('or_num',orNum);
+    showToast(`${orNum} voided!`);
+    renderSalesLog();
+  } else {
+    showToast('Cannot void while offline.');
+  }
 }
 
 // ══════ DAILY REPORT ══════
@@ -1987,26 +2070,27 @@ function selectPayMethod(pm){
   currentPayMethod=pm;
   document.querySelectorAll('.pay-method-btn').forEach(b=>b.classList.toggle('active',b.dataset.pm===pm));
   const isCash=pm==='cash';
+  const isCard=pm==='card';
   document.getElementById('cashSection').style.display=isCash?'block':'none';
   document.getElementById('cashlessSection').style.display=isCash?'none':'block';
+  document.getElementById('cardDetails').style.display=isCard?'block':'none';
+  if(isCard) document.getElementById('cardLast4').value='';
   const labels={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',card:'Credit/Debit Card',grabfood:'GrabFood',foodpanda:'FoodPanda'};
   if(!isCash){document.getElementById('cashlessLabel').textContent=(labels[pm]||pm)+' Payment';document.getElementById('cashlessAmt').textContent=fmt(currentOrderTotal);}
   updateConfirmBtn();
 }
 
-function addDenom(amount){
-  cashTendered+=amount;
-  document.getElementById('cashTendered').textContent=fmt(cashTendered);
-  const change=cashTendered-currentOrderTotal;
-  document.getElementById('changeAmt').textContent=fmt(Math.max(0,change));
-  document.getElementById('changeAmt').style.color=change>=0?'var(--green)':'var(--red)';
-  updateConfirmBtn();
+function updateConfirmBtn(){
+  const btn=document.getElementById('confirmBtn');
+  let ok=false;
+  if(currentPayMethod==='cash') ok=cashTendered>=currentOrderTotal;
+  else if(currentPayMethod==='card') ok=(document.getElementById('cardLast4')?.value?.length===4);
+  else ok=true;
+  // require discount details for PWD/Senior
+  const disc=getDisc();
+  if((disc==='pwd'||disc==='senior')&&!document.getElementById('discountName')?.value?.trim()) ok=false;
+  btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
-
-function resetDenom(){cashTendered=0;document.getElementById('cashTendered').textContent='₱0.00';document.getElementById('changeAmt').textContent='₱0.00';document.getElementById('changeAmt').style.color='var(--green)';updateConfirmBtn();}
-function updateConfirmBtn(){const btn=document.getElementById('confirmBtn');const ok=currentPayMethod!=='cash'||cashTendered>=currentOrderTotal;btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';}
-
-function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String(orCounter).padStart(4,'0');}
 
 function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
@@ -2021,6 +2105,25 @@ function openCharge(){
   document.getElementById('receiptTotal').textContent=fmt(total);
   document.getElementById('cashlessAmt').textContent=fmt(total);
   document.getElementById('receiptModal').dataset.orNum=orNum;
+  // reset fields
+  document.getElementById('discountName').value='';
+  document.getElementById('discountIdNum').value='';
+  document.getElementById('cardLast4').value='';
+  // show/hide discount section
+  const showDiscount=disc==='pwd'||disc==='senior';
+  document.getElementById('discountIdSection').style.display=showDiscount?'block':'none';
+  if(disc==='pwd'){
+    document.getElementById('discountIdLabel').textContent='PWD DETAILS';
+    document.getElementById('discountIdNumLabel').textContent='PWD ID Number';
+    document.getElementById('discountIdNum').placeholder='e.g. PWD-2024-XXXXX';
+  } else if(disc==='senior'){
+    document.getElementById('discountIdLabel').textContent='SENIOR CITIZEN DETAILS';
+    document.getElementById('discountIdNumLabel').textContent='OSCA Number';
+    document.getElementById('discountIdNum').placeholder='e.g. OSCA-XXXXX';
+  }
+  // add oninput listener for discount name to enable confirm
+  document.getElementById('discountName').oninput=updateConfirmBtn;
+  document.getElementById('discountIdNum').oninput=updateConfirmBtn;
   resetDenom();selectPayMethod('cash');
   document.getElementById('receiptModal').classList.add('open');
 }
@@ -2032,7 +2135,21 @@ async function confirmCharge(){
   const disc=getDisc();const discAmt=calcDisc(sub,disc);const total=sub-discAmt;
   const table=document.getElementById('tableSelect').value;
   const orNum=document.getElementById('receiptModal').dataset.orNum;
-  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0};
+  // card details
+  const cardLast4=currentPayMethod==='card'?document.getElementById('cardLast4').value:'';
+  const cardType=currentPayMethod==='card'?document.getElementById('cardType').value:'';
+  // discount details
+  const discountName=document.getElementById('discountName').value.trim();
+  const discountIdNum=document.getElementById('discountIdNum').value.trim();
+  const txn={
+    orNum,ts:tsNow(),table,items:[...items],
+    subtotal:sub,discount:disc,discountAmount:discAmt,total,
+    paymentMethod:currentPayMethod,
+    cashTendered:currentPayMethod==='cash'?cashTendered:total,
+    change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,
+    cardLast4,cardType,
+    discountName,discountIdNum
+  };
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   order={};renderOrderPanel();closeReceipt();
