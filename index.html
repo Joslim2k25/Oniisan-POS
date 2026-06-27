@@ -600,13 +600,22 @@ button{cursor:pointer;font-family:inherit}
     </div>
     <div id="cashSection">
       <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:8px">CUSTOMER CASH</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
         <button class="denom-btn" onclick="addDenom(20)">₱20</button>
         <button class="denom-btn" onclick="addDenom(50)">₱50</button>
         <button class="denom-btn" onclick="addDenom(100)">₱100</button>
         <button class="denom-btn" onclick="addDenom(200)">₱200</button>
         <button class="denom-btn" onclick="addDenom(500)">₱500</button>
         <button class="denom-btn" onclick="addDenom(1000)">₱1,000</button>
+      </div>
+      <!-- Custom amount -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <input id="customDenomInput" type="number" placeholder="Custom amount" min="0"
+          style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;font-family:inherit"
+          onkeydown="if(event.key==='Enter'){addDenom(+this.value);this.value='';}"
+          oninput="const btn=document.getElementById('customDenomBtn');btn.disabled=!this.value||+this.value<=0;btn.style.opacity=(!this.value||+this.value<=0)?'.5':'1'"/>
+        <button id="customDenomBtn" disabled onclick="addCustomDenom()" 
+          style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;opacity:.5">Add</button>
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:11px;color:var(--muted);font-weight:700">Cash Tendered:</div>
@@ -1996,95 +2005,187 @@ async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
-  const{data:allTxns}=navigator.onLine?await sb.from('transactions').select('*').gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts'):{data:null};
+  const{data:allTxns}=navigator.onLine?await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts'):{data:null};
   const{data:allReps}=navigator.onLine?await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
   const{data:allExps}=navigator.onLine?await sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
-  const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];
-  const dayMap={};txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
+  const{data:allCash}=navigator.onLine?await sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}):{data:null};
+  const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];
+
+  const dayMap={};
+  txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
   const days=Object.keys(dayMap).sort();
-  let mGross=0,mNet=0,mTxns=0;
+
+  let mGross=0,mGcash=0,mMaya=0,mGotyme=0,mFoodpanda=0,mGrabfood=0,mCard=0,mDiscount=0,mExpenses=0,mNet=0,mTxns=0;
+
   const rows=days.map(dk=>{
     const g=dayMap[dk].gross;
-    const rep=reps.find(r=>r.date_key===dk)||{grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,other_deductions:0};
-    const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
     const dayTxns=dayMap[dk].txns;
-    const dayDiscounts=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-    const dayFees=(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
-    const ded=dayExps+dayDiscounts+dayFees;
-    const n=g-ded;mGross+=g;mNet+=n;mTxns+=dayMap[dk].txns.length;
-    return{dk,gross:g,net:n,txns:dayMap[dk].txns.length,expenses:dayExps,discounts:dayDiscounts,fees:dayFees};
+    const rep=reps.find(r=>r.date_key===dk)||{};
+    const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
+    const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
+    const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
+    const gotyme=dayTxns.filter(t=>t.payment_method==='gotyme').reduce((s,t)=>s+(t.total||0),0);
+    const foodpanda=dayTxns.filter(t=>t.payment_method==='foodpanda').reduce((s,t)=>s+(t.total||0),0);
+    const grabfood=dayTxns.filter(t=>t.payment_method==='grabfood').reduce((s,t)=>s+(t.total||0),0);
+    const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
+    const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+    const fees=(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.other_deductions||0);
+    const net=g-dayExps-discount-fees;
+    // cash declaration
+    const cashDecl=cashDecls.find(c=>c.date_key===dk);
+    const variance=cashDecl?cashDecl.variance:null;
+    mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mNet+=net;mTxns+=dayTxns.length;
+    return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,net,cashDecl,variance};
   });
-  const months=[];for(let y=2025;y<=2026;y++)for(let m=1;m<=12;m++){const ms=y+'-'+String(m).padStart(2,'0');months.push({val:ms,label:new Date(y,m-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'})});}
 
-  // monthly payment breakdown
-  const pmMonthly={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
-  txns.forEach(t=>{if(pmMonthly[t.payment_method]!==undefined)pmMonthly[t.payment_method]+=(t.total||0);});
+  const months=[];
+  for(let y=2025;y<=2027;y++)for(let m=1;m<=12;m++){const ms=y+'-'+String(m).padStart(2,'0');months.push({val:ms,label:new Date(y,m-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'})});}
+
+  const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">—</span>';
+  const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
+  const fmtExp=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
 
   document.getElementById('adminBody').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Monthly Summary</div>
-    <select class="inp" style="width:200px" onchange="renderMonthly(this.value)">${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}</select>
-  </div>
-  <div class="month-total-bar">
-    <div><div class="lbl">MONTH GROSS</div><div class="val">${fmt(mGross)}</div></div>
-    <div><div class="lbl">MONTH NET</div><div class="val">${fmt(mNet)}</div></div>
-    <div><div class="lbl">TRANSACTIONS</div><div class="val">${mTxns}</div></div>
-  </div>
-
-  <!-- PAYMENT BREAKDOWN -->
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Payment Method Breakdown</div>
-    <table class="tbl">
-      <thead><tr><th>Method</th><th class="num">Transactions</th><th class="num">Amount</th><th class="num">% of Gross</th></tr></thead>
-      <tbody>
-        ${Object.entries(pmMonthly).filter(([,v])=>v>0).map(([pm,amt])=>`<tr>
-          <td style="text-transform:capitalize;font-weight:600">${pm==='card'?'Credit/Debit Card':pm.charAt(0).toUpperCase()+pm.slice(1)}</td>
-          <td class="num">${txns.filter(t=>t.payment_method===pm).length}</td>
-          <td class="num bl" style="font-weight:700">${fmt(amt)}</td>
-          <td class="num" style="color:var(--muted)">${mGross>0?(amt/mGross*100).toFixed(1):'0'}%</td>
-        </tr>`).join('')}
-        <tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${txns.length}</td><td class="num gr">${fmt(mGross)}</td><td class="num">100%</td></tr>
-      </tbody>
-    </table>
+  <!-- HEADER -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px">
+      <div class="red-bar"></div>Monthly Report
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="inp" style="width:180px" onchange="renderMonthly(this.value)" id="monthSelect">
+        ${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+      <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
+      <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download Excel</button>
+    </div>
   </div>
 
-  <!-- DAILY BREAKDOWN -->
-  <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Daily Breakdown</div>
-    <table class="tbl">
-      <thead><tr>
-        <th>Date</th>
-        <th class="num">Gross</th>
-        <th class="num">Expenses</th>
-        <th class="num">Discounts</th>
-        <th class="num">Other Fees</th>
-        <th class="num">Net</th>
-        <th class="num">Txns</th>
-      </tr></thead>
+  <!-- METRICS -->
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val gr">${fmtn(mGross)}</div><div class="metric-lbl">Monthly Gross</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(mExpenses)}</div><div class="metric-lbl">Expenses</div></div>
+    <div class="metric"><div class="metric-val go">${fmtn(mNet)}</div><div class="metric-lbl">NET</div></div>
+    <div class="metric"><div class="metric-val bl">${mTxns}</div><div class="metric-lbl">Txns</div></div>
+  </div>
+
+  <!-- DARK TABLE - LIMJOE STYLE -->
+  <div style="border-radius:12px;overflow:hidden;border:1px solid #333">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:#1a1a2e;color:#fff">
+          <th style="padding:12px 10px;text-align:left;font-weight:800;white-space:nowrap">📅 Date</th>
+          <th style="padding:12px 8px;text-align:right;color:#4ade80;font-weight:800">Gross</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💚 GCash</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💙 Maya</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">🏦 GoTyme</th>
+          <th style="padding:12px 8px;text-align:right;color:#fb923c;font-weight:800">🐼 FoodPanda</th>
+          <th style="padding:12px 8px;text-align:right;color:#4ade80;font-weight:800">🥦 GrabFood</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💳 Card</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171;font-weight:800">Discount</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171;font-weight:800">Expenses</th>
+          <th style="padding:12px 8px;text-align:right;color:#fbbf24;font-weight:800">NET SALES</th>
+          <th style="padding:12px 8px;text-align:right;color:#fff;font-weight:800">Cash on Hand</th>
+          <th style="padding:12px 8px;text-align:center;color:#fff;font-weight:800">Status</th>
+        </tr>
+      </thead>
       <tbody>
-        ${rows.length?rows.map(r=>`
-        <tr style="cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
-          <td style="font-weight:700">${dateStr(r.dk+'T12:00:00')}</td>
-          <td class="num gr">${fmt(r.gross)}</td>
-          <td class="num re">${r.expenses>0?fmt(r.expenses):'—'}</td>
-          <td class="num re">${r.discounts>0?fmt(r.discounts):'—'}</td>
-          <td class="num re">${r.fees>0?fmt(r.fees):'—'}</td>
-          <td class="num go">${fmt(r.net)}</td>
-          <td class="num">${r.txns}</td>
-        </tr>`).join('')
-        +`<tr style="background:#f0f0f0;font-weight:800">
-          <td>TOTAL</td>
-          <td class="num gr">${fmt(mGross)}</td>
-          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.expenses,0))}</td>
-          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.discounts,0))}</td>
-          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.fees,0))}</td>
-          <td class="num go">${fmt(mNet)}</td>
-          <td class="num">${mTxns}</td>
-        </tr>`
-        :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:30px">No records this month</td></tr>'}
+        ${rows.map((r,idx)=>{
+          const varStr=r.variance===null?'—':r.variance===0?'<span style="color:#4ade80;font-weight:800">✅ EXACT</span>':r.variance>0?`<span style="color:#60a5fa;font-weight:800">OVER ${fmt(r.variance)}</span>`:`<span style="color:#f87171;font-weight:800">SHORT ${fmt(Math.abs(r.variance))}</span>`;
+          const cashDeclAmt=r.cashDecl?`<span style="font-weight:700">${fmt(r.cashDecl.declared_amount)}</span>`:'—';
+          return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
+            <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span></td>
+            <td style="padding:10px;text-align:right;color:#4ade80;font-weight:800">${fmt(r.gross)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.gcash)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.maya)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.gotyme)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.foodpanda)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.grabfood)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.card)}</td>
+            <td style="padding:10px;text-align:right">${fmtDisc(r.discount)}</td>
+            <td style="padding:10px;text-align:right">${fmtExp(r.expenses)}</td>
+            <td style="padding:10px;text-align:right;color:#fbbf24;font-weight:800">${fmt(r.net)}</td>
+            <td style="padding:10px;text-align:right;color:#fff">${cashDeclAmt}</td>
+            <td style="padding:10px;text-align:center">${varStr}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
+      <tfoot>
+        <tr style="background:#c0392b;color:#fff;font-weight:900">
+          <td style="padding:12px 10px">TOTAL (${mTxns} orders)</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mGross)}</td>
+          <td style="padding:12px 8px;text-align:right">${mGcash>0?fmt(mGcash):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">${mMaya>0?fmt(mMaya):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">${mGotyme>0?fmt(mGotyme):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">${mFoodpanda>0?fmt(mFoodpanda):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">${mGrabfood>0?fmt(mGrabfood):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">${mCard>0?fmt(mCard):'₱0.00'}</td>
+          <td style="padding:12px 8px;text-align:right">-${fmt(mDiscount)}</td>
+          <td style="padding:12px 8px;text-align:right">-${fmt(mExpenses)}</td>
+          <td style="padding:12px 8px;text-align:right;color:#fbbf24">${fmt(mNet)}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
     </table>
   </div>`;
+}
+
+function printMonthlyReport(){
+  const from=prompt('Print from date (YYYY-MM-DD):', getTodayKey().slice(0,8)+'01');
+  if(!from)return;
+  const to=prompt('Print to date (YYYY-MM-DD):', getTodayKey());
+  if(!to)return;
+  window.print();
+}
+
+async function downloadMonthlyExcel(mk){
+  // Ask for date range
+  const fromDate=prompt('From date (YYYY-MM-DD):', mk+'-01');
+  if(!fromDate)return;
+  const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
+  const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
+  if(!toDate)return;
+
+  setLoading(true);
+  const{data:allTxns}=await sb.from('transactions').select('*').gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts');
+  const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
+  const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
+  setLoading(false);
+
+  const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];
+  const dayMap={};
+  txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
+
+  // Build CSV
+  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','Expenses','NET SALES','Cash Declared','Variance','Status'];
+  const csvRows=[headers.join(',')];
+
+  Object.keys(dayMap).sort().forEach(dk=>{
+    const dayTxns=dayMap[dk];
+    const gross=dayTxns.reduce((s,t)=>s+(t.total||0),0);
+    const cash=dayTxns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
+    const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
+    const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
+    const gotyme=dayTxns.filter(t=>t.payment_method==='gotyme').reduce((s,t)=>s+(t.total||0),0);
+    const foodpanda=dayTxns.filter(t=>t.payment_method==='foodpanda').reduce((s,t)=>s+(t.total||0),0);
+    const grabfood=dayTxns.filter(t=>t.payment_method==='grabfood').reduce((s,t)=>s+(t.total||0),0);
+    const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
+    const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+    const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
+    const net=gross-discount-dayExps;
+    const cashDecl=cashDecls.find(c=>c.date_key===dk);
+    const declared=cashDecl?cashDecl.declared_amount:'';
+    const variance=cashDecl?cashDecl.variance:'';
+    const status=cashDecl?(cashDecl.variance===0?'EXACT':cashDecl.variance>0?'OVER':'SHORT'):'';
+    csvRows.push([dk,dayTxns.length,gross,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-dayExps,net,declared,variance,status].join(','));
+  });
+
+  // Download CSV
+  const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`oniisan-monthly-${fromDate}-to-${toDate}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  showToast('Excel/CSV downloaded!');
 }
 
 // ══════ X & Z READING ══════
@@ -2685,6 +2786,16 @@ function updateConfirmBtn(){
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
 
+function addCustomDenom(){
+  const input=document.getElementById('customDenomInput');
+  const val=+input.value||0;
+  if(val<=0){showToast('Enter a valid amount.');return;}
+  addDenom(val);
+  input.value='';
+  document.getElementById('customDenomBtn').disabled=true;
+  document.getElementById('customDenomBtn').style.opacity='.5';
+}
+
 function addDenom(amount){
   cashTendered+=amount;
   document.getElementById('cashTendered').textContent=fmt(cashTendered);
@@ -2699,6 +2810,8 @@ function resetDenom(){
   document.getElementById('cashTendered').textContent='₱0.00';
   document.getElementById('changeAmt').textContent='₱0.00';
   document.getElementById('changeAmt').style.color='var(--green)';
+  const ci=document.getElementById('customDenomInput');
+  if(ci){ci.value='';const cb=document.getElementById('customDenomBtn');if(cb){cb.disabled=true;cb.style.opacity='.5';}}
   updateConfirmBtn();
 }
 
