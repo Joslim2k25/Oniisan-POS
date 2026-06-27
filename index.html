@@ -2142,10 +2142,26 @@ function updateConfirmBtn(){
   if(currentPayMethod==='cash') ok=cashTendered>=currentOrderTotal;
   else if(currentPayMethod==='card') ok=(document.getElementById('cardLast4')?.value?.length===4);
   else ok=true;
-  // require discount details for PWD/Senior
   const disc=getDisc();
   if((disc==='pwd'||disc==='senior')&&!document.getElementById('discountName')?.value?.trim()) ok=false;
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
+}
+
+function addDenom(amount){
+  cashTendered+=amount;
+  document.getElementById('cashTendered').textContent=fmt(cashTendered);
+  const change=cashTendered-currentOrderTotal;
+  document.getElementById('changeAmt').textContent=fmt(Math.max(0,change));
+  document.getElementById('changeAmt').style.color=change>=0?'var(--green)':'var(--red)';
+  updateConfirmBtn();
+}
+
+function resetDenom(){
+  cashTendered=0;
+  document.getElementById('cashTendered').textContent='₱0.00';
+  document.getElementById('changeAmt').textContent='₱0.00';
+  document.getElementById('changeAmt').style.color='var(--green)';
+  updateConfirmBtn();
 }
 
 function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String(orCounter).padStart(4,'0');}
