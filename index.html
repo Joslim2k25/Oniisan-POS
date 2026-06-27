@@ -356,7 +356,36 @@ button{cursor:pointer;font-family:inherit}
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
-    <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role</button>
+    <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role / Logout</button>
+
+    <!-- CASH ON HAND DECLARATION -->
+    <div class="lcard" style="margin-top:12px;border:2px solid var(--green);background:var(--green-light)">
+      <div class="lcard-label" style="color:var(--green)">CASH ON HAND DECLARATION</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Count your cash and declare the total amount</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1">
+          <div class="input-label">Declared Cash on Hand (₱)</div>
+          <input class="inp" id="cashOnHandAmt" type="number" placeholder="0.00" min="0" step="0.01"
+            oninput="computeCashVariance()" style="font-size:18px;font-weight:800;text-align:center"/>
+        </div>
+      </div>
+      <div id="cashVarianceBox" style="display:none;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
+          <span style="color:var(--muted)">Expected Cash Sales</span>
+          <span style="font-weight:800" id="expectedCashAmt">₱0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
+          <span style="color:var(--muted)">Declared Cash on Hand</span>
+          <span style="font-weight:800" id="declaredCashAmt">₱0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px dashed var(--border);font-size:14px;font-weight:900" id="varianceRow">
+          <span id="varianceLabel">VARIANCE</span>
+          <span id="varianceAmt">₱0.00</span>
+        </div>
+      </div>
+      <button onclick="saveCashDeclaration()" style="width:100%;padding:10px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Submit Cash Declaration</button>
+      <div id="cashDeclStatus" style="margin-top:8px;font-size:11px;text-align:center;color:var(--muted)"></div>
+    </div>
     
     <!-- CASHIER EXPENSES -->
     <div class="lcard" style="margin-top:12px">
@@ -890,6 +919,7 @@ function checkUnifiedPin(){
       loadProducts();
       renderRecentOrders();
       renderCashierExpList();
+      loadExpectedCash();
       document.getElementById('openPosBtn').textContent='OPEN POS';
       document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     }
@@ -1048,6 +1078,83 @@ function renderEmpList(){
   }).join('');
 }
 function selectEmp(id){selectedEmp=id;renderEmpList();}
+
+// ══════ CASH ON HAND ══════
+let expectedCashSales = 0;
+
+async function loadExpectedCash(){
+  const txns = await sbGetTransactions();
+  expectedCashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
+  // check if already declared today
+  const{data}=await sb.from('cash_declarations').select('*').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').order('created_at',{ascending:false}).limit(1);
+  const el=document.getElementById('cashDeclStatus');
+  if(data&&data.length){
+    const d=data[0];
+    const variance=d.variance;
+    if(el) el.innerHTML=`<div style="color:${variance===0?'var(--green)':variance>0?'var(--blue)':'var(--red)'}">
+      Last declaration: ${fmt(d.declared_amount)} — 
+      ${variance===0?'✅ EXACT':variance>0?`⬆️ OVER by ${fmt(variance)}`:`⬇️ SHORT by ${fmt(Math.abs(variance))}`}
+    </div>`;
+  }
+}
+
+async function computeCashVariance(){
+  const declared = +document.getElementById('cashOnHandAmt').value||0;
+  const box = document.getElementById('cashVarianceBox');
+  if(declared<=0){box.style.display='none';return;}
+
+  // get latest cash sales
+  const txns = await sbGetTransactions();
+  expectedCashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
+
+  const variance = declared - expectedCashSales;
+  box.style.display='block';
+  document.getElementById('expectedCashAmt').textContent = fmt(expectedCashSales);
+  document.getElementById('declaredCashAmt').textContent = fmt(declared);
+  document.getElementById('varianceAmt').textContent = fmt(Math.abs(variance));
+  document.getElementById('varianceLabel').textContent = variance===0?'✅ EXACT':variance>0?'⬆️ OVER':'⬇️ SHORT';
+
+  const varianceRow = document.getElementById('varianceRow');
+  if(variance===0){
+    box.style.background='var(--green-light)';box.style.border='1px solid #a9dfbf';
+    varianceRow.style.color='var(--green)';
+  } else if(variance>0){
+    box.style.background='var(--blue-light)';box.style.border='1px solid #a9cce3';
+    varianceRow.style.color='var(--blue)';
+  } else {
+    box.style.background='var(--red-light)';box.style.border='1px solid #f5b7b1';
+    varianceRow.style.color='var(--red)';
+  }
+}
+
+async function saveCashDeclaration(){
+  const declared = +document.getElementById('cashOnHandAmt').value||0;
+  if(!declared){showToast('Enter cash on hand amount.');return;}
+  const variance = declared - expectedCashSales;
+  const rec={
+    date_key: getTodayKey(),
+    declared_amount: declared,
+    expected_amount: expectedCashSales,
+    variance,
+    declared_by: currentLoginEmp?.name||'Cashier',
+    branch: 'SM Bicutan'
+  };
+  setLoading(true);
+  if(navigator.onLine){
+    const{error}=await sb.from('cash_declarations').insert([rec]);
+    if(error) showToast('Error saving declaration');
+    else showToast('Cash declaration saved!');
+  } else {
+    addToQueue('cash_declaration',rec);
+    showToast('Saved offline — will sync later');
+  }
+  setLoading(false);
+  const el=document.getElementById('cashDeclStatus');
+  if(el) el.innerHTML=`<div style="color:${variance===0?'var(--green)':variance>0?'var(--blue)':'var(--red)'}">
+    Declared: ${fmt(declared)} — 
+    ${variance===0?'✅ EXACT':variance>0?`⬆️ OVER by ${fmt(variance)}`:`⬇️ SHORT by ${fmt(Math.abs(variance))}`}
+  </div>`;
+}
 
 // ══════ CASHIER EXPENSES ══════
 let selectedExpCat = 'COS/Food Ingredients';
@@ -1761,11 +1868,19 @@ async function renderMonthly(monthKey){
     const g=dayMap[dk].gross;
     const rep=reps.find(r=>r.date_key===dk)||{grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,other_deductions:0};
     const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
-    const ded=dayExps+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
+    const dayTxns=dayMap[dk].txns;
+    const dayDiscounts=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+    const dayFees=(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
+    const ded=dayExps+dayDiscounts+dayFees;
     const n=g-ded;mGross+=g;mNet+=n;mTxns+=dayMap[dk].txns.length;
-    return{dk,gross:g,net:n,txns:dayMap[dk].txns.length};
+    return{dk,gross:g,net:n,txns:dayMap[dk].txns.length,expenses:dayExps,discounts:dayDiscounts,fees:dayFees};
   });
   const months=[];for(let y=2025;y<=2026;y++)for(let m=1;m<=12;m++){const ms=y+'-'+String(m).padStart(2,'0');months.push({val:ms,label:new Date(y,m-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'})});}
+
+  // monthly payment breakdown
+  const pmMonthly={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
+  txns.forEach(t=>{if(pmMonthly[t.payment_method]!==undefined)pmMonthly[t.payment_method]+=(t.total||0);});
+
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Monthly Summary</div>
@@ -1776,11 +1891,60 @@ async function renderMonthly(monthKey){
     <div><div class="lbl">MONTH NET</div><div class="val">${fmt(mNet)}</div></div>
     <div><div class="lbl">TRANSACTIONS</div><div class="val">${mTxns}</div></div>
   </div>
+
+  <!-- PAYMENT BREAKDOWN -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Payment Method Breakdown</div>
+    <table class="tbl">
+      <thead><tr><th>Method</th><th class="num">Transactions</th><th class="num">Amount</th><th class="num">% of Gross</th></tr></thead>
+      <tbody>
+        ${Object.entries(pmMonthly).filter(([,v])=>v>0).map(([pm,amt])=>`<tr>
+          <td style="text-transform:capitalize;font-weight:600">${pm==='card'?'Credit/Debit Card':pm.charAt(0).toUpperCase()+pm.slice(1)}</td>
+          <td class="num">${txns.filter(t=>t.payment_method===pm).length}</td>
+          <td class="num bl" style="font-weight:700">${fmt(amt)}</td>
+          <td class="num" style="color:var(--muted)">${mGross>0?(amt/mGross*100).toFixed(1):'0'}%</td>
+        </tr>`).join('')}
+        <tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${txns.length}</td><td class="num gr">${fmt(mGross)}</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DAILY BREAKDOWN -->
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Daily Breakdown</div>
-    <table class="tbl"><thead><tr><th>Date</th><th class="num">Gross</th><th class="num">Net</th><th class="num">Txns</th></tr></thead>
-    <tbody>${rows.length?rows.map(r=>`<tr style="cursor:pointer" onclick="setActiveTab('daily');renderDailyReportForm('${r.dk}')"><td style="font-weight:700">${dateStr(r.dk+'T12:00:00')}</td><td class="num gr">${fmt(r.gross)}</td><td class="num go">${fmt(r.net)}</td><td class="num">${r.txns}</td></tr>`).join('')+'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num gr">'+fmt(mGross)+'</td><td class="num go">'+fmt(mNet)+'</td><td class="num">'+mTxns+'</td></tr>'
-    :'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:30px">No records this month</td></tr>'}</tbody></table>
+    <table class="tbl">
+      <thead><tr>
+        <th>Date</th>
+        <th class="num">Gross</th>
+        <th class="num">Expenses</th>
+        <th class="num">Discounts</th>
+        <th class="num">Other Fees</th>
+        <th class="num">Net</th>
+        <th class="num">Txns</th>
+      </tr></thead>
+      <tbody>
+        ${rows.length?rows.map(r=>`
+        <tr style="cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
+          <td style="font-weight:700">${dateStr(r.dk+'T12:00:00')}</td>
+          <td class="num gr">${fmt(r.gross)}</td>
+          <td class="num re">${r.expenses>0?fmt(r.expenses):'—'}</td>
+          <td class="num re">${r.discounts>0?fmt(r.discounts):'—'}</td>
+          <td class="num re">${r.fees>0?fmt(r.fees):'—'}</td>
+          <td class="num go">${fmt(r.net)}</td>
+          <td class="num">${r.txns}</td>
+        </tr>`).join('')
+        +`<tr style="background:#f0f0f0;font-weight:800">
+          <td>TOTAL</td>
+          <td class="num gr">${fmt(mGross)}</td>
+          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.expenses,0))}</td>
+          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.discounts,0))}</td>
+          <td class="num re">${fmt(rows.reduce((s,r)=>s+r.fees,0))}</td>
+          <td class="num go">${fmt(mNet)}</td>
+          <td class="num">${mTxns}</td>
+        </tr>`
+        :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:30px">No records this month</td></tr>'}
+      </tbody>
+    </table>
   </div>`;
 }
 
