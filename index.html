@@ -375,29 +375,31 @@ button{cursor:pointer;font-family:inherit}
     <!-- CASH ON HAND DECLARATION -->
     <div class="lcard" style="margin-top:12px;border:2px solid var(--green);background:var(--green-light)">
       <div class="lcard-label" style="color:var(--green)">CASH ON HAND DECLARATION</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Count your cash and declare the total amount</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <div style="flex:1">
-          <div class="input-label">Declared Cash on Hand (₱)</div>
-          <input class="inp" id="cashOnHandAmt" type="number" placeholder="0.00" min="0" step="0.01"
-            oninput="computeCashVariance()" style="font-size:18px;font-weight:800;text-align:center"/>
-        </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Count your cash then declare the total amount</div>
+      <div class="input-group" style="margin-bottom:10px">
+        <div class="input-label">Declared Cash on Hand (₱)</div>
+        <input class="inp" id="cashOnHandAmt" type="number" inputmode="decimal" placeholder="Tap to enter amount"
+          style="font-size:20px;font-weight:800;text-align:center;color:transparent;caret-color:var(--text);background:#fff" min="0" step="0.01"/>
       </div>
-      <div id="cashVarianceBox" style="display:none;border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
+      <button onclick="saveCashDeclaration()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Submit Cash Declaration</button>
+      
+      <!-- Result shown AFTER submit -->
+      <div id="cashVarianceBox" style="display:none;border-radius:10px;padding:14px;margin-top:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:10px">CASH DECLARATION RESULT</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
           <span style="color:var(--muted)">Expected Cash Sales</span>
           <span style="font-weight:800" id="expectedCashAmt">₱0.00</span>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
           <span style="color:var(--muted)">Declared Cash on Hand</span>
           <span style="font-weight:800" id="declaredCashAmt">₱0.00</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px dashed var(--border);font-size:14px;font-weight:900" id="varianceRow">
-          <span id="varianceLabel">VARIANCE</span>
-          <span id="varianceAmt">₱0.00</span>
+        <div style="border-top:2px solid rgba(0,0,0,.1);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;font-weight:800" id="varianceLabel">VARIANCE</span>
+          <span style="font-size:22px;font-weight:900" id="varianceAmt">₱0.00</span>
         </div>
+        <div style="text-align:center;margin-top:8px;font-size:13px;font-weight:800" id="varianceStatus"></div>
       </div>
-      <button onclick="saveCashDeclaration()" style="width:100%;padding:10px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Submit Cash Declaration</button>
       <div id="cashDeclStatus" style="margin-top:8px;font-size:11px;text-align:center;color:var(--muted)"></div>
     </div>
     
@@ -537,12 +539,13 @@ button{cursor:pointer;font-family:inherit}
           <span class="total-amt" id="orderTotal" style="font-size:20px;font-weight:900;color:var(--red)">₱0</span>
         </div>
         <div id="subtotalsDiv" style="font-size:11px;color:var(--muted);margin-bottom:4px"></div>
-        <button class="charge-btn" onclick="openCharge()" style="margin-top:6px">CHARGE</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="charge-btn" onclick="openCharge()" style="flex:2;margin:0">CHARGE</button>
+          <button class="clear-btn" onclick="clearOrder()" style="flex:1;margin:0">Clear</button>
+        </div>
       </div>
       <div class="order-items" id="orderItemsWrap"><div class="order-empty">No items yet</div></div>
-      <div class="order-foot">
-        <button class="clear-btn" onclick="clearOrder()">Clear order</button>
-      </div>
+      <div class="order-foot" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1214,8 +1217,13 @@ async function computeCashVariance(){
 
 async function saveCashDeclaration(){
   const declared = +document.getElementById('cashOnHandAmt').value||0;
-  if(!declared){showToast('Enter cash on hand amount.');return;}
+  if(!declared){showToast('Enter your cash on hand amount.');return;}
+
+  // Get latest cash sales
+  const txns = await sbGetTransactions();
+  expectedCashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
   const variance = declared - expectedCashSales;
+
   const rec={
     date_key: getTodayKey(),
     declared_amount: declared,
@@ -1224,21 +1232,53 @@ async function saveCashDeclaration(){
     declared_by: currentLoginEmp?.name||'Cashier',
     branch: 'SM Bicutan'
   };
+
   setLoading(true);
+  // SAVE FIRST
+  let saved=false;
   if(navigator.onLine){
     const{error}=await sb.from('cash_declarations').insert([rec]);
-    if(error) showToast('Error saving declaration');
-    else showToast('Cash declaration saved!');
+    if(!error) saved=true;
+    else addToQueue('cash_declaration',rec);
   } else {
     addToQueue('cash_declaration',rec);
-    showToast('Saved offline — will sync later');
+    saved=true;
   }
   setLoading(false);
-  const el=document.getElementById('cashDeclStatus');
-  if(el) el.innerHTML=`<div style="color:${variance===0?'var(--green)':variance>0?'var(--blue)':'var(--red)'}">
-    Declared: ${fmt(declared)} — 
-    ${variance===0?'✅ EXACT':variance>0?`⬆️ OVER by ${fmt(variance)}`:`⬇️ SHORT by ${fmt(Math.abs(variance))}`}
-  </div>`;
+
+  if(!saved){showToast('Error saving. Please try again.');return;}
+
+  // THEN show result
+  const box=document.getElementById('cashVarianceBox');
+  box.style.display='block';
+  document.getElementById('expectedCashAmt').textContent=fmt(expectedCashSales);
+  document.getElementById('declaredCashAmt').textContent=fmt(declared);
+  document.getElementById('varianceAmt').textContent=fmt(Math.abs(variance));
+
+  if(variance===0){
+    box.style.background='var(--green-light)';box.style.border='2px solid var(--green)';
+    document.getElementById('varianceLabel').textContent='VARIANCE';
+    document.getElementById('varianceAmt').style.color='var(--green)';
+    document.getElementById('varianceStatus').innerHTML='<span style="color:var(--green);font-size:18px">✅ EXACT — Cash is correct!</span>';
+  } else if(variance>0){
+    box.style.background='var(--blue-light)';box.style.border='2px solid var(--blue)';
+    document.getElementById('varianceLabel').textContent='OVER by';
+    document.getElementById('varianceAmt').style.color='var(--blue)';
+    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--blue);font-size:16px">⬆️ OVER — Extra ${fmt(variance)}</span>`;
+  } else {
+    box.style.background='var(--red-light)';box.style.border='2px solid var(--red)';
+    document.getElementById('varianceLabel').textContent='SHORT by';
+    document.getElementById('varianceAmt').style.color='var(--red)';
+    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--red);font-size:16px">⬇️ SHORT — Missing ${fmt(Math.abs(variance))}</span>`;
+  }
+
+  // Disable input after submit — recorded na
+  document.getElementById('cashOnHandAmt').disabled=true;
+  document.querySelector('[onclick="saveCashDeclaration()"]').disabled=true;
+  document.querySelector('[onclick="saveCashDeclaration()"]').textContent='✅ Submitted';
+  document.querySelector('[onclick="saveCashDeclaration()"]').style.background='#aaa';
+
+  showToast(navigator.onLine?'Cash declaration saved!':'Saved offline — will sync later');
 }
 
 // ══════ CASHIER EXPENSES ══════
