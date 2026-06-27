@@ -307,11 +307,30 @@ button{cursor:pointer;font-family:inherit}
       <div class="role-brand-date" id="roleDate"></div>
     </div>
     <div class="role-cards">
-      <div class="role-card" onclick="selectRole('cashier')">
-        <div class="role-card-icon cashier">🧾</div>
-        <div>
-          <div class="role-card-title">Cashier / Staff</div>
-          <div class="role-card-desc">Time In/Out · POS · Kitchen Display</div>
+      <!-- CASHIER CARD - requires PIN -->
+      <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="role-card-icon cashier">🧾</div>
+          <div>
+            <div class="role-card-title">Cashier / Staff</div>
+            <div class="role-card-desc">Time In/Out · POS · Kitchen Display</div>
+          </div>
+        </div>
+        <!-- Employee selector -->
+        <div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:8px">
+          <select class="inp" id="cashierEmpSelect" style="font-size:13px;font-weight:600">
+            <option value="">— Select your name —</option>
+          </select>
+          <div style="display:flex;gap:8px">
+            <input id="cashierPinInput" type="password" maxlength="4" placeholder="Enter PIN"
+              style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;font-weight:800;letter-spacing:6px;text-align:center;outline:none;font-family:inherit"
+              oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkCashierPin()"
+              onkeydown="if(event.key==='Enter')checkCashierPin()"
+              onfocus="this.style.borderColor='var(--red)'"
+              onblur="this.style.borderColor='var(--border)'"/>
+            <button onclick="checkCashierPin()" style="padding:10px 16px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Login</button>
+          </div>
+          <div id="cashierPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center">Incorrect PIN. Try again.</div>
         </div>
       </div>
       <div class="role-card" style="flex-direction:column;align-items:stretch;gap:12px" onclick="document.getElementById('adminPinInput').focus()">
@@ -797,6 +816,36 @@ function setLoading(on){document.getElementById('loadingBar').classList.toggle('
 // ══════ SCREEN NAV ══════
 function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
+// ══════ CASHIER PIN ══════
+function checkCashierPin(){
+  const empId=document.getElementById('cashierEmpSelect').value;
+  const pin=document.getElementById('cashierPinInput').value.trim();
+  const errEl=document.getElementById('cashierPinError');
+  if(!empId){showToast('Please select your name first.');return;}
+  if(pin.length<4){showToast('Enter your 4-digit PIN.');return;}
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp){showToast('Employee not found.');return;}
+  if(String(emp.pin).trim()===pin){
+    errEl.style.display='none';
+    document.getElementById('cashierPinInput').value='';
+    currentRole='cashier';
+    currentLoginEmp=emp;
+    selectedEmp=emp.id;
+    goScreen('loginScreen');
+    renderEmpList();
+    loadProducts();
+    renderRecentOrders();
+    renderCashierExpList();
+    document.getElementById('openPosBtn').textContent='OPEN POS';
+    document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    showToast('Welcome, '+emp.name+'!');
+  } else {
+    errEl.style.display='block';
+    document.getElementById('cashierPinInput').value='';
+    document.getElementById('cashierPinInput').focus();
+  }
+}
+
 // ══════ ADMIN PINS ══════
 const ADMIN_PINS=[
   {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
@@ -854,18 +903,12 @@ async function loadCategories(){
 
 // ══════ ROLE SELECT ══════
 function selectRole(role){
-  if(role==='cashier'){
-    currentRole='cashier';
-    goScreen('loginScreen');
-    loadEmployees();
-    loadCategories().then(loadProducts);
-    renderRecentOrders();
-    renderCashierExpList();
-    document.getElementById('openPosBtn').textContent='OPEN POS';
-  } else {
-    loadEmployees();
-    loadCategories().then(loadProducts);
-  }
+  // Both cashier and admin require PIN — no direct access
+  // Cashier: handled by checkCashierPin()
+  // Admin/Owner: handled by checkAdminPin()
+  // Just load data in background
+  loadEmployees();
+  loadCategories().then(loadProducts);
 }
 
 function openPosOrAdmin(){
@@ -884,6 +927,12 @@ async function loadEmployees(){
   if(!error&&data&&data.length){employees=data;LS.set('employees_cache',data);}
   else{const c=LS.get('employees_cache',[]);if(c.length)employees=c;}
   renderEmpList();
+  // populate cashier dropdown on role screen
+  const sel=document.getElementById('cashierEmpSelect');
+  if(sel){
+    sel.innerHTML='<option value="">— Select your name —</option>'
+      +employees.map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
+  }
 }
 
 async function loadProducts(){
