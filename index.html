@@ -2144,6 +2144,8 @@ function updateConfirmBtn(){
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
 
+function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String(orCounter).padStart(4,'0');}
+
 function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
