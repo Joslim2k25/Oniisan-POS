@@ -1009,6 +1009,8 @@ function checkUnifiedPin(){
       renderRecentOrders();
       renderCashierExpList();
       loadExpectedCash();
+      clearCashDeclaration();
+      document.getElementById('cashDeclStatus').innerHTML='';
       document.getElementById('openPosBtn').textContent='OPEN POS';
       document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     }
@@ -1103,6 +1105,9 @@ function goBackFromPOS(){
     renderRecentOrders();
     renderCashierExpList();
     loadExpectedCash();
+    // clear cash declaration status for privacy
+    clearCashDeclaration();
+    document.getElementById('cashDeclStatus').innerHTML='';
   } else {
     goScreen('adminScreen');
     setActiveTab('dashboard');
