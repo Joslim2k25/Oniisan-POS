@@ -211,6 +211,12 @@ button{cursor:pointer;font-family:inherit}
 .dtr-act.res{background:var(--blue-light);color:var(--blue)}
 .dtr-photo{width:30px;height:30px;border-radius:6px;object-fit:cover;border:1px solid var(--border)}
 
+/* CASHIER EXPENSE CATS */
+.cat-exp-btn{padding:6px 10px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.cat-exp-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+.cashier-exp-item{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:11px}
+.cashier-exp-item:last-child{border-bottom:none}
+
 /* EMPLOYEE MGMT */
 .emp-mgmt-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f5f5f5}
 .emp-mgmt-row:hover{background:#fafafa}
@@ -347,14 +353,62 @@ button{cursor:pointer;font-family:inherit}
       <div class="lcard-label">TIME RECORD — SM BICUTAN</div>
       <div class="time-row">
         <button class="time-btn tin" onclick="timeAction('in')"><span class="dot-ind" style="background:var(--green)"></span>TIME IN</button>
-        <button class="time-btn tbrk" onclick="timeAction('brk')"><span class="dot-ind" style="background:var(--gold)"></span>BREAK</button>
-        <button class="time-btn tres" onclick="timeAction('res')"><span class="dot-ind" style="background:var(--blue)"></span>RESUME</button>
+        <button class="time-btn tbrk" onclick="timeAction('brk_out')"><span class="dot-ind" style="background:var(--gold)"></span>BREAK OUT</button>
+        <button class="time-btn tres" onclick="timeAction('brk_in')"><span class="dot-ind" style="background:var(--blue)"></span>BREAK IN</button>
         <button class="time-btn tout" onclick="timeAction('out')"><span class="dot-ind" style="background:var(--red)"></span>TIME OUT</button>
       </div>
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
     <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role</button>
+    
+    <!-- CASHIER EXPENSES -->
+    <div class="lcard" style="margin-top:12px">
+      <div class="lcard-label">LOG EXPENSE</div>
+      
+      <!-- Category selector -->
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="cashierExpCats">
+        <button class="cat-exp-btn active" data-cat="COS/Food Ingredients" onclick="selectExpCat(this)">🥩 COS/Food</button>
+        <button class="cat-exp-btn" data-cat="Shipping Fee" onclick="selectExpCat(this)">🚚 Shipping</button>
+        <button class="cat-exp-btn" data-cat="Office Supplies/Xerox" onclick="selectExpCat(this)">📎 Office</button>
+        <button class="cat-exp-btn" data-cat="Miscellaneous" onclick="selectExpCat(this)">📋 Misc</button>
+      </div>
+
+      <!-- Description -->
+      <div class="input-group" style="margin-bottom:8px">
+        <div class="input-label">Description</div>
+        <input class="inp" id="cashierExpDesc" placeholder="e.g. Vegetables from supplier"/>
+      </div>
+
+      <!-- Gross amount input -->
+      <div class="input-group" style="margin-bottom:6px">
+        <div class="input-label">Gross Amount (₱)</div>
+        <input class="inp" id="cashierExpGross" type="number" placeholder="0.00" min="0" step="0.01"
+          oninput="computeExpVAT()"/>
+      </div>
+
+      <!-- VAT breakdown -->
+      <div id="expVATBreakdown" style="display:none;background:#f8f8f8;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--muted)">Gross Amount</span>
+          <span style="font-weight:700" id="expGrossDisplay">₱0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--muted)">VAT (12%)</span>
+          <span style="font-weight:700;color:var(--red)" id="expVATDisplay">₱0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:6px">
+          <span style="font-weight:800;color:var(--green)">Net Amount</span>
+          <span style="font-weight:900;color:var(--green);font-size:14px" id="expNetDisplay">₱0.00</span>
+        </div>
+      </div>
+
+      <button onclick="saveCashierExpense()" style="width:100%;padding:10px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Save Expense</button>
+      
+      <!-- Today's expense list -->
+      <div id="cashierExpList" style="margin-top:10px"></div>
+    </div>
+
     <div class="lcard" style="margin-top:12px">
       <div class="lcard-label">RECENT ORDERS TODAY (Last 8)</div>
       <div id="recentOrdersList"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Loading...</div></div>
@@ -770,6 +824,7 @@ function selectRole(role){
     loadEmployees();
     loadCategories().then(loadProducts);
     renderRecentOrders();
+    renderCashierExpList();
     document.getElementById('openPosBtn').textContent='OPEN POS';
   } else {
     loadEmployees();
@@ -815,12 +870,28 @@ function renderEmpList(){
   document.getElementById('empList').innerHTML=employees.map(e=>{
     const stat=getEmpStatus(e.id);
     const photo=LS.get('empphoto_'+e.id,null);
-    const isIn=stat.status==='in',isBrk=stat.status==='break';
-    const statusText=isIn?'IN since '+timeStr(stat.since):isBrk?'On Break':'No log today';
-    const dotCls=isIn?'in':isBrk?'brk':'';
+    const isIn=stat.status==='in';
+    const isBrk=stat.status==='break';
+    const isOut=stat.status==='out';
+    let statusText='No log today';
+    let dotCls='';
+    if(isIn){statusText='IN since '+timeStr(stat.since);dotCls='in';}
+    else if(isBrk){statusText='On Break since '+timeStr(stat.breakStart);dotCls='brk';}
+
+    // compute elapsed work time
+    let elapsed='';
+    if(isIn&&stat.since){
+      const worked=(stat.totalWork||0)+(Date.now()-new Date(stat.since).getTime());
+      elapsed=msToHM(worked);
+    } else if(isBrk){
+      elapsed=msToHM(stat.totalWork||0)+' (on break)';
+    }
+
     const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatarHtml=photo?`<div class="emp-avatar"><img src="${photo}" alt="${e.name}"/></div>`:`<div class="emp-avatar" style="background:${isIn?'#eafaf1':isBrk?'#fef9e7':'#eee'};color:${isIn?'#1e8449':isBrk?'#c8900a':'#999'}">${initials}</div>`;
-    const elapsed=isIn&&stat.since?msToHM(Date.now()-new Date(stat.since).getTime()+(stat.totalWork||0)):'';
+    const avatarHtml=photo
+      ?`<div class="emp-avatar"><img src="${photo}" alt="${e.name}"/></div>`
+      :`<div class="emp-avatar" style="background:${isIn?'#eafaf1':isBrk?'#fef9e7':'#eee'};color:${isIn?'#1e8449':isBrk?'#c8900a':'#999'}">${initials}</div>`;
+
     return `<div class="emp-row${selectedEmp===e.id?' selected':''}" onclick="selectEmp('${e.id}')">
       <span class="emp-dot ${dotCls}"></span>${avatarHtml}
       <div style="flex:1">
@@ -832,6 +903,91 @@ function renderEmpList(){
   }).join('');
 }
 function selectEmp(id){selectedEmp=id;renderEmpList();}
+
+// ══════ CASHIER EXPENSES ══════
+let selectedExpCat = 'COS/Food Ingredients';
+
+function selectExpCat(btn){
+  document.querySelectorAll('.cat-exp-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedExpCat = btn.dataset.cat;
+}
+
+function computeExpVAT(){
+  const gross = +document.getElementById('cashierExpGross').value||0;
+  const breakdown = document.getElementById('expVATBreakdown');
+  if(gross<=0){breakdown.style.display='none';return;}
+  const vat = gross/1.12*0.12;
+  const net = gross - vat;
+  breakdown.style.display='block';
+  document.getElementById('expGrossDisplay').textContent = fmt(gross);
+  document.getElementById('expVATDisplay').textContent = fmt(vat);
+  document.getElementById('expNetDisplay').textContent = fmt(net);
+}
+
+async function saveCashierExpense(){
+  const gross = +document.getElementById('cashierExpGross').value||0;
+  const desc = document.getElementById('cashierExpDesc').value.trim();
+  if(!gross){showToast('Enter an amount.');return;}
+  const vat = gross/1.12*0.12;
+  const net = gross - vat;
+  const rec={
+    date_key: getTodayKey(),
+    category: selectedExpCat,
+    description: desc,
+    amount: gross,
+    vat_amount: vat,
+    net_amount: net,
+    branch: 'SM Bicutan'
+  };
+  setLoading(true);
+  if(navigator.onLine){
+    const{error}=await sb.from('expenses').insert([rec]);
+    if(error) addToQueue('expense',rec);
+  } else addToQueue('expense',rec);
+  // local cache
+  const cache=LS.get('exp_'+getTodayKey(),[]);
+  cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});
+  LS.set('exp_'+getTodayKey(),cache);
+  setLoading(false);
+  document.getElementById('cashierExpGross').value='';
+  document.getElementById('cashierExpDesc').value='';
+  document.getElementById('expVATBreakdown').style.display='none';
+  showToast('Expense saved!');
+  renderCashierExpList();
+}
+
+async function renderCashierExpList(){
+  const el=document.getElementById('cashierExpList');
+  if(!el)return;
+  const exps=await sbGetExpenses();
+  if(!exps.length){
+    el.innerHTML='<div style="font-size:11px;color:#ccc;text-align:center;padding:8px">No expenses today</div>';
+    return;
+  }
+  const totalGross=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const totalVAT=exps.reduce((s,e)=>s+(e.vat_amount||e.amount/1.12*0.12),0);
+  const totalNet=totalGross-totalVAT;
+  el.innerHTML=`
+    <div style="font-size:10px;font-weight:800;color:var(--muted);margin-bottom:6px;letter-spacing:.5px">TODAY'S EXPENSES</div>
+    ${exps.map(e=>{
+      const vat=e.vat_amount||e.amount/1.12*0.12;
+      const net=e.net_amount||(e.amount-vat);
+      return `<div class="cashier-exp-item">
+        <span style="font-size:9px;font-weight:800;background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:8px;white-space:nowrap">${e.category}</span>
+        <div style="flex:1;padding:0 6px">
+          <div style="font-size:11px;color:var(--text)">${e.description||'—'}</div>
+          <div style="font-size:10px;color:var(--muted)">VAT: ${fmt(vat)} · Net: ${fmt(net)}</div>
+        </div>
+        <span style="font-weight:800;color:var(--red);font-size:12px">${fmt(e.amount)}</span>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:8px;padding:8px;background:#f8f8f8;border-radius:8px;font-size:11px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--muted)">Total Gross</span><span style="font-weight:700">${fmt(totalGross)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--muted)">Total VAT</span><span style="font-weight:700;color:var(--red)">${fmt(totalVAT)}</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px"><span style="font-weight:800;color:var(--green)">Total Net</span><span style="font-weight:900;color:var(--green)">${fmt(totalNet)}</span></div>
+    </div>`;
+}
 
 // ══════ RECENT ORDERS ══════
 async function renderRecentOrders(){
@@ -859,26 +1015,91 @@ function timeAction(action){
   if(!selectedEmp){showToast('Select an employee first.');return;}
   const emp=employees.find(e=>e.id===selectedEmp);
   if(!emp){showToast('Employee not found.');return;}
-  pendingTimeAction=action;pendingPhotoEmpId=selectedEmp;
-  openCam(`${action.toUpperCase()} — ${emp.name}`);
+  const stat=getEmpStatus(selectedEmp);
+
+  // Validate action sequence
+  if(action==='in' && stat.status==='in'){showToast('Already timed in!');return;}
+  if(action==='in' && stat.status==='break'){showToast('Please use BREAK IN first.');return;}
+  if(action==='brk_out' && stat.status!=='in'){showToast('Must be timed in first.');return;}
+  if(action==='brk_in' && stat.status!=='break'){showToast('Not on break.');return;}
+  if(action==='out' && stat.status==='out'){showToast('Not timed in.');return;}
+  if(action==='out' && stat.status==='break'){showToast('Please use BREAK IN before timing out.');return;}
+
+  pendingTimeAction=action;
+  pendingPhotoEmpId=selectedEmp;
+  const labels={in:'TIME IN',brk_out:'BREAK OUT',brk_in:'BREAK IN',out:'TIME OUT'};
+  openCam(`${labels[action]||action} — ${emp.name}`);
 }
 
 async function doTimeAction(action,empId,photoDataUrl){
   const stat=getEmpStatus(empId);
   const emp=employees.find(e=>e.id===empId);
   const now=tsNow();
-  const rec={emp_id:empId,emp_name:emp?.name,action,ts:now,photo_url:photoDataUrl,branch:'SM Bicutan',total_work:0,break_duration:0};
-  if(action==='in'){if(stat.status==='in'){showToast('Already timed in!');return;}stat.status='in';stat.since=now;stat.totalWork=stat.totalWork||0;}
-  else if(action==='brk'){if(stat.status!=='in'){showToast('Not timed in!');return;}stat.status='break';stat.breakStart=now;}
-  else if(action==='res'){if(stat.status!=='break'){showToast('Not on break!');return;}rec.break_duration=Date.now()-new Date(stat.breakStart).getTime();stat.status='in';stat.breakStart=null;}
-  else if(action==='out'){if(stat.status==='out'){showToast('Not timed in!');return;}const worked=(stat.totalWork||0)+(stat.since?Date.now()-new Date(stat.since).getTime():0);rec.total_work=worked;stat.totalWork=0;stat.status='out';stat.since=null;}
+  const nowMs=Date.now();
+
+  const rec={
+    emp_id:empId,
+    emp_name:emp?.name,
+    action,
+    ts:now,
+    photo_url:photoDataUrl,
+    branch:'SM Bicutan',
+    total_work:0,
+    break_duration:0
+  };
+
+  if(action==='in'){
+    stat.status='in';
+    stat.since=now;
+    stat.totalWork=stat.totalWork||0;
+    stat.totalBreak=stat.totalBreak||0;
+    stat.breaks=stat.breaks||[];
+  }
+  else if(action==='brk_out'){
+    stat.status='break';
+    stat.breakStart=now;
+    // add running work time
+    stat.totalWork=(stat.totalWork||0)+(stat.since?nowMs-new Date(stat.since).getTime():0);
+    stat.since=null;
+  }
+  else if(action==='brk_in'){
+    const brkDur=nowMs-new Date(stat.breakStart).getTime();
+    stat.totalBreak=(stat.totalBreak||0)+brkDur;
+    rec.break_duration=brkDur;
+    stat.status='in';
+    stat.since=now;
+    stat.breakStart=null;
+  }
+  else if(action==='out'){
+    const lastWork=(stat.since?nowMs-new Date(stat.since).getTime():0);
+    const totalWork=(stat.totalWork||0)+lastWork;
+    rec.total_work=totalWork;
+    rec.break_duration=stat.totalBreak||0;
+    stat.status='out';
+    stat.since=null;
+    stat.totalWork=0;
+    stat.totalBreak=0;
+    stat.breaks=[];
+  }
+
   saveEmpStatus(empId,stat);
-  // save locally first
-  const dk=getTodayKey();const cache=LS.get('dtr_'+empId+'_'+dk,[]);cache.push(rec);LS.set('dtr_'+empId+'_'+dk,cache);
-  // try Supabase, queue if offline
-  if(navigator.onLine){const{error}=await sb.from('time_records').insert([rec]);if(error)addToQueue('dtr',rec);}
-  else addToQueue('dtr',rec);
-  renderEmpList();showToast('Time record saved!');
+
+  // Save to local cache
+  const dk=getTodayKey();
+  const cache=LS.get('dtr_'+empId+'_'+dk,[]);
+  cache.push(rec);
+  LS.set('dtr_'+empId+'_'+dk,cache);
+
+  // Save to Supabase
+  if(navigator.onLine){
+    const{error}=await sb.from('time_records').insert([rec]);
+    if(error) addToQueue('dtr',rec);
+  } else {
+    addToQueue('dtr',rec);
+  }
+
+  renderEmpList();
+  showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded!`);
 }
 
 // ══════ CAMERA ══════
@@ -1091,25 +1312,160 @@ async function renderSalesLog(dateKey){
   const key=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const txns=await sbGetTransactions(key);
+  const exps=await sbGetExpenses(key);
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const itemMap={};txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
-  const itemSummary=Object.values(itemMap).sort((a,b)=>b.amt-a.amt);
+  const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
+
+  // Item summary
+  const itemMap={};
+  txns.forEach(t=>(t.items||[]).forEach(i=>{
+    if(!itemMap[i.name]){itemMap[i.name]={name:i.name,qty:0,amt:0};}
+    itemMap[i.name].qty+=i.qty;
+    itemMap[i.name].amt+=i.price*i.qty;
+  }));
+  const itemSummary=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
+  const totalQty=itemSummary.reduce((s,i)=>s+i.qty,0);
+
+  // Payment breakdown
+  const pmBreak={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
+  txns.forEach(t=>{if(pmBreak[t.payment_method]!==undefined)pmBreak[t.payment_method]+=(t.total||0);});
+
+  // Discount breakdown
+  const pwdTxns=txns.filter(t=>t.discount==='pwd');
+  const seniorTxns=txns.filter(t=>t.discount==='senior');
+  const staffTxns=txns.filter(t=>t.discount==='staff');
+  const pwdDiscAmt=pwdTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  const seniorDiscAmt=seniorTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  const staffDiscAmt=staffTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  // VAT = discount / 1.12 * 0.12
+  const pwdVAT=pwdDiscAmt/1.12*0.12;
+  const seniorVAT=seniorDiscAmt/1.12*0.12;
+
+  // Expense by category
+  const expByCat={};
+  exps.forEach(e=>{expByCat[e.category]=(expByCat[e.category]||0)+(e.amount||0);});
+
   document.getElementById('adminBody').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Sales Log — ${dateStr(key+'T12:00:00')}</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px" class="no-print">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderSalesLog(this.value)"/>
+    <button class="btn-green" onclick="window.print()" style="padding:8px 14px">Print / Save PDF</button>
   </div>
+
+  <!-- PRINT HEADER -->
+  <div style="display:none" class="print-only">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:22px;font-weight:900;color:var(--red)">ONIISAN TEMPURA</div>
+      <div style="font-size:13px;color:var(--muted)">SM Bicutan Branch</div>
+      <div style="font-size:13px;font-weight:700">Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
+      <div style="font-size:11px;color:var(--muted)">Generated: ${new Date().toLocaleString('en-PH')}</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY METRICS -->
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val gr">${fmtn(gross)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(expTotal)}</div><div class="metric-lbl">Total Expenses (₱)</div></div>
+    <div class="metric"><div class="metric-val go">${fmtn(gross-expTotal)}</div><div class="metric-lbl">Net Sales (₱)</div></div>
+    <div class="metric"><div class="metric-val bl">${txns.length}</div><div class="metric-lbl">Transactions</div></div>
+  </div>
+
+  <!-- ITEMS SOLD -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Items Sold</div>
-    <table class="tbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>
-    <tbody>${itemSummary.length?itemSummary.map(i=>`<tr><td>${i.name}</td><td class="num">${i.qty}</td><td class="num gr">${fmt(i.amt)}</td></tr>`).join('')+'<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">'+itemSummary.reduce((s,i)=>s+i.qty,0)+'</td><td class="num gr">'+fmt(gross)+'</td></tr>'
-    :'<tr><td colspan="3" style="text-align:center;color:#ccc;padding:20px">No sales</td></tr>'}</tbody></table>
+    <div class="card-title"><div class="red-bar"></div>Items Sold — ${totalQty} total items</div>
+    <table class="tbl">
+      <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Total Amount</th></tr></thead>
+      <tbody>
+        ${itemSummary.length?itemSummary.map((i,idx)=>`
+          <tr>
+            <td style="color:var(--muted);font-size:11px">${idx+1}</td>
+            <td style="font-weight:600">${i.name}</td>
+            <td class="num" style="font-weight:800">${i.qty}</td>
+            <td class="num" style="color:var(--muted)">${fmt(i.qty>0?i.amt/i.qty:0)}</td>
+            <td class="num gr">${fmt(i.amt)}</td>
+          </tr>`).join('')
+          +'<tr style="background:#f0f0f0;font-weight:800"><td colspan="2">TOTAL</td><td class="num">'+totalQty+'</td><td class="num">—</td><td class="num gr">'+fmt(gross)+'</td></tr>'
+        :'<tr><td colspan="5" style="text-align:center;color:#ccc;padding:20px">No sales for this date</td></tr>'}
+      </tbody>
+    </table>
   </div>
+
+  <!-- PAYMENT BREAKDOWN -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Payment Breakdown</div>
+    <table class="tbl">
+      <thead><tr><th>Payment Method</th><th class="num">Transactions</th><th class="num">Amount</th><th class="num">% of Total</th></tr></thead>
+      <tbody>
+        ${Object.entries(pmBreak).filter(([,v])=>v>0).map(([pm,amt])=>`
+          <tr>
+            <td style="text-transform:capitalize;font-weight:600">${pm==='card'?'Credit/Debit Card':pm.charAt(0).toUpperCase()+pm.slice(1)}</td>
+            <td class="num">${txns.filter(t=>t.payment_method===pm).length}</td>
+            <td class="num bl" style="font-weight:700">${fmt(amt)}</td>
+            <td class="num" style="color:var(--muted)">${gross>0?(amt/gross*100).toFixed(1):'0'}%</td>
+          </tr>`).join('')}
+        <tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${txns.length}</td><td class="num gr">${fmt(gross)}</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DISCOUNTS & VAT -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Discounts & VAT</div>
+    <table class="tbl">
+      <thead><tr><th>Discount Type</th><th class="num">Transactions</th><th class="num">Discount Amount</th><th class="num">VAT (12%)</th></tr></thead>
+      <tbody>
+        ${pwdDiscAmt>0?`<tr><td style="font-weight:600">PWD (20%)</td><td class="num">${pwdTxns.length}</td><td class="num re">${fmt(pwdDiscAmt)}</td><td class="num re">${fmt(pwdVAT)}</td></tr>`:''}
+        ${seniorDiscAmt>0?`<tr><td style="font-weight:600">Senior Citizen (20%)</td><td class="num">${seniorTxns.length}</td><td class="num re">${fmt(seniorDiscAmt)}</td><td class="num re">${fmt(seniorVAT)}</td></tr>`:''}
+        ${staffDiscAmt>0?`<tr><td style="font-weight:600">Staff Meal (50%)</td><td class="num">${staffTxns.length}</td><td class="num re">${fmt(staffDiscAmt)}</td><td class="num" style="color:var(--muted)">N/A</td></tr>`:''}
+        ${(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)===0?'<tr><td colspan="4" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>':''}
+        ${(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)>0?`<tr style="background:#f0f0f0;font-weight:800"><td>TOTAL</td><td class="num">${pwdTxns.length+seniorTxns.length+staffTxns.length}</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt+staffDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Expenses</div>
+    ${exps.length?`<table class="tbl">
+      <thead><tr><th>Category</th><th>Description</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        ${exps.map(e=>`<tr><td><span class="exp-cat">${e.category}</span></td><td style="font-size:11px">${e.description||'—'}</td><td class="num re">${fmt(e.amount)}</td></tr>`).join('')}
+        <tr style="background:#f0f0f0;font-weight:800"><td colspan="2">TOTAL EXPENSES</td><td class="num re">${fmt(expTotal)}</td></tr>
+      </tbody>
+    </table>`:'<div style="text-align:center;padding:12px;color:#ccc;font-size:12px">No expenses logged</div>'}
+  </div>
+
+  <!-- NET SUMMARY -->
   <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Transaction Log</div>
-    <table class="tbl"><thead><tr><th>OR#</th><th>Time</th><th>Table</th><th>Payment</th><th>Discount</th><th class="num">Total</th></tr></thead>
-    <tbody>${txns.length?txns.map(t=>`<tr><td style="font-weight:700">${t.or_num||'—'}</td><td>${timeStr(t.ts)}</td><td>${t.table_name||'—'}</td><td style="text-transform:uppercase;font-size:11px;font-weight:700">${t.payment_method||'cash'}</td><td style="font-size:11px">${t.discount==='none'?'—':(t.discount||'—').toUpperCase()}</td><td class="num gr">${fmt(t.total||0)}</td></tr>`).join('')
-    :'<tr><td colspan="6" style="text-align:center;color:#ccc;padding:20px">No transactions</td></tr>'}</tbody></table>
+    <div class="card-title"><div class="red-bar"></div>Net Summary</div>
+    <div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
+    ${expTotal>0?`<div class="sum-row deduct"><span class="sum-label">— Total Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
+    ${pwdDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— PWD Discount</span><span class="sum-val">-${fmt(pwdDiscAmt)}</span></div>`:''}
+    ${seniorDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— Senior Discount</span><span class="sum-val">-${fmt(seniorDiscAmt)}</span></div>`:''}
+    ${(pwdVAT+seniorVAT)>0?`<div class="sum-row deduct"><span class="sum-label">— VAT Deduction</span><span class="sum-val">-${fmt(pwdVAT+seniorVAT)}</span></div>`:''}
+    <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
+    <div class="sum-row net-row"><span class="sum-label">NET SALES</span><span class="sum-val">${fmt(gross-expTotal-pwdDiscAmt-seniorDiscAmt-(pwdVAT+seniorVAT))}</span></div>
+  </div>
+
+  <!-- TRANSACTION LOG -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title"><div class="red-bar"></div>Transaction Log (${txns.length} transactions)</div>
+    <table class="tbl">
+      <thead><tr><th>OR#</th><th>Time</th><th>Table</th><th>Items</th><th>Payment</th><th>Discount</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        ${txns.length?txns.map(t=>`
+          <tr>
+            <td style="font-weight:700;font-size:11px">${t.or_num||'—'}</td>
+            <td style="font-size:11px">${timeStr(t.ts)}</td>
+            <td style="font-size:11px">${t.table_name||'—'}</td>
+            <td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).map(i=>i.name+'×'+i.qty).join(', ')}</td>
+            <td style="text-transform:uppercase;font-size:10px;font-weight:700">${t.payment_method||'cash'}</td>
+            <td style="font-size:10px">${t.discount==='none'||!t.discount?'—':t.discount.toUpperCase()+(t.discount_amount>0?' (-'+fmt(t.discount_amount)+')':'')}</td>
+            <td class="num gr" style="font-weight:800">${fmt(t.total||0)}</td>
+          </tr>`).join('')
+        :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:20px">No transactions</td></tr>'}
+      </tbody>
+    </table>
   </div>`;
 }
 
@@ -1284,27 +1640,80 @@ function buildReadingContent(txns,gross,pmBreak,now){
 }
 
 // ══════ DTR ══════
-async function renderDTR(){
-  const today=getTodayKey();
-  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+async function renderDTR(dateKey){
+  const dk=dateKey||getTodayKey();
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading DTR...</div>';
   const cards=await Promise.all(employees.map(async e=>{
     const stat=getEmpStatus(e.id);
     let recs=[];
-    if(navigator.onLine){const{data}=await sb.from('time_records').select('*').eq('emp_id',e.id).gte('ts',today+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').order('ts');recs=data||[];}
-    else recs=LS.get('dtr_'+e.id+'_'+today,[]);
+    if(navigator.onLine){
+      const{data}=await sb.from('time_records').select('*').eq('emp_id',e.id).gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts');
+      recs=data||[];
+    } else {
+      recs=LS.get('dtr_'+e.id+'_'+dk,[]);
+    }
     const photo=LS.get('empphoto_'+e.id,null);
     const isIn=stat.status==='in';
     const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const totalW=recs.filter(r=>r.action==='out').reduce((s,r)=>s+(r.total_work||0),0)+(isIn&&stat.since?Date.now()-new Date(stat.since).getTime()+(stat.totalWork||0):0);
-    const avatarHtml=photo?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--${isIn?'green':'border'})"/>`:`<div class="emp-avatar" style="background:${isIn?'#eafaf1':'#eee'};color:${isIn?'#1e8449':'#999'}">${initials}</div>`;
-    return `<div class="dtr-card"><div class="dtr-head">${avatarHtml}
-      <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span class="dtr-emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div>
-      <div style="font-size:11px;color:${isIn?'var(--green)':'var(--muted)'}">${isIn?'Currently IN':stat.status==='break'?'On Break':'Timed Out'}</div></div>
-      <div class="dtr-total">${totalW>0?msToHM(totalW):'—'}</div></div>
-      ${recs.length?`<div style="padding-left:46px">${recs.map(r=>{const lbl={in:'TIME IN',out:'TIME OUT',brk:'BREAK',res:'RESUME'}[r.action]||r.action;const cls={in:'in',out:'out',brk:'brk',res:'res'}[r.action]||'in';return `<div class="dtr-row"><span class="dtr-act ${cls}">${lbl}</span><span style="flex:1">${timeStr(r.ts)}</span>${(r.total_work||0)>0?`<span style="color:var(--muted);font-size:11px">${msToHM(r.total_work)}</span>`:''} ${r.photo_url?`<img src="${r.photo_url}" class="dtr-photo" alt=""/>`:''}  </div>`;}).join('')}</div>`:`<div style="font-size:11px;color:#ccc;padding-left:46px">No logs today</div>`}
+    const totalW=recs.filter(r=>r.action==='out').reduce((s,r)=>s+(r.total_work||0),0)+
+      (isIn&&stat.since&&dk===getTodayKey()?(stat.totalWork||0)+(Date.now()-new Date(stat.since).getTime()):0);
+    const totalBreakMs=recs.reduce((s,r)=>s+(r.break_duration||0),0);
+    const avatarHtml=photo
+      ?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--${isIn?'green':'border'})"/>`
+      :`<div class="emp-avatar" style="background:${isIn?'#eafaf1':'#eee'};color:${isIn?'#1e8449':'#999'}">${initials}</div>`;
+    if(!recs.length) return `<div class="dtr-card">
+      <div class="dtr-head">${avatarHtml}
+        <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span class="dtr-emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div></div>
+        <div class="dtr-total">—</div>
+      </div>
+      <div style="font-size:11px;color:#ccc;padding-left:46px">No logs for this date</div>
+    </div>`;
+    return `<div class="dtr-card">
+      <div class="dtr-head">${avatarHtml}
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px"><span class="dtr-emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div>
+          <div style="font-size:11px;color:${isIn&&dk===getTodayKey()?'var(--green)':'var(--muted)'}">${isIn&&dk===getTodayKey()?'Currently IN':'Logged out'}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="dtr-total">${totalW>0?msToHM(totalW):'—'}</div>
+          ${totalBreakMs>0?`<div style="font-size:10px;color:var(--gold)">Break: ${msToHM(totalBreakMs)}</div>`:''}
+        </div>
+      </div>
+      <div style="padding-left:46px">
+        ${recs.map(r=>{
+          const lbl={in:'TIME IN',out:'TIME OUT',brk_out:'BREAK OUT',brk_in:'BREAK IN'}[r.action]||r.action.toUpperCase();
+          const cls={in:'in',out:'out',brk_out:'brk',brk_in:'res'}[r.action]||'in';
+          return `<div class="dtr-row">
+            <span class="dtr-act ${cls}">${lbl}</span>
+            <span style="flex:1">${timeStr(r.ts)}</span>
+            ${(r.total_work||0)>0?`<span style="color:var(--green);font-size:11px;font-weight:700">Work: ${msToHM(r.total_work)}</span>`:''}
+            ${(r.break_duration||0)>0?`<span style="color:var(--gold);font-size:11px">Break: ${msToHM(r.break_duration)}</span>`:''}
+            ${r.photo_url?`<img src="${r.photo_url}" class="dtr-photo" alt=""/>`:''}
+          </div>`;
+        }).join('')}
+        ${totalW>0?`<div style="margin-top:8px;padding:8px;background:var(--green-light);border-radius:8px;font-size:12px;font-weight:800;color:var(--green);display:flex;justify-content:space-between">
+          <span>Total Hours Worked</span><span>${msToHM(totalW)}</span>
+        </div>`:''}
+      </div>
     </div>`;
   }));
-  document.getElementById('adminBody').innerHTML=`<div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>DTR — ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>${cards.join('')}`;
+
+  // only show employees who have records for non-today dates
+  const isToday = dk===getTodayKey();
+  const filteredCards = isToday ? cards : cards.filter((c,i)=>{
+    return employees[i] && c.includes('dtr-act');
+  });
+
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1">
+      <div class="red-bar"></div>DTR — ${new Date(dk+'T12:00:00').toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+    </div>
+    <input type="date" value="${dk}" class="inp" style="width:160px" onchange="renderDTR(this.value)"/>
+    <button class="print-btn no-print" style="width:auto;padding:6px 14px;margin:0" onclick="window.print()">Print DTR</button>
+  </div>
+  ${(isToday?cards:filteredCards).join('')}
+  ${(!isToday&&filteredCards.length===0)?'<div style="text-align:center;padding:40px;color:#ccc">No time records for this date</div>':''}`;
 }
 
 // ══════ EMPLOYEE MANAGEMENT ══════
