@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Oniisan Tempura POS — SM Bicutan</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;background:#f0f0f0;color:#1a1a1a;font-size:14px}
@@ -558,6 +559,17 @@ button{cursor:pointer;font-family:inherit}
     <button class="kback" onclick="goScreen('posScreen');renderMenu()">Back to POS</button>
   </div>
   <div class="kitchen-grid" id="kitchenGrid"></div>
+</div>
+
+<!-- RECEIPT PRINT MODAL -->
+<div class="modal-overlay" id="printReceiptModal">
+  <div class="modal" style="width:340px;max-width:98vw;padding:0">
+    <div id="printReceiptContent" style="padding:20px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6"></div>
+    <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px" class="no-print">
+      <button class="mbtn secondary" onclick="document.getElementById('printReceiptModal').classList.remove('open')">Close</button>
+      <button class="mbtn primary" onclick="window.print()" style="background:var(--green)">🖨️ Print Receipt</button>
+    </div>
+  </div>
 </div>
 
 <!-- CAMERA MODAL -->
@@ -2191,48 +2203,177 @@ async function downloadMonthlyExcel(mk){
 // ══════ X & Z READING ══════
 async function renderXReading(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
-  const txns=await sbGetTransactions();const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const pmBreak={};txns.forEach(t=>{pmBreak[t.payment_method]=(pmBreak[t.payment_method]||0)+(t.total||0);});
+  const txns=await sbGetTransactions();
   const now=new Date();
   document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>X Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}<span style="font-size:11px;color:var(--muted);font-weight:400">(Interim)</span></div>
-  <div class="card">${buildReadingContent(txns,gross,pmBreak,now)}<button class="print-btn no-print" onclick="window.print()">Print X Reading</button></div>`;
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px" class="no-print">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>X Reading <span style="font-size:11px;color:var(--muted);font-weight:400">(Interim — does not close day)</span></div>
+    <button class="btn-green no-print" onclick="window.print()" style="padding:8px 16px">🖨️ Print X Reading</button>
+  </div>
+  <div class="card" style="max-width:500px;margin:0 auto;font-family:monospace">
+    ${buildReadingContent(txns,now,'X')}
+  </div>`;
 }
 
 async function renderZReading(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
-  const txns=await sbGetTransactions();const rep=await sbGetDailyReport();
-  const exps=await sbGetExpenses();const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
-  const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const ded=expTotal+(rep.grabfood||0)+(rep.foodpanda||0)+(rep.gcash_fee||0)+(rep.maya_fee||0)+(rep.gotyme_fee||0)+(rep.discount_pwd||0)+(rep.discount_senior||0)+(rep.other_deductions||0);
-  const net=gross-ded;
-  const pmBreak={};txns.forEach(t=>{pmBreak[t.payment_method]=(pmBreak[t.payment_method]||0)+(t.total||0);});
+  const txns=await sbGetTransactions();
+  const exps=await sbGetExpenses();
   const now=new Date();
   document.getElementById('adminBody').innerHTML=`
-  <div style="font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Z Reading — ${now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}<span style="font-size:11px;color:var(--red);font-weight:700">(End of Day)</span></div>
-  <div class="card">${buildReadingContent(txns,gross,pmBreak,now)}
-    <div style="margin-top:12px;padding-top:12px;border-top:1.5px dashed var(--border)">
-      <div class="card-title"><div class="red-bar"></div>Deductions & Net</div>
-      ${buildNetSummary(gross,rep,expTotal)}
-    </div>
-    <button class="print-btn no-print" style="margin-top:10px" onclick="window.print()">Print Z Reading</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px" class="no-print">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Z Reading <span style="font-size:11px;color:var(--red);font-weight:700">(End of Day Report)</span></div>
+    <button class="btn-green no-print" onclick="window.print()" style="padding:8px 16px">🖨️ Print Z Reading</button>
+  </div>
+  <div class="card" style="max-width:500px;margin:0 auto;font-family:monospace">
+    ${buildReadingContent(txns,now,'Z',exps)}
   </div>`;
 }
 
-function buildReadingContent(txns,gross,pmBreak,now){
-  const itemMap={};txns.forEach(t=>(t.items||[]).forEach(i=>{if(!itemMap[i.id]){itemMap[i.id]={name:i.name,qty:0,amt:0};}itemMap[i.id].qty+=i.qty;itemMap[i.id].amt+=i.price*i.qty;}));
-  const items=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
-  return `<div style="text-align:center;margin-bottom:16px"><div style="font-size:20px;font-weight:900;color:var(--red)">ONIISAN TEMPURA</div><div style="font-size:12px;color:var(--muted)">SM Bicutan · ${now.toLocaleString('en-PH')}</div></div>
-  <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:4px"><span>GROSS SALES</span><span style="color:var(--green)">${fmt(gross)}</span></div>
-  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:12px"><span>Total Transactions</span><span>${txns.length}</span></div>
-  <div style="border-top:1px dashed var(--border);padding-top:10px;margin-bottom:10px">
-    <div style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">PAYMENT METHODS</div>
-    ${['cash','gcash','maya','gotyme','card','grabfood','foodpanda'].map(pm=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="text-transform:uppercase;color:var(--muted);font-weight:700">${pm}</span><span style="font-weight:700">${fmt(pmBreak[pm]||0)}</span></div>`).join('')}
+function buildReadingContent(txns,now,type,exps){
+  const gross=txns.reduce((s,t)=>s+(t.total||0),0);
+
+  // Payment breakdown
+  const pmBreak={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
+  txns.forEach(t=>{if(pmBreak[t.payment_method]!==undefined)pmBreak[t.payment_method]+=(t.total||0);});
+  const nonCash=pmBreak.gcash+pmBreak.maya+pmBreak.gotyme+pmBreak.card+pmBreak.grabfood+pmBreak.foodpanda;
+
+  // Item category summary
+  const catMap={};
+  txns.forEach(t=>(t.items||[]).forEach(i=>{
+    const cat=i.cat||'Others';
+    if(!catMap[cat]){catMap[cat]={qty:0,amt:0};}
+    catMap[cat].qty+=i.qty;catMap[cat].amt+=i.price*i.qty;
+  }));
+  const totalQty=txns.reduce((s,t)=>s+(t.items||[]).reduce((ss,i)=>ss+i.qty,0),0);
+
+  // Discount summary
+  const pwdTxns=txns.filter(t=>t.discount==='pwd');
+  const seniorTxns=txns.filter(t=>t.discount==='senior');
+  const staffTxns=txns.filter(t=>t.discount==='staff');
+  const pwdDisc=pwdTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  const seniorDisc=seniorTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  const staffDisc=staffTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+  const totalDisc=pwdDisc+seniorDisc+staffDisc;
+
+  // VAT computation
+  const vatableSales=gross/1.12;
+  const vatAmount=gross-vatableSales;
+  const lessVAT=totalDisc/1.12*0.12;
+  const netSales=gross-totalDisc-lessVAT;
+
+  // Expenses (Z only)
+  const expTotal=exps?exps.reduce((s,e)=>s+(e.amount||0),0):0;
+
+  const line=(label,val,bold=false)=>`
+    <div style="display:flex;justify-content:space-between;padding:2px 0;${bold?'font-weight:900;font-size:13px;':'font-size:12px;'}border-bottom:1px dotted #eee">
+      <span>${label}</span><span>${val}</span>
+    </div>`;
+  const divider=(label='')=>`<div style="border-top:1px dashed #333;margin:6px 0;text-align:center;font-size:11px;color:#888">${label}</div>`;
+
+  return `
+  <!-- HEADER -->
+  <div style="text-align:center;margin-bottom:12px;line-height:1.6">
+    <div style="font-size:16px;font-weight:900">ONIISAN TEMPURA FOOD CART</div>
+    <div style="font-size:11px">SM City Bicutan, Parañaque City</div>
+    <div style="font-size:11px">VAT REG TIN: 000-000-000-000</div>
+    <div style="font-size:11px">MIN: 00000000000000</div>
+    <div style="font-size:11px">Serial No. FLC0000001</div>
+    ${divider()}
+    <div style="font-size:13px;font-weight:800">${type} Reading Report</div>
+    <div style="font-size:11px">${type==='X'?'X-Counter':'Z-Counter'} #: ${String(txns.length).padStart(10,'0')}</div>
+    <div style="font-size:11px">Date: ${now.toLocaleDateString('en-PH',{month:'2-digit',day:'2-digit',year:'numeric'})} ${now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
   </div>
-  <div style="border-top:1px dashed var(--border);padding-top:10px">
-    <div style="font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">ITEMS SOLD</div>
-    <table class="tbl" style="font-size:11px"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Amount</th></tr></thead>
-    <tbody>${items.map(i=>`<tr><td>${i.name}</td><td class="num">${i.qty}</td><td class="num">${fmt(i.amt)}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:#ccc">No sales</td></tr>'}</tbody></table>
+  ${divider()}
+
+  <!-- TRANSACTION COUNTERS -->
+  <div style="font-size:11px;margin-bottom:6px">
+    ${line('Beginning Balance','0.00')}
+    ${line('Ending Balance',fmtn(gross))}
+    ${line('Total Receipt',String(txns.length).padStart(10,'0'))}
+    ${line('Total Void','0'.padStart(10,'0'))}
+    ${line('Total Refund','0'.padStart(10,'0'))}
+    ${line('Total Guest',String(txns.length).padStart(10,'0'))}
+    ${line('Initial Cash','0.00')}
+    ${line('Finalize Cash',fmtn(pmBreak.cash))}
+    ${line('Finalize Non-Cash',fmtn(nonCash))}
+  </div>
+  ${divider('Item Category Summary')}
+
+  <!-- ITEM CATEGORY SUMMARY -->
+  <div style="font-size:11px;margin-bottom:6px">
+    ${Object.entries(catMap).map(([cat,v])=>line(
+      `${v.qty} ${cat.toUpperCase()}`,
+      fmtn(v.amt)
+    )).join('')}
+    ${line('TOTAL',fmtn(gross),true)}
+  </div>
+  ${divider('Discount Summary')}
+
+  <!-- DISCOUNT SUMMARY -->
+  <div style="font-size:11px;margin-bottom:6px">
+    ${line(`${seniorTxns.length} Senior (20%)`,fmtn(seniorDisc))}
+    ${line(`${pwdTxns.length} PWD (20%)`,fmtn(pwdDisc))}
+    ${line(`${staffTxns.length} Staff Meal (50%)`,fmtn(staffDisc))}
+    ${divider()}
+    ${line('TOTAL',fmtn(totalDisc),true)}
+    ${line('Less VAT:','')}
+    ${line('  Senior:',`-${fmtn(seniorDisc/1.12*0.12)}`)}
+    ${line('  PWD:',`-${fmtn(pwdDisc/1.12*0.12)}`)}
+  </div>
+  ${divider()}
+
+  <!-- GROSS/NET COMPUTATION -->
+  <div style="font-size:12px;margin-bottom:6px">
+    ${line('GROSS TOTAL',fmtn(gross),true)}
+    ${line('DISCOUNTS',`(-) ${fmtn(totalDisc)}`)}
+    ${line('SERVICE CHARGES','0.00')}
+    ${line('Less VAT:',`(-) ${fmtn(lessVAT)}`)}
+    ${line('VAT Amount',fmtn(vatAmount))}
+    ${divider()}
+    ${line('NET SALES',fmtn(netSales),true)}
+  </div>
+  ${divider('Breakdown of Sales')}
+
+  <!-- VAT BREAKDOWN -->
+  <div style="font-size:11px;margin-bottom:6px">
+    ${line('VATTable Sales',fmtn(vatableSales))}
+    ${line('VAT Amount',fmtn(vatAmount))}
+    ${line('VAT Exempt Sales','0.00')}
+    ${line('Zero Rated Sales','0.00')}
+  </div>
+  ${divider('Payment Summary')}
+
+  <!-- PAYMENT SUMMARY -->
+  <div style="font-size:11px;margin-bottom:6px">
+    ${line(`${txns.filter(t=>t.payment_method==='cash').length} Cash`,fmtn(pmBreak.cash))}
+    ${line('0 EDC AMEX','0.00')}
+    ${line('0 EDC Diner','0.00')}
+    ${line('0 EDC JCB','0.00')}
+    ${line(`${txns.filter(t=>t.payment_method==='card'&&t.card_type==='Mastercard').length} EDC Master`,fmtn(pmBreak.card))}
+    ${line('0 EDC Visa','0.00')}
+    ${line('0 Gift Certificate','0.00')}
+    ${line(`${txns.filter(t=>t.payment_method==='gcash').length} GCash`,fmtn(pmBreak.gcash))}
+    ${line(`${txns.filter(t=>t.payment_method==='maya').length} PayMaya`,fmtn(pmBreak.maya))}
+    ${line(`${txns.filter(t=>t.payment_method==='foodpanda').length} Food Panda`,fmtn(pmBreak.foodpanda))}
+    ${line(`${txns.filter(t=>t.payment_method==='grabfood').length} Grab Food`,fmtn(pmBreak.grabfood))}
+    ${line(`${txns.filter(t=>t.payment_method==='gotyme').length} GoTyme`,fmtn(pmBreak.gotyme))}
+    ${line('0 SM Online','0.00')}
+    ${line('0 Complimentary','0.00')}
+    ${divider()}
+    ${line('TOTAL',fmtn(gross),true)}
+  </div>
+
+  ${type==='Z'&&expTotal>0?`${divider('Expenses')}
+  <div style="font-size:11px;margin-bottom:6px">
+    ${(exps||[]).map(e=>line(e.category,fmtn(e.amount))).join('')}
+    ${line('TOTAL EXPENSES',fmtn(expTotal),true)}
+    ${divider()}
+    ${line('NET AFTER EXPENSES',fmtn(netSales-expTotal),true)}
+  </div>`:''}
+
+  <div style="text-align:center;font-size:11px;margin-top:12px;color:#888">
+    ${now.toLocaleDateString('en-PH',{month:'2-digit',day:'2-digit',year:'numeric'})} ${now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} PM
   </div>`;
 }
 
@@ -2880,9 +3021,105 @@ async function confirmCharge(){
   order={};renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
   renderRecentOrders();
+  // Show receipt with QR code
+  showPrintReceipt(txn);
 }
 
-// ══════ KITCHEN ══════
+function showPrintReceipt(txn){
+  const modal=document.getElementById('printReceiptModal');
+  const content=document.getElementById('printReceiptContent');
+  const menuUrl='https://oniisan-pos-joslim2k25s-projects.vercel.app/menu.html';
+  const receiptData=`OR:${txn.orNum}|DATE:${txn.ts.slice(0,10)}|TOTAL:${txn.total}|PAY:${txn.paymentMethod}`;
+
+  const line=(l,r,bold=false)=>`<div style="display:flex;justify-content:space-between;${bold?'font-weight:900;':''}margin:1px 0"><span>${l}</span><span>${r}</span></div>`;
+  const divider=()=>'<div style="border-top:1px dashed #999;margin:6px 0"></div>';
+
+  content.innerHTML=`
+  <div style="text-align:center;margin-bottom:8px">
+    <div style="font-size:15px;font-weight:900">ONIISAN TEMPURA FOOD CART</div>
+    <div style="font-size:10px">SM City Bicutan, Parañaque City</div>
+    <div style="font-size:10px">VAT REG TIN: 000-000-000-000</div>
+    <div style="font-size:10px">MIN: 00000000000000</div>
+    <div style="font-size:10px">Serial No. FLC0000001</div>
+  </div>
+  ${divider()}
+  <div style="font-size:10px;margin-bottom:4px">
+    ${line('Date:',new Date(txn.ts).toLocaleDateString('en-PH'))}
+    ${line('Time:',new Date(txn.ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}))}
+    ${line('OR #:',txn.orNum,true)}
+    ${line('Table:',txn.table||'—')}
+    ${line('Cashier:',currentLoginEmp?.name||'—')}
+  </div>
+  ${divider()}
+  <div style="font-size:10px;margin-bottom:4px">
+    ${(txn.items||[]).map(i=>`
+      <div style="margin:2px 0">
+        <div style="font-weight:700">${i.name}</div>
+        <div style="display:flex;justify-content:space-between;color:#666">
+          <span>${i.qty} x ₱${i.price.toFixed(2)}</span>
+          <span>₱${(i.qty*i.price).toFixed(2)}</span>
+        </div>
+      </div>`).join('')}
+  </div>
+  ${divider()}
+  <div style="font-size:10px;margin-bottom:4px">
+    ${txn.discount&&txn.discount!=='none'?`
+      ${line('Subtotal:','₱'+txn.subtotal.toFixed(2))}
+      ${line(`Discount (${txn.discount.toUpperCase()}):`,'-₱'+(txn.discountAmount||0).toFixed(2))}
+      ${txn.discountName?line('Name:',txn.discountName):''}
+      ${txn.discountIdNum?line('ID #:',txn.discountIdNum):''}
+    `:''}
+    ${line('TOTAL:','₱'+txn.total.toFixed(2),true)}
+    ${line('Payment:',txn.paymentMethod.toUpperCase())}
+    ${txn.paymentMethod==='cash'?`
+      ${line('Cash:','₱'+(txn.cashTendered||0).toFixed(2))}
+      ${line('Change:','₱'+(txn.change||0).toFixed(2))}
+    `:''}
+    ${txn.cardType?line('Card:',txn.cardType+' *'+txn.cardLast4):''}
+  </div>
+  ${divider()}
+  <div style="font-size:10px;margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between">
+      <span>VATable Sales:</span><span>₱${(txn.total/1.12).toFixed(2)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span>VAT (12%):</span><span>₱${(txn.total-(txn.total/1.12)).toFixed(2)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span>VAT Exempt:</span><span>₱0.00</span>
+    </div>
+  </div>
+  ${divider()}
+  <div style="text-align:center;margin:10px 0">
+    <div style="font-size:10px;color:#666;margin-bottom:8px">Scan to view our menu</div>
+    <div id="receiptQR" style="display:inline-block"></div>
+    <div style="font-size:9px;color:#888;margin-top:4px">oniisan-menu.vercel.app</div>
+  </div>
+  ${divider()}
+  <div style="text-align:center;font-size:10px;color:#666">
+    <div>Thank you for dining with us!</div>
+    <div>ありがとうございます</div>
+    <div style="margin-top:4px">This serves as your official receipt.</div>
+  </div>`;
+
+  modal.classList.add('open');
+
+  // Generate QR code
+  setTimeout(()=>{
+    const qrEl=document.getElementById('receiptQR');
+    if(qrEl&&typeof QRCode!=='undefined'){
+      qrEl.innerHTML='';
+      new QRCode(qrEl,{
+        text: menuUrl,
+        width: 100,
+        height: 100,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  },300);
+}
 function renderKitchen(){
   const grid=document.getElementById('kitchenGrid');
   if(!kitchenTickets.length){grid.innerHTML='<div class="kitchen-empty">No orders in queue</div>';return;}
