@@ -495,6 +495,8 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="products">Products</div>
     <div class="tab" data-tab="categories">Categories</div>
     <div class="tab" data-tab="inventory">Inventory</div>
+    <div class="tab" data-tab="payroll">Payroll</div>
+    <div class="tab" data-tab="holidays">Holidays</div>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
@@ -1690,6 +1692,8 @@ function renderTabContent(tab){
   else if(tab==='products')renderProductMgmt();
   else if(tab==='categories')renderCategoryMgmt();
   else if(tab==='inventory')renderInventory();
+  else if(tab==='payroll')renderPayroll();
+  else if(tab==='holidays')renderHolidays();
 }
 
 // ══════ SUPABASE QUERIES ══════
@@ -2291,6 +2295,287 @@ async function saveCashOnHand(dk){
   setLoading(false);
   showToast(`Saved! ${variance===0?'✅ EXACT':variance>0?'⬆️ OVER '+fmt(variance):'⬇️ SHORT '+fmt(Math.abs(variance))}`);
   renderMonthly(dk.slice(0,7));
+}
+
+// ══════ PAYROLL ══════
+const DAILY_RATE=695;
+const OT_RATE=DAILY_RATE/8*1.25;
+const TOTAL_DEDUCTIONS=850;
+const APPROVERS=['Owner','Aimee'];
+
+function getCutoffPeriods(year,month){
+  const pad=n=>String(n).padStart(2,'0');
+  const prevMonth=month===1?12:month-1;
+  const prevYear=month===1?year-1:year;
+  return [
+    {label:`${pad(prevMonth)}/26/${prevYear} - ${pad(month)}/10/${year}`,start:`${prevYear}-${pad(prevMonth)}-26`,end:`${year}-${pad(month)}-10`},
+    {label:`${pad(month)}/11/${year} - ${pad(month)}/25/${year}`,start:`${year}-${pad(month)}-11`,end:`${year}-${pad(month)}-25`}
+  ];
+}
+
+async function renderPayroll(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading payroll...</div>';
+  const now=new Date();
+  const periods=[];
+  for(let y=2025;y<=2027;y++)for(let m=1;m<=12;m++){getCutoffPeriods(y,m).forEach(p=>periods.push(p));}
+  const selPeriodKey=LS.get('payroll_period',periods[0].start+'_'+periods[0].end);
+  const[selStart,selEnd]=selPeriodKey.split('_');
+
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Payroll</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select class="inp" style="width:260px" id="payrollPeriodSel" onchange="LS.set('payroll_period',this.value);renderPayroll()">
+        ${periods.map(p=>`<option value="${p.start}_${p.end}"${p.start+'_'+p.end===selPeriodKey?' selected':''}>${p.label}</option>`).join('')}
+      </select>
+      <button onclick="computePayroll('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Compute</button>
+      <button onclick="downloadPayrollExcel('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Excel</button>
+      <button onclick="window.print()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
+    </div>
+  </div>
+  <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue)">
+    <strong>Period:</strong> ${selStart} to ${selEnd} &nbsp;|&nbsp;
+    <strong>Daily Rate:</strong> ₱${DAILY_RATE} &nbsp;|&nbsp;
+    <strong>OT Rate:</strong> ₱${OT_RATE.toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
+    <strong>Deductions:</strong> SSS ₱450 + PhilHealth ₱200 + Pag-IBIG ₱200 = ₱850 (every 30th)
+  </div>
+  <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click 🔄 Compute to generate payroll for this period</div></div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-title"><div class="red-bar"></div>OT Approval Requests</div>
+    <div id="otApprovalsList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading...</div></div>
+    ${APPROVERS.includes(currentLoginEmp?.name)?`
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">+ REQUEST / LOG OT</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select class="inp" style="flex:1;min-width:120px" id="otEmpSel">${employees.filter(e=>e.role==='cashier').map(e=>`<option value="${e.id}">${e.name}</option>`).join('')}</select>
+        <input class="inp" type="date" id="otDate" value="${getTodayKey()}" style="width:150px"/>
+        <input class="inp" type="number" id="otHours" placeholder="OT hrs" step="0.5" min="0.5" max="8" style="width:90px"/>
+        <input class="inp" id="otReason" placeholder="Reason for OT" style="flex:1;min-width:150px"/>
+        <button onclick="submitOTApproval()" class="btn-green" style="padding:8px 14px">Submit & Approve</button>
+      </div>
+    </div>`:'<div style="font-size:11px;color:var(--muted);margin-top:8px">Only Owner and Aimee can approve OT requests.</div>'}
+  </div>`;
+  loadOTApprovals();
+}
+
+async function computePayroll(start,end){
+  setLoading(true);
+  document.getElementById('payrollTable').innerHTML='<div style="text-align:center;padding:20px;color:#ccc">Computing...</div>';
+  const{data:records}=await sb.from('time_records').select('*').gte('ts',start+'T00:00:00.000Z').lte('ts',end+'T23:59:59.999Z').order('ts');
+  const{data:holidays}=await sb.from('holidays').select('*');
+  const{data:otApprovals}=await sb.from('ot_approvals').select('*').eq('status','approved').gte('date_key',start).lte('date_key',end);
+  const recs=records||[];const hols=holidays||[];const ots=otApprovals||[];
+  const holidayMap={};hols.forEach(h=>{holidayMap[h.date_key]=h;});
+  const empMap={};
+  recs.forEach(r=>{if(!empMap[r.emp_id]){empMap[r.emp_id]={name:r.emp_name,records:[]};}empMap[r.emp_id].records.push(r);});
+  const payrollRows=[];
+  for(const empId of Object.keys(empMap)){
+    const emp=empMap[empId];
+    const dayMap={};
+    emp.records.forEach(r=>{const dk=r.ts.slice(0,10);if(!dayMap[dk])dayMap[dk]=[];dayMap[dk].push(r);});
+    let daysWorked=0,totalHours=0,otHours=0,holidayPay=0;
+    Object.keys(dayMap).forEach(dk=>{
+      const outRec=dayMap[dk].find(r=>r.action==='out');
+      if(!outRec)return;
+      const workedHrs=(outRec.total_work||0)/3600000;
+      if(workedHrs>0){
+        daysWorked++;totalHours+=workedHrs;
+        const approvedOT=ots.find(o=>o.emp_id===empId&&o.date_key===dk);
+        if(approvedOT)otHours+=approvedOT.ot_hours;
+        if(holidayMap[dk]){
+          const h=holidayMap[dk];
+          holidayPay+=h.type==='regular'?DAILY_RATE:DAILY_RATE*0.30;
+        }
+      }
+    });
+    const basicPay=daysWorked*DAILY_RATE;
+    const otPay=otHours*OT_RATE;
+    const grossPay=basicPay+otPay+holidayPay;
+    const isDeductionPeriod=new Date(end).getDate()>=25;
+    const totalDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
+    const netPay=grossPay-totalDed;
+    payrollRows.push({empId,name:emp.name,daysWorked,totalHours:totalHours.toFixed(1),otHours:otHours.toFixed(1),basicPay,otPay,holidayPay,grossPay,totalDed,netPay});
+  }
+  setLoading(false);
+  if(!payrollRows.length){document.getElementById('payrollTable').innerHTML='<div class="card" style="text-align:center;padding:30px;color:#ccc">No time records found for this period</div>';return;}
+  const totalGross=payrollRows.reduce((s,r)=>s+r.grossPay,0);
+  const totalNet=payrollRows.reduce((s,r)=>s+r.netPay,0);
+  document.getElementById('payrollTable').innerHTML=`
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Payroll — ${start} to ${end}</div>
+    <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Employee</th><th class="num">Days</th><th class="num">Hrs</th><th class="num">OT Hrs</th><th class="num">Basic</th><th class="num">OT Pay</th><th class="num">Holiday</th><th class="num">Gross</th><th class="num">Deductions</th><th class="num">NET PAY</th><th>Payslip</th></tr></thead>
+      <tbody>
+        ${payrollRows.map(r=>`<tr>
+          <td style="font-weight:700">${r.name}</td>
+          <td class="num">${r.daysWorked}</td>
+          <td class="num">${r.totalHours}</td>
+          <td class="num">${+r.otHours>0?`<span style="color:var(--gold);font-weight:700">${r.otHours}</span>`:'—'}</td>
+          <td class="num">${fmt(r.basicPay)}</td>
+          <td class="num">${r.otPay>0?`<span style="color:var(--gold)">${fmt(r.otPay)}</span>`:'—'}</td>
+          <td class="num">${r.holidayPay>0?`<span style="color:var(--blue)">${fmt(r.holidayPay)}</span>`:'—'}</td>
+          <td class="num gr" style="font-weight:800">${fmt(r.grossPay)}</td>
+          <td class="num re">${r.totalDed>0?'-'+fmt(r.totalDed):'—'}</td>
+          <td class="num" style="font-weight:900;color:var(--green);font-size:14px">${fmt(r.netPay)}</td>
+          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot><tr style="background:#f0f0f0;font-weight:900">
+        <td colspan="7">TOTAL</td>
+        <td class="num gr">${fmt(totalGross)}</td>
+        <td class="num re">-${fmt(payrollRows.reduce((s,r)=>s+r.totalDed,0))}</td>
+        <td class="num" style="color:var(--green)">${fmt(totalNet)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table></div>
+  </div>`;
+  // Save to Supabase
+  for(const r of payrollRows){
+    const{data:ex}=await sb.from('payroll').select('id').eq('emp_id',r.empId).eq('cutoff_start',start).eq('cutoff_end',end).limit(1);
+    const rec={emp_id:r.empId,emp_name:r.name,cutoff_start:start,cutoff_end:end,days_worked:r.daysWorked,total_hours:+r.totalHours,ot_hours:+r.otHours,ot_pay:r.otPay,holiday_pay:r.holidayPay,basic_pay:r.basicPay,gross_pay:r.grossPay,sss:r.totalDed>0?450:0,philhealth:r.totalDed>0?200:0,pagibig:r.totalDed>0?200:0,total_deductions:r.totalDed,net_pay:r.netPay,branch:'SM Bicutan'};
+    if(ex&&ex.length){await sb.from('payroll').update(rec).eq('id',ex[0].id);}
+    else{await sb.from('payroll').insert([rec]);}
+  }
+  showToast('Payroll computed and saved!');
+}
+
+function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,totalDed,netPay,start,end){
+  const w=window.open('','_blank','width=420,height=650');
+  w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${name}</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:24px;max-width:380px}
+  .c{text-align:center}.b{font-weight:900}.r{color:#c0392b}
+  .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted #eee}
+  .divider{border-top:1px dashed #999;margin:10px 0}
+  @media print{button{display:none}}</style></head><body>
+  <div class="c b r" style="font-size:18px;letter-spacing:3px">ONIISAN</div>
+  <div class="c" style="font-size:11px">Tempura &amp; Japanese Food · SM Bicutan</div>
+  <div class="c b" style="margin:8px 0;font-size:14px">PAYSLIP</div>
+  <div class="divider"></div>
+  <div class="row"><span>Employee:</span><span class="b">${name}</span></div>
+  <div class="row"><span>Period:</span><span>${start} to ${end}</span></div>
+  <div class="row"><span>Daily Rate:</span><span>₱${DAILY_RATE}.00</span></div>
+  <div class="divider"></div>
+  <div class="b" style="margin:6px 0 4px">EARNINGS</div>
+  <div class="row"><span>Basic Pay (${daysWorked} days × ₱${DAILY_RATE})</span><span>₱${basicPay.toFixed(2)}</span></div>
+  ${otHours>0?`<div class="row"><span>OT Pay (${otHours} hrs approved)</span><span>₱${otPay.toFixed(2)}</span></div>`:''}
+  ${holidayPay>0?`<div class="row"><span>Holiday Pay</span><span>₱${holidayPay.toFixed(2)}</span></div>`:''}
+  <div class="row b"><span>GROSS PAY</span><span>₱${grossPay.toFixed(2)}</span></div>
+  <div class="divider"></div>
+  ${totalDed>0?`<div class="b" style="margin:6px 0 4px">DEDUCTIONS</div>
+  <div class="row"><span>SSS Contribution</span><span>₱450.00</span></div>
+  <div class="row"><span>PhilHealth</span><span>₱200.00</span></div>
+  <div class="row"><span>Pag-IBIG Fund</span><span>₱200.00</span></div>
+  <div class="row b"><span>TOTAL DEDUCTIONS</span><span>₱850.00</span></div>
+  <div class="divider"></div>`:''}
+  <div class="row b r" style="font-size:16px"><span>NET PAY</span><span>₱${netPay.toFixed(2)}</span></div>
+  <div class="divider"></div>
+  <div style="margin-top:40px">
+    <div class="row"><span>Prepared by:</span><span style="border-bottom:1px solid #000;min-width:150px">&nbsp;</span></div>
+    <div class="row" style="margin-top:16px"><span>Received by:</span><span style="border-bottom:1px solid #000;min-width:150px">&nbsp;</span></div>
+    <div class="row" style="margin-top:16px"><span>Date:</span><span style="border-bottom:1px solid #000;min-width:150px">&nbsp;</span></div>
+  </div>
+  <div class="c" style="margin-top:20px;font-size:9px;color:#888">Generated: ${new Date().toLocaleString('en-PH')}</div>
+  <button onclick="window.print()" style="width:100%;margin-top:16px;padding:10px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Print Payslip</button>
+  </body></html>`);
+  w.document.close();
+}
+
+async function loadOTApprovals(){
+  const el=document.getElementById('otApprovalsList');
+  if(!el)return;
+  const{data}=await sb.from('ot_approvals').select('*').eq('branch','SM Bicutan').order('created_at',{ascending:false}).limit(20);
+  const ots=data||[];
+  if(!ots.length){el.innerHTML='<div style="text-align:center;padding:16px;color:#ccc;font-size:12px">No OT requests yet</div>';return;}
+  el.innerHTML=`<table class="tbl"><thead><tr><th>Employee</th><th>Date</th><th>OT Hrs</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+  <tbody>${ots.map(o=>`<tr>
+    <td style="font-weight:700">${o.emp_name||'—'}</td>
+    <td>${o.date_key}</td>
+    <td style="font-weight:800;color:var(--gold)">${o.ot_hours} hrs</td>
+    <td style="font-size:11px">${o.reason||'—'}</td>
+    <td><span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px;background:${o.status==='approved'?'var(--green-light)':o.status==='rejected'?'var(--red-light)':'var(--gold-light)'};color:${o.status==='approved'?'var(--green)':o.status==='rejected'?'var(--red)':'var(--gold)'}">${o.status.toUpperCase()}</span></td>
+    <td>${APPROVERS.includes(currentLoginEmp?.name)&&o.status==='pending'?`
+      <button onclick="approveOT('${o.id}','approved')" style="padding:3px 8px;background:var(--green);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✅ Approve</button>
+      <button onclick="approveOT('${o.id}','rejected')" style="padding:3px 8px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer">❌ Reject</button>
+    `:'—'}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+async function submitOTApproval(){
+  const empId=document.getElementById('otEmpSel')?.value;
+  const dateKey=document.getElementById('otDate')?.value;
+  const hrs=+document.getElementById('otHours')?.value||0;
+  const reason=document.getElementById('otReason')?.value?.trim();
+  const emp=employees.find(e=>e.id===empId);
+  if(!hrs){showToast('Enter OT hours.');return;}
+  if(!reason){showToast('Enter reason for OT.');return;}
+  setLoading(true);
+  // Auto-approve since only approvers can submit
+  await sb.from('ot_approvals').insert([{emp_id:empId,emp_name:emp?.name,date_key:dateKey,ot_hours:hrs,reason,status:'approved',approved_by:currentLoginEmp?.name,branch:'SM Bicutan'}]);
+  setLoading(false);
+  showToast('OT approved and recorded!');
+  document.getElementById('otHours').value='';
+  document.getElementById('otReason').value='';
+  loadOTApprovals();
+}
+
+async function approveOT(id,status){
+  await sb.from('ot_approvals').update({status,approved_by:currentLoginEmp?.name}).eq('id',id);
+  showToast(status==='approved'?'✅ OT Approved!':'❌ OT Rejected.');
+  loadOTApprovals();
+}
+
+async function downloadPayrollExcel(start,end){
+  const{data}=await sb.from('payroll').select('*').eq('cutoff_start',start).eq('cutoff_end',end);
+  const rows=data||[];
+  if(!rows.length){showToast('No data. Click Compute first.');return;}
+  const headers=['Employee','Days Worked','Total Hours','OT Hours','Basic Pay','OT Pay','Holiday Pay','Gross Pay','SSS','PhilHealth','Pag-IBIG','Total Deductions','NET PAY'];
+  const csv=[headers.join(','),...rows.map(r=>[r.emp_name,r.days_worked,r.total_hours,r.ot_hours,r.basic_pay,r.ot_pay,r.holiday_pay,r.gross_pay,r.sss,r.philhealth,r.pagibig,r.total_deductions,r.net_pay].join(','))].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`payroll-${start}-to-${end}.csv`;a.click();
+  URL.revokeObjectURL(url);
+  showToast('Payroll downloaded!');
+}
+
+// ══════ HOLIDAYS ══════
+async function renderHolidays(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  const{data}=await sb.from('holidays').select('*').order('date_key');
+  const hols=data||[];
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Holiday Management</div>
+    <button class="btn-green" onclick="openHolidayModal()">+ Add Holiday</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Philippine Holidays (${hols.length})</div>
+    <table class="tbl">
+      <thead><tr><th>Date</th><th>Holiday</th><th>Type</th><th>Pay Rate</th><th></th></tr></thead>
+      <tbody>${hols.map(h=>`<tr>
+        <td style="font-weight:700">${h.date_key}</td>
+        <td>${h.name}</td>
+        <td><span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px;background:${h.type==='regular'?'var(--red-light)':'var(--gold-light)'};color:${h.type==='regular'?'var(--red)':'var(--gold)'}">${h.type.toUpperCase()}</span></td>
+        <td style="font-size:11px;color:var(--muted)">${h.type==='regular'?'200% (Double Pay)':'130% (+30%)'}</td>
+        <td><button onclick="deleteHoliday('${h.id}','${h.name}')" class="act-btn del">Delete</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+async function openHolidayModal(){
+  const name=prompt('Holiday name:');if(!name)return;
+  const date=prompt('Date (YYYY-MM-DD):');if(!date)return;
+  const type=prompt('Type (regular or special):','regular');if(!type)return;
+  await sb.from('holidays').insert([{date_key:date,name,type:type.toLowerCase(),branch:'SM Bicutan'}]);
+  showToast('Holiday added!');renderHolidays();
+}
+
+async function deleteHoliday(id,name){
+  if(!confirm(`Delete "${name}"?`))return;
+  await sb.from('holidays').delete().eq('id',id);
+  showToast('Deleted.');renderHolidays();
 }
 
 function printMonthlyReport(){
