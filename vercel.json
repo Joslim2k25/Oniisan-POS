@@ -1,7 +1,10 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/menu", "destination": "/menu.html" },
-    { "source": "/", "destination": "/index.html" }
+  "version": 2,
+  "builds": [
+    { "src": "*.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/menu", "dest": "/menu.html" },
+    { "src": "/", "dest": "/index.html" }
   ]
 }
