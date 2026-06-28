@@ -2121,9 +2121,96 @@ async function renderMonthly(monthKey){
   const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">—</span>';
   const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
   const fmtExp=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
+  let mVAT=0;
 
   document.getElementById('adminBody').innerHTML=`
-  <!-- HEADER -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Monthly Report</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="inp" style="width:180px" onchange="renderMonthly(this.value)">
+        ${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+      <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
+      <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download Excel</button>
+    </div>
+  </div>
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val gr">${fmtn(mGross)}</div><div class="metric-lbl">Monthly Gross</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(mExpenses)}</div><div class="metric-lbl">Expenses</div></div>
+    <div class="metric"><div class="metric-val go">${fmtn(mNet)}</div><div class="metric-lbl">NET</div></div>
+    <div class="metric"><div class="metric-val bl">${mTxns}</div><div class="metric-lbl">Txns</div></div>
+  </div>
+  <div style="border-radius:12px;overflow:hidden;border:1px solid #333;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1200px">
+      <thead>
+        <tr style="background:#1a1a2e;color:#fff">
+          <th style="padding:12px 10px;text-align:left;white-space:nowrap">📅 Date</th>
+          <th style="padding:12px 8px;text-align:right;color:#4ade80">Gross</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💚 GCash</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💙 Maya</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">🏦 GoTyme</th>
+          <th style="padding:12px 8px;text-align:right;color:#fb923c">🐼 FoodPanda</th>
+          <th style="padding:12px 8px;text-align:right;color:#4ade80">🥦 GrabFood</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💳 Card</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171">Discount</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171">VAT</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171">Expenses</th>
+          <th style="padding:12px 8px;text-align:right;color:#fbbf24">NET SALES</th>
+          <th style="padding:12px 8px;text-align:center;color:#fff">Cash on Hand</th>
+          <th style="padding:12px 8px;text-align:center;color:#fff">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r,idx)=>{
+          const vat=r.discount/1.12*0.12;
+          mVAT+=vat;
+          const varStr=r.variance===null?'—':
+            r.variance===0?'<span style="color:#4ade80;font-weight:800">✅ EXACT</span>':
+            r.variance>0?`<span style="color:#60a5fa;font-weight:800">OVER ${fmt(r.variance)}</span>`:
+            `<span style="color:#f87171;font-weight:800">SHORT ${fmt(Math.abs(r.variance))}</span>`;
+          const cashInput=`<div style="display:flex;align-items:center;gap:4px;justify-content:center" onclick="event.stopPropagation()">
+            <input type="number" id="cash_${r.dk}" value="${r.cashDecl?r.cashDecl.declared_amount:''}" placeholder="0"
+              style="width:75px;background:rgba(255,255,255,.1);border:1px solid #555;border-radius:4px;color:#fff;padding:4px 6px;font-size:11px;font-weight:700;text-align:right"/>
+            <button onclick="event.stopPropagation();saveCashOnHand('${r.dk}')"
+              style="padding:4px 8px;background:#22c55e;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer">Save</button>
+          </div>`;
+          return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
+            <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span></td>
+            <td style="padding:10px;text-align:right;color:#4ade80;font-weight:800">${fmt(r.gross)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.gcash)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.maya)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.gotyme)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.foodpanda)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.grabfood)}</td>
+            <td style="padding:10px;text-align:right">${fmtCell(r.card)}</td>
+            <td style="padding:10px;text-align:right">${fmtDisc(r.discount)}</td>
+            <td style="padding:10px;text-align:right"><span style="color:#f87171;font-weight:700">${vat>0?'-'+fmt(vat):'—'}</span></td>
+            <td style="padding:10px;text-align:right">${fmtExp(r.expenses)}</td>
+            <td style="padding:10px;text-align:right;color:#fbbf24;font-weight:800">${fmt(r.net)}</td>
+            <td style="padding:10px">${cashInput}</td>
+            <td style="padding:10px;text-align:center">${varStr}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="background:#c0392b;color:#fff;font-weight:900">
+          <td style="padding:12px 10px">TOTAL (${mTxns} orders)</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mGross)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mGcash)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mMaya)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mGotyme)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mFoodpanda)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mGrabfood)}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mCard)}</td>
+          <td style="padding:12px 8px;text-align:right">-${fmt(mDiscount)}</td>
+          <td style="padding:12px 8px;text-align:right">-${fmt(mVAT)}</td>
+          <td style="padding:12px 8px;text-align:right">-${fmt(mExpenses)}</td>
+          <td style="padding:12px 8px;text-align:right;color:#fbbf24">${fmt(mNet)}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px">
       <div class="red-bar"></div>Monthly Report
@@ -2204,6 +2291,29 @@ async function renderMonthly(monthKey){
       </tfoot>
     </table>
   </div>`;
+}
+
+async function saveCashOnHand(dk){
+  const input=document.getElementById('cash_'+dk);
+  if(!input)return;
+  const declared=+input.value||0;
+  if(!declared){showToast('Enter cash on hand amount.');return;}
+  const txns=await sbGetTransactions(dk);
+  const expectedCash=txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
+  const exps=await sbGetExpenses(dk);
+  const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const expected=expectedCash-expTotal;
+  const variance=declared-expected;
+  const rec={date_key:dk,declared_amount:declared,expected_amount:expected,variance,declared_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'};
+  setLoading(true);
+  if(navigator.onLine){
+    const{data:ex}=await sb.from('cash_declarations').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1);
+    if(ex&&ex.length){await sb.from('cash_declarations').update(rec).eq('date_key',dk);}
+    else{await sb.from('cash_declarations').insert([rec]);}
+  }
+  setLoading(false);
+  showToast(`Saved! ${variance===0?'✅ EXACT':variance>0?'⬆️ OVER '+fmt(variance):'⬇️ SHORT '+fmt(Math.abs(variance))}`);
+  renderMonthly(dk.slice(0,7));
 }
 
 function printMonthlyReport(){
