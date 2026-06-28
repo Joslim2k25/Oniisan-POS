@@ -1152,7 +1152,14 @@ function selectRole(role){
 }
 
 function openPosOrAdmin(){
-  if(currentRole==='cashier'){goScreen('posScreen');renderMenu();}
+  if(currentRole==='cashier'){
+    // Check if day is already closed
+    if(LS.get('day_closed_'+getTodayKey(),false)){
+      showToast('🔒 Day is closed. Cannot open POS.');
+      return;
+    }
+    goScreen('posScreen');renderMenu();
+  }
   else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
 }
 
@@ -1277,12 +1284,31 @@ function clearCashDeclaration(){
   const btn=document.querySelector('[onclick="saveCashDeclaration()"]');
   if(btn){btn.disabled=false;btn.textContent='Submit Cash Declaration';btn.style.background='var(--green)';}
   document.getElementById('cashDeclStatus').innerHTML='';
+  // Re-enable POS only if day not closed
+  if(!LS.get('day_closed_'+getTodayKey(),false)){
+    const posBtn=document.getElementById('openPosBtn');
+    if(posBtn){posBtn.disabled=false;posBtn.textContent='OPEN POS';posBtn.style.background='var(--red)';posBtn.style.cursor='pointer';}
+  }
 }
 
 async function loadExpectedCash(){
   const txns = await sbGetTransactions();
   expectedCashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
-  // Don't show last declaration — privacy
+
+  // Check if day already closed
+  if(LS.get('day_closed_'+getTodayKey(),false)){
+    const posBtn=document.getElementById('openPosBtn');
+    if(posBtn){
+      posBtn.disabled=true;
+      posBtn.textContent='🔒 DAY CLOSED — POS Disabled';
+      posBtn.style.background='#888';
+      posBtn.style.cursor='not-allowed';
+    }
+    const cashInput=document.getElementById('cashOnHandAmt');
+    const submitBtn=document.querySelector('[onclick="saveCashDeclaration()"]');
+    if(cashInput) cashInput.disabled=true;
+    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='✅ Already Submitted';submitBtn.style.background='#aaa';}
+  }
 }
 
 async function computeCashVariance(){
@@ -1377,7 +1403,17 @@ async function saveCashDeclaration(){
   document.querySelector('[onclick="saveCashDeclaration()"]').textContent='✅ Submitted';
   document.querySelector('[onclick="saveCashDeclaration()"]').style.background='#aaa';
 
-  showToast(navigator.onLine?'Cash declaration saved!':'Saved offline — will sync later');
+  // CLOSE THE DAY — disable POS button
+  LS.set('day_closed_'+getTodayKey(), true);
+  const posBtn=document.getElementById('openPosBtn');
+  if(posBtn){
+    posBtn.disabled=true;
+    posBtn.textContent='🔒 DAY CLOSED — POS Disabled';
+    posBtn.style.background='#888';
+    posBtn.style.cursor='not-allowed';
+  }
+
+  showToast(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later');
 }
 
 // ══════ CASHIER EXPENSES ══════
@@ -1665,6 +1701,7 @@ async function sbSaveTxn(txn){
     card_type:txn.cardType||null,
     cash_tendered:txn.cashTendered||null,
     change_given:txn.change||null,
+    cashier_name:currentLoginEmp?.name||null,
     branch:'SM Bicutan'
   };
   // Save to local cache immediately
@@ -1862,6 +1899,7 @@ async function renderSalesLog(dateKey){
           <span style="font-size:14px;font-weight:900;color:var(--red)">${t.or_num||'—'}</span>
           <span style="font-size:11px;color:var(--muted);margin-left:10px">${timeStr(t.ts)}</span>
           <span style="font-size:11px;color:var(--muted);margin-left:8px">· ${t.table_name||'—'}</span>
+          ${t.cashier_name?`<span style="font-size:11px;color:var(--blue);margin-left:8px;font-weight:700">· 👤 ${t.cashier_name}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--blue-light);color:var(--blue);padding:3px 8px;border-radius:10px">${t.payment_method||'cash'}${t.card_type?' · '+t.card_type:''}${t.card_last4?' *'+t.card_last4:''}</span>
