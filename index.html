@@ -3289,30 +3289,35 @@ function renderMenuScreen(cat){
       </div>
     </div>`).join('');
 }
-const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-const roleDate=document.getElementById('roleDate');
-const loginDate=document.getElementById('loginDate');
-if(roleDate)roleDate.textContent=dateText;
-if(loginDate)loginDate.textContent=dateText;
 
-// Show fallback employees IMMEDIATELY — no waiting
-const _cached=LS.get('employees_cache',[]);
-if(_cached.length){
-  employees=_cached;
-} else {
-  employees=[
-    {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
-    {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
-    {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
-  ];
-}
-renderRoleEmpList();
+// ══════ BOOT ══════
+window.addEventListener('DOMContentLoaded',function(){
+  const now=new Date();
+  const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const roleDate=document.getElementById('roleDate');
+  const loginDate=document.getElementById('loginDate');
+  if(roleDate)roleDate.textContent=dateText;
+  if(loginDate)loginDate.textContent=dateText;
 
-// Then load from Supabase in background
-loadEmployees();
-loadCategories().then(loadProducts);
+  // Show fallback employees IMMEDIATELY
+  const _cached=LS.get('employees_cache',[]);
+  if(_cached.length){
+    employees=_cached;
+  } else {
+    employees=[
+      {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
+      {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
+      {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
+      {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
+      {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
+    ];
+  }
+  renderRoleEmpList();
+
+  // Load from Supabase in background
+  loadEmployees();
+  loadCategories().then(loadProducts);
+});
 </script>
 </body>
 </html>
