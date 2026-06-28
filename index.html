@@ -2211,86 +2211,6 @@ async function renderMonthly(monthKey){
       </tfoot>
     </table>
   </div>`;
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px">
-      <div class="red-bar"></div>Monthly Report
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <select class="inp" style="width:180px" onchange="renderMonthly(this.value)" id="monthSelect">
-        ${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}
-      </select>
-      <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
-      <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download Excel</button>
-    </div>
-  </div>
-
-  <!-- METRICS -->
-  <div class="metric-grid" style="margin-bottom:14px">
-    <div class="metric"><div class="metric-val gr">${fmtn(mGross)}</div><div class="metric-lbl">Monthly Gross</div></div>
-    <div class="metric"><div class="metric-val re">${fmtn(mExpenses)}</div><div class="metric-lbl">Expenses</div></div>
-    <div class="metric"><div class="metric-val go">${fmtn(mNet)}</div><div class="metric-lbl">NET</div></div>
-    <div class="metric"><div class="metric-val bl">${mTxns}</div><div class="metric-lbl">Txns</div></div>
-  </div>
-
-  <!-- DARK TABLE - LIMJOE STYLE -->
-  <div style="border-radius:12px;overflow:hidden;border:1px solid #333">
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="background:#1a1a2e;color:#fff">
-          <th style="padding:12px 10px;text-align:left;font-weight:800;white-space:nowrap">📅 Date</th>
-          <th style="padding:12px 8px;text-align:right;color:#4ade80;font-weight:800">Gross</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💚 GCash</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💙 Maya</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">🏦 GoTyme</th>
-          <th style="padding:12px 8px;text-align:right;color:#fb923c;font-weight:800">🐼 FoodPanda</th>
-          <th style="padding:12px 8px;text-align:right;color:#4ade80;font-weight:800">🥦 GrabFood</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa;font-weight:800">💳 Card</th>
-          <th style="padding:12px 8px;text-align:right;color:#f87171;font-weight:800">Discount</th>
-          <th style="padding:12px 8px;text-align:right;color:#f87171;font-weight:800">Expenses</th>
-          <th style="padding:12px 8px;text-align:right;color:#fbbf24;font-weight:800">NET SALES</th>
-          <th style="padding:12px 8px;text-align:right;color:#fff;font-weight:800">Cash on Hand</th>
-          <th style="padding:12px 8px;text-align:center;color:#fff;font-weight:800">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map((r,idx)=>{
-          const varStr=r.variance===null?'—':r.variance===0?'<span style="color:#4ade80;font-weight:800">✅ EXACT</span>':r.variance>0?`<span style="color:#60a5fa;font-weight:800">OVER ${fmt(r.variance)}</span>`:`<span style="color:#f87171;font-weight:800">SHORT ${fmt(Math.abs(r.variance))}</span>`;
-          const cashDeclAmt=r.cashDecl?`<span style="font-weight:700">${fmt(r.cashDecl.declared_amount)}</span>`:'—';
-          return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
-            <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span></td>
-            <td style="padding:10px;text-align:right;color:#4ade80;font-weight:800">${fmt(r.gross)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.gcash)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.maya)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.gotyme)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.foodpanda)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.grabfood)}</td>
-            <td style="padding:10px;text-align:right">${fmtCell(r.card)}</td>
-            <td style="padding:10px;text-align:right">${fmtDisc(r.discount)}</td>
-            <td style="padding:10px;text-align:right">${fmtExp(r.expenses)}</td>
-            <td style="padding:10px;text-align:right;color:#fbbf24;font-weight:800">${fmt(r.net)}</td>
-            <td style="padding:10px;text-align:right;color:#fff">${cashDeclAmt}</td>
-            <td style="padding:10px;text-align:center">${varStr}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-      <tfoot>
-        <tr style="background:#c0392b;color:#fff;font-weight:900">
-          <td style="padding:12px 10px">TOTAL (${mTxns} orders)</td>
-          <td style="padding:12px 8px;text-align:right">${fmt(mGross)}</td>
-          <td style="padding:12px 8px;text-align:right">${mGcash>0?fmt(mGcash):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">${mMaya>0?fmt(mMaya):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">${mGotyme>0?fmt(mGotyme):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">${mFoodpanda>0?fmt(mFoodpanda):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">${mGrabfood>0?fmt(mGrabfood):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">${mCard>0?fmt(mCard):'₱0.00'}</td>
-          <td style="padding:12px 8px;text-align:right">-${fmt(mDiscount)}</td>
-          <td style="padding:12px 8px;text-align:right">-${fmt(mExpenses)}</td>
-          <td style="padding:12px 8px;text-align:right;color:#fbbf24">${fmt(mNet)}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>`;
 }
 
 async function saveCashOnHand(dk){
@@ -3369,16 +3289,28 @@ function renderMenuScreen(cat){
       </div>
     </div>`).join('');
 }
-
-// ══════ BOOT ══════
-const now=new Date();
 const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const roleDate=document.getElementById('roleDate');
 const loginDate=document.getElementById('loginDate');
 if(roleDate)roleDate.textContent=dateText;
 if(loginDate)loginDate.textContent=dateText;
 
-// Load employees immediately — show fallback first
+// Show fallback employees IMMEDIATELY — no waiting
+const _cached=LS.get('employees_cache',[]);
+if(_cached.length){
+  employees=_cached;
+} else {
+  employees=[
+    {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
+    {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
+    {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
+    {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
+    {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
+  ];
+}
+renderRoleEmpList();
+
+// Then load from Supabase in background
 loadEmployees();
 loadCategories().then(loadProducts);
 </script>
