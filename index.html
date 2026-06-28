@@ -354,6 +354,11 @@ button{cursor:pointer;font-family:inherit}
     <div class="login-brand">ONIISAN</div>
     <div class="login-sub">Tempura &amp; Japanese Food · Cloud POS</div>
     <div class="login-date" id="loginDate"></div>
+    <!-- LIVE CLOCK -->
+    <div style="margin-top:12px;padding:14px;background:#f8f8f8;border-radius:12px;display:inline-block;min-width:280px">
+      <div id="liveClock" style="font-size:48px;font-weight:900;color:var(--red);letter-spacing:2px;font-family:'Courier New',monospace;line-height:1">00:00:00</div>
+      <div id="liveDate" style="font-size:13px;color:var(--muted);font-weight:600;margin-top:4px"></div>
+    </div>
   </div>
   <div class="login-body">
     <div class="lcard">
@@ -1500,6 +1505,20 @@ async function renderCashierExpList(){
       <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px"><span style="font-weight:800;color:var(--green)">Total Net</span><span style="font-weight:900;color:var(--green)">${fmt(totalNet)}</span></div>
     </div>`;
 }
+
+// ══════ LIVE CLOCK ══════
+function updateClock(){
+  const now=new Date();
+  const h=String(now.getHours()).padStart(2,'0');
+  const m=String(now.getMinutes()).padStart(2,'0');
+  const s=String(now.getSeconds()).padStart(2,'0');
+  const clockEl=document.getElementById('liveClock');
+  const dateEl=document.getElementById('liveDate');
+  if(clockEl) clockEl.textContent=h+':'+m+':'+s;
+  if(dateEl) dateEl.textContent=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+setInterval(updateClock,1000);
+updateClock();
 
 // ══════ RECENT ORDERS ══════
 async function renderRecentOrders(){
