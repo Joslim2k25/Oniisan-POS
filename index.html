@@ -378,6 +378,22 @@ button{cursor:pointer;font-family:inherit}
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
     <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role / Logout</button>
 
+    <!-- SALES SUMMARY FOR SM REPORT -->
+    <div class="lcard" style="margin-top:12px;border:2px solid var(--blue);background:var(--blue-light)">
+      <div class="lcard-label" style="color:var(--blue)">TODAY'S SALES SUMMARY</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
+          <div style="font-size:24px;font-weight:900;color:var(--green)" id="cashierTotalSales">₱0.00</div>
+          <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Total Gross Sales</div>
+        </div>
+        <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
+          <div style="font-size:24px;font-weight:900;color:var(--blue)" id="cashierTotalTxns">0</div>
+          <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Transactions</div>
+        </div>
+      </div>
+      <button onclick="refreshCashierSales()" style="width:100%;padding:6px;background:#fff;border:1px solid #a9cce3;border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer">🔄 Refresh</button>
+    </div>
+
     <!-- CASH ON HAND DECLARATION -->
     <div class="lcard" style="margin-top:12px;border:2px solid var(--green);background:var(--green-light)">
       <div class="lcard-label" style="color:var(--green)">CASH ON HAND DECLARATION</div>
@@ -1073,6 +1089,7 @@ function checkUnifiedPin(){
       renderRecentOrders();
       renderCashierExpList();
       loadExpectedCash();
+      refreshCashierSales();
       clearCashDeclaration();
       document.getElementById('cashDeclStatus').innerHTML='';
       document.getElementById('openPosBtn').textContent='OPEN POS';
@@ -1176,7 +1193,7 @@ function goBackFromPOS(){
     renderRecentOrders();
     renderCashierExpList();
     loadExpectedCash();
-    // clear cash declaration status for privacy
+    refreshCashierSales();
     clearCashDeclaration();
     document.getElementById('cashDeclStatus').innerHTML='';
   } else {
@@ -1506,6 +1523,16 @@ async function renderCashierExpList(){
       <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--muted)">Total VAT</span><span style="font-weight:700;color:var(--red)">${fmt(totalVAT)}</span></div>
       <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:4px"><span style="font-weight:800;color:var(--green)">Total Net</span><span style="font-weight:900;color:var(--green)">${fmt(totalNet)}</span></div>
     </div>`;
+}
+
+async function refreshCashierSales(){
+  const txns=await sbGetTransactions();
+  const total=txns.reduce((s,t)=>s+(t.total||0),0);
+  const count=txns.length;
+  const salesEl=document.getElementById('cashierTotalSales');
+  const txnsEl=document.getElementById('cashierTotalTxns');
+  if(salesEl) salesEl.textContent=fmt(total);
+  if(txnsEl) txnsEl.textContent=count;
 }
 
 // ══════ LIVE CLOCK ══════
@@ -2818,77 +2845,159 @@ function buildReadingContent(txns,now,type,exps){
 async function renderDTR(dateKey){
   const dk=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading DTR...</div>';
-  const cards=await Promise.all(employees.map(async e=>{
-    const stat=getEmpStatus(e.id);
-    let recs=[];
-    if(navigator.onLine){
-      const{data}=await sb.from('time_records').select('*').eq('emp_id',e.id).gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts');
-      recs=data||[];
-    } else {
-      recs=LS.get('dtr_'+e.id+'_'+dk,[]);
-    }
-    const photo=LS.get('empphoto_'+e.id,null);
-    const isIn=stat.status==='in';
-    const initials=e.initials||e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const totalW=recs.filter(r=>r.action==='out').reduce((s,r)=>s+(r.total_work||0),0)+
-      (isIn&&stat.since&&dk===getTodayKey()?(stat.totalWork||0)+(Date.now()-new Date(stat.since).getTime()):0);
-    const totalBreakMs=recs.reduce((s,r)=>s+(r.break_duration||0),0);
-    const avatarHtml=photo
-      ?`<img src="${photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--${isIn?'green':'border'})"/>`
-      :`<div class="emp-avatar" style="background:${isIn?'#eafaf1':'#eee'};color:${isIn?'#1e8449':'#999'}">${initials}</div>`;
-    if(!recs.length) return `<div class="dtr-card">
-      <div class="dtr-head">${avatarHtml}
-        <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span class="dtr-emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div></div>
-        <div class="dtr-total">—</div>
-      </div>
-      <div style="font-size:11px;color:#ccc;padding-left:46px">No logs for this date</div>
-    </div>`;
-    return `<div class="dtr-card">
-      <div class="dtr-head">${avatarHtml}
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px"><span class="dtr-emp-name">${e.name}</span><span class="role-badge ${e.role}">${e.role}</span></div>
-          <div style="font-size:11px;color:${isIn&&dk===getTodayKey()?'var(--green)':'var(--muted)'}">${isIn&&dk===getTodayKey()?'Currently IN':'Logged out'}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="dtr-total">${totalW>0?msToHM(totalW):'—'}</div>
-          ${totalBreakMs>0?`<div style="font-size:10px;color:var(--gold)">Break: ${msToHM(totalBreakMs)}</div>`:''}
-        </div>
-      </div>
-      <div style="padding-left:46px">
-        ${recs.map(r=>{
-          const lbl={in:'TIME IN',out:'TIME OUT',brk_out:'BREAK OUT',brk_in:'BREAK IN'}[r.action]||r.action.toUpperCase();
-          const cls={in:'in',out:'out',brk_out:'brk',brk_in:'res'}[r.action]||'in';
-          return `<div class="dtr-row">
-            <span class="dtr-act ${cls}">${lbl}</span>
-            <span style="flex:1">${timeStr(r.ts)}</span>
-            ${(r.total_work||0)>0?`<span style="color:var(--green);font-size:11px;font-weight:700">Work: ${msToHM(r.total_work)}</span>`:''}
-            ${(r.break_duration||0)>0?`<span style="color:var(--gold);font-size:11px">Break: ${msToHM(r.break_duration)}</span>`:''}
-            ${r.photo_url?`<img src="${r.photo_url}" class="dtr-photo" alt=""/>`:''}
-          </div>`;
-        }).join('')}
-        ${totalW>0?`<div style="margin-top:8px;padding:8px;background:var(--green-light);border-radius:8px;font-size:12px;font-weight:800;color:var(--green);display:flex;justify-content:space-between">
-          <span>Total Hours Worked</span><span>${msToHM(totalW)}</span>
-        </div>`:''}
-      </div>
-    </div>`;
-  }));
 
-  // only show employees who have records for non-today dates
-  const isToday = dk===getTodayKey();
-  const filteredCards = isToday ? cards : cards.filter((c,i)=>{
-    return employees[i] && c.includes('dtr-act');
+  // Get cutoff period containing this date
+  const d=new Date(dk+'T12:00:00');
+  const year=d.getFullYear();
+  const month=d.getMonth()+1;
+  const day=d.getDate();
+  const pad=n=>String(n).padStart(2,'0');
+
+  // Determine cutoff period
+  let cutoffStart,cutoffEnd,cutoffLabel;
+  if(day>=26){
+    cutoffStart=`${year}-${pad(month)}-26`;
+    const nextMonth=month===12?1:month+1;
+    const nextYear=month===12?year+1:year;
+    cutoffEnd=`${nextYear}-${pad(nextMonth)}-10`;
+    cutoffLabel=`${pad(month)}/26/${year} - ${pad(nextMonth)}/10/${nextYear}`;
+  } else if(day<=10){
+    const prevMonth=month===1?12:month-1;
+    const prevYear=month===1?year-1:year;
+    cutoffStart=`${prevYear}-${pad(prevMonth)}-26`;
+    cutoffEnd=`${year}-${pad(month)}-10`;
+    cutoffLabel=`${pad(prevMonth)}/26/${prevYear} - ${pad(month)}/10/${year}`;
+  } else {
+    cutoffStart=`${year}-${pad(month)}-11`;
+    cutoffEnd=`${year}-${pad(month)}-25`;
+    cutoffLabel=`${pad(month)}/11/${year} - ${pad(month)}/25/${year}`;
+  }
+
+  // Generate all dates in cutoff period
+  const dates=[];
+  let cur=new Date(cutoffStart+'T12:00:00');
+  const endDate=new Date(cutoffEnd+'T12:00:00');
+  while(cur<=endDate){
+    dates.push(cur.toISOString().slice(0,10));
+    cur.setDate(cur.getDate()+1);
+  }
+
+  // Load time records for period
+  const{data:records}=await sb.from('time_records').select('*').gte('ts',cutoffStart+'T00:00:00.000Z').lte('ts',cutoffEnd+'T23:59:59.999Z').order('ts');
+  const{data:holidays}=await sb.from('holidays').select('*');
+  const recs=records||[];
+  const holidayMap={};
+  (holidays||[]).forEach(h=>{holidayMap[h.date_key]=h;});
+
+  // Group by employee then by date
+  const empDayMap={};
+  recs.forEach(r=>{
+    const empId=r.emp_id;
+    const dayKey=r.ts.slice(0,10);
+    if(!empDayMap[empId]){empDayMap[empId]={name:r.emp_name,days:{}};}
+    if(!empDayMap[empId].days[dayKey])empDayMap[empId].days[dayKey]=[];
+    empDayMap[empId].days[dayKey].push(r);
   });
 
+  // Generate period options
+  const periods=[];
+  for(let y=2025;y<=2027;y++){
+    for(let m=1;m<=12;m++){
+      const pm=m===1?12:m-1;const py=m===1?y-1:y;
+      periods.push({val:`${py}-${pad(pm)}-26`,label:`${pad(pm)}/26/${py} - ${pad(m)}/10/${y}`,dk:`${py}-${pad(pm)}-26`});
+      periods.push({val:`${y}-${pad(m)}-11`,label:`${pad(m)}/11/${y} - ${pad(m)}/25/${y}`,dk:`${y}-${pad(m)}-11`});
+    }
+  }
+
+  // Day headers
+  const dayHeaders=dates.map(dt=>{
+    const d=new Date(dt+'T12:00:00');
+    const dayNames=['S','M','T','W','T','F','S'];
+    const isHoliday=!!holidayMap[dt];
+    const isSunday=d.getDay()===0;
+    const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
+    return `<th style="padding:6px 4px;text-align:center;min-width:38px;background:${bg};white-space:nowrap;font-size:10px;border-right:1px solid #e0e0e0">
+      <div style="font-weight:800;color:${isSunday?'var(--red)':isHoliday?'var(--gold)':'var(--muted)'}">${dayNames[d.getDay()]}</div>
+      <div style="font-weight:700;color:${isSunday?'var(--red)':isHoliday?'var(--gold)':'#333'}">${d.getDate()}</div>
+    </th>`;
+  }).join('');
+
+  // Employee rows
+  const empRows=employees.map(emp=>{
+    const empData=empDayMap[emp.id]||{days:{}};
+    let totalHours=0;let daysWorked=0;
+
+    const dayCells=dates.map(dt=>{
+      const dayRecs=empData.days[dt]||[];
+      const outRec=dayRecs.find(r=>r.action==='out');
+      const inRec=dayRecs.find(r=>r.action==='in');
+      const isHoliday=!!holidayMap[dt];
+      const isSunday=new Date(dt+'T12:00:00').getDay()===0;
+      const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
+
+      if(outRec&&outRec.total_work){
+        const hrs=outRec.total_work/3600000;
+        totalHours+=hrs;
+        daysWorked++;
+        const color=hrs>=8?'var(--green)':hrs>=4?'var(--gold)':'var(--red)';
+        return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;font-weight:700;color:${color}">${hrs.toFixed(1)}</td>`;
+      } else if(inRec){
+        return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;color:var(--blue)">IN</td>`;
+      } else {
+        return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;color:#ddd">—</td>`;
+      }
+    }).join('');
+
+    const initials=emp.initials||emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    return `<tr>
+      <td style="padding:8px 10px;font-weight:700;white-space:nowrap;border-right:2px solid var(--border);position:sticky;left:0;background:#fff;z-index:1">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${emp.role==='owner'?'#c8900a':emp.role==='admin'?'#1a5fa8':'#555'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${initials}</div>
+          <div>
+            <div style="font-size:12px">${emp.name}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">${emp.role}</div>
+          </div>
+        </div>
+      </td>
+      ${dayCells}
+      <td style="padding:6px 8px;text-align:center;border-left:2px solid var(--border);font-weight:800;color:var(--green);font-size:13px">${daysWorked}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:900;color:var(--blue);font-size:13px">${totalHours.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+
   document.getElementById('adminBody').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1">
-      <div class="red-bar"></div>DTR — ${new Date(dk+'T12:00:00').toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
-    </div>
-    <input type="date" value="${dk}" class="inp" style="width:160px" onchange="renderDTR(this.value)"/>
-    <button class="print-btn no-print" style="width:auto;padding:6px 14px;margin:0" onclick="window.print()">Print DTR</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>DTR — ${cutoffLabel}</div>
+    <select class="inp" style="width:220px" onchange="renderDTR(this.value)">
+      ${periods.map(p=>`<option value="${p.dk}"${p.dk===cutoffStart?' selected':''}>${p.label}</option>`).join('')}
+    </select>
+    <button onclick="window.print()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print DTR</button>
   </div>
-  ${(isToday?cards:filteredCards).join('')}
-  ${(!isToday&&filteredCards.length===0)?'<div style="text-align:center;padding:40px;color:#ccc">No time records for this date</div>':''}`;
+
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap">
+    <span style="color:var(--green);font-weight:700">■ Green = 8+ hrs</span>
+    <span style="color:var(--gold);font-weight:700">■ Gold = 4-8 hrs</span>
+    <span style="color:var(--red);font-weight:700">■ Red = under 4 hrs</span>
+    <span style="background:#fef9e7;padding:0 6px;border-radius:4px;font-weight:700;color:var(--gold)">Holiday</span>
+    <span style="background:#fff5f5;padding:0 6px;border-radius:4px;font-weight:700;color:var(--red)">Sunday</span>
+  </div>
+
+  <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+    <table style="border-collapse:collapse;font-size:12px;width:100%">
+      <thead>
+        <tr style="background:#f8f8f8">
+          <th style="padding:10px;text-align:left;border-right:2px solid var(--border);position:sticky;left:0;background:#f8f8f8;z-index:2;min-width:150px">Employee</th>
+          ${dayHeaders}
+          <th style="padding:6px 8px;text-align:center;border-left:2px solid var(--border);background:#eafaf1;color:var(--green);font-size:11px;min-width:45px">Days</th>
+          <th style="padding:6px 8px;text-align:center;background:#eaf2fb;color:var(--blue);font-size:11px;min-width:50px">Total Hrs</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${empRows||'<tr><td colspan="100" style="text-align:center;padding:30px;color:#ccc">No records for this period</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 // ══════ EMPLOYEE MANAGEMENT ══════
@@ -3477,6 +3586,7 @@ async function confirmCharge(){
   order={};renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
   renderRecentOrders();
+  refreshCashierSales();
   // Show receipt with QR code
   showPrintReceipt(txn);
 }
