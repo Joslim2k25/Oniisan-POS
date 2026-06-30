@@ -554,7 +554,8 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="categories">Categories</div>
     <div class="tab" data-tab="inventory">Inventory</div>
     <div class="tab" data-tab="payroll">Payroll</div>
-    <div class="tab" data-tab="holidays">Holidays</div>
+   
+    data-tab="holidays">Holidays</div> <div class="tab" data-tab="loyalty">Loyalty</div>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
@@ -1846,7 +1847,8 @@ function renderTabContent(tab){
   else if(tab==='categories')renderCategoryMgmt();
   else if(tab==='inventory')renderInventory();
   else if(tab==='payroll')renderPayroll();
-  else if(tab==='holidays')renderHolidays();
+    else if(tab==='holidays')renderHolidays(); else if(tab==='loyalty')renderLoyalty();
+
 }
 
 // ══════ SUPABASE QUERIES ══════
@@ -4309,7 +4311,7 @@ function renderMenuScreen(cat){
     </div>`).join('');
 }
 
-// ══════ BOOT ══════
+renderLoyalty() function + // ══════ BOOT ══════
 window.addEventListener('DOMContentLoaded',function(){
   const now=new Date();
   const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
