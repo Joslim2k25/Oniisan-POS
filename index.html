@@ -1855,10 +1855,11 @@ function renderTabContent(tab){
 async function sbGetTransactions(dateKey){
   const d=dateKey||getTodayKey();
   if(navigator.onLine){
-    const{data,error}=await sb.from('transactions').select('*').gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
+    const{data,error}=await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
     if(!error){LS.set('txn_'+d,data||[]);return data||[];}
   }
-  return LS.get('txn_'+d,[]);
+  // also filter voided from local cache
+  return (LS.get('txn_'+d,[])).filter(t=>!t.is_voided);
 }
 
 async function sbSaveTxn(txn){
@@ -2191,7 +2192,15 @@ async function renderDashboard(){
 async function renderSalesLog(dateKey){
   const key=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
-  const txns=await sbGetTransactions(key);
+  // Fetch ALL txns for display (including voided), filter for totals
+  let allTxnsDisplay=[];
+  if(navigator.onLine){
+    const{data}=await sb.from('transactions').select('*').gte('ts',key+'T00:00:00.000Z').lte('ts',key+'T23:59:59.999Z').order('ts');
+    allTxnsDisplay=data||[];
+  } else {
+    allTxnsDisplay=LS.get('txn_'+key,[]);
+  }
+  const txns=allTxnsDisplay.filter(t=>!t.is_voided); // non-voided only for totals
   const exps=await sbGetExpenses(key);
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
   const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
