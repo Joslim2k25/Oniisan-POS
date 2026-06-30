@@ -1014,21 +1014,55 @@ async function lookupLoyaltyForCheckout(phone){
 // solely from the transaction's own `total` (never typed in by the cashier),
 // and is tied 1:1 to the transaction's OR number to prevent double-crediting.
 async function creditLoyaltyRebate(phone,txnTotal,orNum){
-  if(!phone||phone.length<10)return;
-  const{data:cust}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
-  if(!cust||!cust.length)return; // not enrolled — silently skip, no error shown to cashier
+  // Normalize phone — strip spaces, dashes, +63 prefix
+  const normalized=phone.replace(/[\s\-]/g,'').replace(/^\+63/,'0').replace(/^63/,'0');
+  if(!normalized||normalized.length<10)return;
+
+  // Try exact match first, then partial match (last 10 digits)
+  let{data:cust}=await sb.from('loyalty_customers').select('*').eq('phone',normalized).limit(1);
+  // If no match, try without leading 0 or with different format
+  if(!cust||!cust.length){
+    const alt=normalized.startsWith('0')?normalized.slice(1):('0'+normalized);
+    const res2=await sb.from('loyalty_customers').select('*').eq('phone',alt).limit(1);
+    cust=res2.data;
+  }
+
+  if(!cust||!cust.length){
+    // Customer not enrolled — show toast so cashier knows
+    showToast('📱 '+normalized+' not enrolled in loyalty.');
+    return;
+  }
+
   const customer=cust[0];
-  // idempotency guard: skip if this OR number was already credited
+
+  // Idempotency guard: skip if this OR number was already credited
   const{data:existingTxn}=await sb.from('loyalty_transactions').select('id').eq('or_num',orNum).limit(1);
-  if(existingTxn&&existingTxn.length)return;
-  const rebateEarned=txnTotal*LOYALTY_REBATE_RATE;
-  await sb.from('loyalty_transactions').insert([{
-    customer_id:customer.id,or_num:orNum,amount:txnTotal,rebate_earned:rebateEarned,branch:'SM Bicutan'
+  if(existingTxn&&existingTxn.length){
+    showToast('⚠️ Rebate already credited for '+orNum);
+    return;
+  }
+
+  const rebateEarned=Math.round(txnTotal*LOYALTY_REBATE_RATE*100)/100;
+
+  const{error:txnErr}=await sb.from('loyalty_transactions').insert([{
+    customer_id:customer.id,
+    or_num:orNum,
+    amount:txnTotal,
+    rebate_earned:rebateEarned,
+    branch:'SM Bicutan'
   }]);
-  await sb.from('loyalty_customers').update({
-    rebate_earned:(customer.rebate_earned||0)+rebateEarned,
-    total_spent:(customer.total_spent||0)+txnTotal
+  if(txnErr){showToast('❌ Loyalty error: '+txnErr.message);return;}
+
+  const{error:custErr}=await sb.from('loyalty_customers').update({
+    rebate_earned:Math.round(((customer.rebate_earned||0)+rebateEarned)*100)/100,
+    total_spent:Math.round(((customer.total_spent||0)+txnTotal)*100)/100
   }).eq('id',customer.id);
+
+  if(!custErr){
+    showToast('🎉 Rebate ₱'+rebateEarned.toFixed(2)+' credited to '+customer.name+'!',4000);
+  } else {
+    showToast('❌ Rebate update error: '+custErr.message);
+  }
 }
 
 // ══════ LOCAL STORAGE ══════
@@ -3912,7 +3946,11 @@ async function confirmCharge(){
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
   order={};renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
-  if(loyaltyPhone){creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum);document.getElementById('loyaltyPhoneInput').value='';document.getElementById('loyaltyLinkStatus').textContent='';}
+  if(loyaltyPhone){
+    document.getElementById('loyaltyPhoneInput').value='';
+    document.getElementById('loyaltyLinkStatus').textContent='';
+    await creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum); // awaited so errors surface
+  }
   renderRecentOrders();refreshCashierSales();
   showPrintReceipt(txn);
 }
