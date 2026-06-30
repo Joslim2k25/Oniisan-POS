@@ -1570,20 +1570,53 @@ async function saveCashDeclaration(){
 }
 
 function lockTimeButtons(){
+  // Lock time punch buttons
   const timeRow=document.querySelector('.time-row');
-  if(!timeRow)return;
-  timeRow.querySelectorAll('button').forEach(btn=>{
-    btn.disabled=true;
-    btn.style.opacity='.4';
-    btn.style.cursor='not-allowed';
-  });
-  if(!document.getElementById('dayClosedBanner')){
-    const banner=document.createElement('div');
-    banner.id='dayClosedBanner';
-    banner.style.cssText='background:#888;color:#fff;text-align:center;padding:10px;border-radius:8px;font-size:12px;font-weight:800;margin-bottom:8px;letter-spacing:.5px';
-    banner.textContent='🔒 DAY CLOSED — Time punching disabled until tomorrow';
-    timeRow.parentNode.insertBefore(banner,timeRow);
+  if(timeRow){
+    timeRow.querySelectorAll('button').forEach(btn=>{
+      btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='not-allowed';
+    });
+    if(!document.getElementById('dayClosedBanner')){
+      const banner=document.createElement('div');
+      banner.id='dayClosedBanner';
+      banner.style.cssText='background:#555;color:#fff;text-align:center;padding:10px;border-radius:8px;font-size:12px;font-weight:800;margin-bottom:8px;letter-spacing:.5px';
+      banner.textContent='🔒 DAY CLOSED — Time punching disabled until tomorrow';
+      timeRow.parentNode.insertBefore(banner,timeRow);
+    }
   }
+
+  // Hide expense logging section — day is done, no more expenses
+  const expSection=document.querySelector('[onclick="saveCashierExpense()"]');
+  if(expSection){
+    const expCard=expSection.closest('.lcard');
+    if(expCard){
+      // Keep the expense LIST visible (read-only) but hide the input form
+      const inputs=expCard.querySelectorAll('input,.cat-exp-btn,#expVATBreakdown');
+      inputs.forEach(el=>el.style.display='none');
+      expSection.style.display='none'; // hide Save Expense button
+      const cats=expCard.querySelector('#cashierExpCats');
+      if(cats)cats.style.display='none';
+      // Add closed label
+      if(!document.getElementById('expClosedNote')){
+        const note=document.createElement('div');
+        note.id='expClosedNote';
+        note.style.cssText='font-size:11px;color:#888;font-weight:700;padding:6px 0 4px;';
+        note.textContent='🔒 Day closed — no new expenses allowed';
+        expCard.insertBefore(note, expCard.querySelector('.input-group')||expCard.querySelector('#cashierExpList'));
+      }
+    }
+  }
+
+  // Hide recent orders section — day is done
+  const recentCard=document.querySelector('#recentOrdersList');
+  if(recentCard){
+    const recentParent=recentCard.closest('.lcard');
+    if(recentParent) recentParent.style.display='none';
+  }
+
+  // Hide cash on hand section (already submitted)
+  const cashCard=document.querySelector('#cashVarianceBox')?.closest('.lcard');
+  // Don't hide it — keep visible so cashier can see the result
 }
 
 // ══════ CASHIER EXPENSES ══════
