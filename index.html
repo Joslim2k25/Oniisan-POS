@@ -2499,8 +2499,9 @@ async function renderMonthly(monthKey){
     // Cash on Hand = Gross − Expenses − full cashless sales (gcash/maya/gotyme/card/grabfood/foodpanda) − PWD/Senior discount − other manual deductions
     const cashlessTotal=gcash+maya+gotyme+card+grabfood+foodpanda;
     const otherDed=(rep.other_deductions||0);
-    const net=g-dayExps-cashlessTotal-discount-otherDed;
-    // cash declaration
+const vat=discount/1.12*0.12;
+const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
+       // cash declaration
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     const variance=cashDecl?cashDecl.variance:null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mNet+=net;mTxns+=dayTxns.length;
