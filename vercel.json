@@ -5,6 +5,7 @@
   ],
   "routes": [
     { "src": "/menu", "dest": "/menu.html" },
+    { "src": "/loyalty", "dest": "/loyalty.html" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
