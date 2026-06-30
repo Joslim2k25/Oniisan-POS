@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Oniisan Tempura POS — SM Bicutan</title>
+<title>Oniisan Tempura POS \u2014 SM Bicutan</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -350,7 +350,7 @@ button{cursor:pointer;font-family:inherit}
 <div class="loading-bar" id="loadingBar"></div>
 <div class="toast" id="toast"></div>
 <div class="offline-banner" id="offlineBanner">
-  <span>OFFLINE MODE — Data saved locally</span>
+  <span>OFFLINE MODE \u2014 Data saved locally</span>
   <span class="sync-badge" id="syncBadge">0 pending</span>
   <button onclick="syncQueue()" style="background:#fff;color:var(--gold);border:none;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:800;cursor:pointer">Sync Now</button>
 </div>
@@ -360,7 +360,7 @@ button{cursor:pointer;font-family:inherit}
   <div class="role-select-wrap">
     <div class="role-brand">
       <div class="role-brand-name">ONIISAN</div>
-      <div class="role-brand-sub">Tempura &amp; Japanese Food · SM Bicutan · Cloud POS</div>
+      <div class="role-brand-sub">Tempura &amp; Japanese Food \u00b7 SM Bicutan \u00b7 Cloud POS</div>
       <div class="role-brand-date" id="roleDate"></div>
     </div>
 
@@ -368,14 +368,14 @@ button{cursor:pointer;font-family:inherit}
     <div style="background:#fff;border:2px solid var(--border);border-radius:16px;padding:20px;margin-top:8px">
       <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px">SELECT EMPLOYEE</div>
       
-      <!-- Employee list — click to select -->
+      <!-- Employee list \u2014 click to select -->
       <div id="roleEmpList" style="margin-bottom:14px;max-height:260px;overflow-y:auto"></div>
 
-      <!-- PIN input — appears after selecting employee -->
+      <!-- PIN input \u2014 appears after selecting employee -->
       <div id="pinSection" style="display:none">
         <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px" id="pinSectionLabel">ENTER PIN</div>
         <div style="display:flex;gap:8px">
-          <input id="unifiedPinInput" type="password" maxlength="4" placeholder="● ● ● ●"
+          <input id="unifiedPinInput" type="password" maxlength="4" placeholder="\u25cf \u25cf \u25cf \u25cf"
             style="flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:22px;font-weight:800;letter-spacing:8px;text-align:center;outline:none;font-family:inherit"
             oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===4)checkUnifiedPin()"
             onkeydown="if(event.key==='Enter')checkUnifiedPin()"
@@ -384,7 +384,7 @@ button{cursor:pointer;font-family:inherit}
           <button onclick="checkUnifiedPin()" style="padding:12px 18px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">GO</button>
         </div>
         <div id="unifiedPinError" style="color:var(--red);font-size:12px;font-weight:700;display:none;text-align:center;margin-top:8px">Incorrect PIN. Try again.</div>
-        <button onclick="clearEmpSelection()" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">← Back</button>
+        <button onclick="clearEmpSelection()" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">\u2190 Back</button>
       </div>
     </div>
   </div>
@@ -394,7 +394,7 @@ button{cursor:pointer;font-family:inherit}
 <div class="screen" id="loginScreen">
   <div class="login-header">
     <div class="login-brand">ONIISAN</div>
-    <div class="login-sub">Tempura &amp; Japanese Food · Cloud POS</div>
+    <div class="login-sub">Tempura &amp; Japanese Food \u00b7 Cloud POS</div>
     <div class="login-date" id="loginDate"></div>
     <!-- LIVE CLOCK -->
     <div style="margin-top:12px;padding:14px;background:#f8f8f8;border-radius:12px;display:inline-block;min-width:280px">
@@ -408,7 +408,7 @@ button{cursor:pointer;font-family:inherit}
       <button class="time-btn tin" style="flex:0 0 auto;padding:8px 18px;font-size:13px;border-radius:8px;border-width:1.5px">SM Bicutan</button>
     </div>
     <div class="lcard">
-      <div class="lcard-label">TIME RECORD — SM BICUTAN</div>
+      <div class="lcard-label">TIME RECORD \u2014 SM BICUTAN</div>
       <div class="time-row">
         <button class="time-btn tin" onclick="timeAction('in')"><span class="dot-ind" style="background:var(--green)"></span>TIME IN</button>
         <button class="time-btn tbrk" onclick="timeAction('brk_out')"><span class="dot-ind" style="background:var(--gold)"></span>BREAK OUT</button>
@@ -418,14 +418,14 @@ button{cursor:pointer;font-family:inherit}
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
-    <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role / Logout</button>
+    <button class="back-role-btn" onclick="goScreen('roleScreen')">\u2190 Change Role / Logout</button>
 
     <!-- SALES SUMMARY FOR SM REPORT -->
     <div class="lcard" style="margin-top:12px;border:2px solid var(--blue);background:var(--blue-light)">
       <div class="lcard-label" style="color:var(--blue)">TODAY'S SALES SUMMARY</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
-          <div style="font-size:24px;font-weight:900;color:var(--green)" id="cashierTotalSales">₱0.00</div>
+          <div style="font-size:24px;font-weight:900;color:var(--green)" id="cashierTotalSales">\u20b10.00</div>
           <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Total Gross Sales</div>
         </div>
         <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
@@ -433,7 +433,7 @@ button{cursor:pointer;font-family:inherit}
           <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Transactions</div>
         </div>
       </div>
-      <button onclick="refreshCashierSales()" style="width:100%;padding:6px;background:#fff;border:1px solid #a9cce3;border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer">🔄 Refresh</button>
+      <button onclick="refreshCashierSales()" style="width:100%;padding:6px;background:#fff;border:1px solid #a9cce3;border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer">\ud83d\udd04 Refresh</button>
     </div>
 
     <!-- CASH ON HAND DECLARATION -->
@@ -441,7 +441,7 @@ button{cursor:pointer;font-family:inherit}
       <div class="lcard-label" style="color:var(--green)">CASH ON HAND DECLARATION</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Count your cash then declare the total amount</div>
       <div class="input-group" style="margin-bottom:10px">
-        <div class="input-label">Declared Cash on Hand (₱)</div>
+        <div class="input-label">Declared Cash on Hand (\u20b1)</div>
         <input class="inp" id="cashOnHandAmt" type="number" inputmode="decimal" placeholder="0.00"
           style="font-size:22px;font-weight:800;text-align:center" min="0" step="0.01"/>
       </div>
@@ -452,15 +452,15 @@ button{cursor:pointer;font-family:inherit}
         <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:10px">CASH DECLARATION RESULT</div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
           <span style="color:var(--muted)">Expected Cash Sales</span>
-          <span style="font-weight:800" id="expectedCashAmt">₱0.00</span>
+          <span style="font-weight:800" id="expectedCashAmt">\u20b10.00</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
           <span style="color:var(--muted)">Declared Cash on Hand</span>
-          <span style="font-weight:800" id="declaredCashAmt">₱0.00</span>
+          <span style="font-weight:800" id="declaredCashAmt">\u20b10.00</span>
         </div>
         <div style="border-top:2px solid rgba(0,0,0,.1);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:14px;font-weight:800" id="varianceLabel">VARIANCE</span>
-          <span style="font-size:22px;font-weight:900" id="varianceAmt">₱0.00</span>
+          <span style="font-size:22px;font-weight:900" id="varianceAmt">\u20b10.00</span>
         </div>
         <div style="text-align:center;margin-top:8px;font-size:13px;font-weight:800" id="varianceStatus"></div>
         <button onclick="clearCashDeclaration()" style="width:100%;margin-top:10px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Clear / Hide Result</button>
@@ -474,10 +474,10 @@ button{cursor:pointer;font-family:inherit}
       
       <!-- Category selector -->
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="cashierExpCats">
-        <button class="cat-exp-btn active" data-cat="COS/Food Ingredients" onclick="selectExpCat(this)">🥩 COS/Food</button>
-        <button class="cat-exp-btn" data-cat="Shipping Fee" onclick="selectExpCat(this)">🚚 Shipping</button>
-        <button class="cat-exp-btn" data-cat="Office Supplies/Xerox" onclick="selectExpCat(this)">📎 Office</button>
-        <button class="cat-exp-btn" data-cat="Miscellaneous" onclick="selectExpCat(this)">📋 Misc</button>
+        <button class="cat-exp-btn active" data-cat="COS/Food Ingredients" onclick="selectExpCat(this)">\ud83e\udd69 COS/Food</button>
+        <button class="cat-exp-btn" data-cat="Shipping Fee" onclick="selectExpCat(this)">\ud83d\ude9a Shipping</button>
+        <button class="cat-exp-btn" data-cat="Office Supplies/Xerox" onclick="selectExpCat(this)">\ud83d\udcce Office</button>
+        <button class="cat-exp-btn" data-cat="Miscellaneous" onclick="selectExpCat(this)">\ud83d\udccb Misc</button>
       </div>
 
       <!-- Description -->
@@ -488,7 +488,7 @@ button{cursor:pointer;font-family:inherit}
 
       <!-- Gross amount input -->
       <div class="input-group" style="margin-bottom:6px">
-        <div class="input-label">Gross Amount (₱)</div>
+        <div class="input-label">Gross Amount (\u20b1)</div>
         <input class="inp" id="cashierExpGross" type="number" placeholder="0.00" min="0" step="0.01"
           oninput="computeExpVAT()"/>
       </div>
@@ -497,15 +497,15 @@ button{cursor:pointer;font-family:inherit}
       <div id="expVATBreakdown" style="display:none;background:#f8f8f8;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span style="color:var(--muted)">Gross Amount</span>
-          <span style="font-weight:700" id="expGrossDisplay">₱0.00</span>
+          <span style="font-weight:700" id="expGrossDisplay">\u20b10.00</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span style="color:var(--muted)">VAT (12%)</span>
-          <span style="font-weight:700;color:var(--red)" id="expVATDisplay">₱0.00</span>
+          <span style="font-weight:700;color:var(--red)" id="expVATDisplay">\u20b10.00</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:6px">
           <span style="font-weight:800;color:var(--green)">Net Amount</span>
-          <span style="font-weight:900;color:var(--green);font-size:14px" id="expNetDisplay">₱0.00</span>
+          <span style="font-weight:900;color:var(--green);font-size:14px" id="expNetDisplay">\u20b10.00</span>
         </div>
       </div>
 
@@ -526,7 +526,7 @@ button{cursor:pointer;font-family:inherit}
 <div class="screen" id="adminScreen">
   <div class="topbar no-print">
     <div class="brand">
-      <div class="brand-badge">お</div>
+      <div class="brand-badge">\u304a</div>
       <div>
         <div class="brand-name">Oniisan Admin Portal</div>
         <div class="brand-sub" id="adminRoleSub">SM Bicutan</div>
@@ -554,8 +554,8 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="categories">Categories</div>
     <div class="tab" data-tab="inventory">Inventory</div>
     <div class="tab" data-tab="payroll">Payroll</div>
-   
-    data-tab="holidays">Holidays</div> <div class="tab" data-tab="loyalty">Loyalty</div>
+    <div class="tab" data-tab="holidays">Holidays</div>
+    <div class="tab" data-tab="loyalty">Loyalty</div>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
@@ -563,11 +563,11 @@ button{cursor:pointer;font-family:inherit}
 <!-- POS SCREEN -->
 <div class="screen" id="posScreen">
   <div class="pos-topbar no-print">
-    <div class="pos-brand">Oniisan Tempura · SM Bicutan</div>
+    <div class="pos-brand">Oniisan Tempura \u00b7 SM Bicutan</div>
     <div class="pos-acts">
-      <button class="pos-btn loyalty-nav-btn" onclick="openLoyaltyQR()">🎉 Loyalty QR</button>
+      <button class="pos-btn loyalty-nav-btn" onclick="openLoyaltyQR()">\ud83c\udf89 Loyalty QR</button>
       <button class="pos-btn" onclick="goScreen('kitchenScreen');renderKitchen()">Kitchen</button>
-      <button class="pos-btn" onclick="goBackFromPOS()">← Back</button>
+      <button class="pos-btn" onclick="goBackFromPOS()">\u2190 Back</button>
     </div>
   </div>
   <div class="pos-body">
@@ -614,7 +614,7 @@ button{cursor:pointer;font-family:inherit}
         <!-- TOTAL + CHARGE always visible -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1.5px solid var(--border)">
           <span style="font-size:12px;font-weight:800">TOTAL</span>
-          <span class="total-amt" id="orderTotal" style="font-size:20px;font-weight:900;color:var(--red)">₱0</span>
+          <span class="total-amt" id="orderTotal" style="font-size:20px;font-weight:900;color:var(--red)">\u20b10</span>
         </div>
         <div id="subtotalsDiv" style="font-size:11px;color:var(--muted);margin-bottom:4px"></div>
         <div style="display:flex;gap:6px;margin-top:6px">
@@ -632,8 +632,8 @@ button{cursor:pointer;font-family:inherit}
 <div class="screen" id="menuScreen" style="background:#f8f8f8;min-height:100vh">
   <div style="background:var(--red);padding:16px;text-align:center;position:sticky;top:0;z-index:100">
     <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:4px">ONIISAN</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px">Tempura & Japanese Food · SM Bicutan</div>
-    <div style="display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;margin-top:6px;letter-spacing:1px">📋 Digital Menu</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px">Tempura & Japanese Food \u00b7 SM Bicutan</div>
+    <div style="display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;margin-top:6px;letter-spacing:1px">\ud83d\udccb Digital Menu</div>
   </div>
   <!-- Cat nav -->
   <div style="background:#fff;border-bottom:2px solid var(--border);display:flex;overflow-x:auto;padding:0 8px" id="menuScreenCatNav"></div>
@@ -644,18 +644,18 @@ button{cursor:pointer;font-family:inherit}
   <!-- Store info -->
   <div style="background:#fff;margin:0 16px 16px;border-radius:12px;padding:16px;max-width:568px;margin-left:auto;margin-right:auto">
     <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Store Information</div>
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">📍</span><span>2nd Level Foodcourt SM City Bicutan Bldg B, Dona Soledad Avenue, Parañaque City</span></div>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">🕐</span><span>Open daily · SM City Bicutan mall hours</span></div>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">💳</span><span>GCash · Maya · GoTyme · Credit/Debit Card · Cash</span></div>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px"><span style="font-size:18px">🛵</span><span>Available on GrabFood & FoodPanda</span></div>
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">\ud83d\udccd</span><span>2nd Level Foodcourt SM City Bicutan Bldg B, Dona Soledad Avenue, Para\u00f1aque City</span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">\ud83d\udd50</span><span>Open daily \u00b7 SM City Bicutan mall hours</span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px"><span style="font-size:18px">\ud83d\udcb3</span><span>GCash \u00b7 Maya \u00b7 GoTyme \u00b7 Credit/Debit Card \u00b7 Cash</span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px"><span style="font-size:18px">\ud83d\udef5</span><span>Available on GrabFood & FoodPanda</span></div>
   </div>
   <!-- Footer -->
   <div style="background:var(--red);color:#fff;text-align:center;padding:20px 16px;margin-top:10px">
     <div style="font-size:20px;font-weight:900;letter-spacing:3px">ONIISAN</div>
-    <div style="font-size:11px;opacity:.7;margin-top:4px">Tempura & Japanese Food · SM Bicutan</div>
+    <div style="font-size:11px;opacity:.7;margin-top:4px">Tempura & Japanese Food \u00b7 SM Bicutan</div>
     <div style="display:flex;gap:12px;justify-content:center;margin-top:12px">
-      <a href="https://www.facebook.com/oniisan.ph" target="_blank" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">📘 Facebook</a>
-      <a href="https://www.google.com/maps/search/Oniisan+Tempura+2nd+Level+Foodcourt+SM+City+Bicutan+Bldg+B+Dona+Soledad+Avenue+Paranaque" target="_blank" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">📍 Find Us</a>
+      <a href="https://www.facebook.com/oniisan.ph" target="_blank" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">\ud83d\udcd8 Facebook</a>
+      <a href="https://www.google.com/maps/search/Oniisan+Tempura+2nd+Level+Foodcourt+SM+City+Bicutan+Bldg+B+Dona+Soledad+Avenue+Paranaque" target="_blank" style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none">\ud83d\udccd Find Us</a>
     </div>
   </div>
 </div>
@@ -675,7 +675,7 @@ button{cursor:pointer;font-family:inherit}
     <div id="printReceiptContent" style="padding:20px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6"></div>
     <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px" class="no-print">
       <button class="mbtn secondary" onclick="document.getElementById('printReceiptModal').classList.remove('open')">Close</button>
-      <button class="mbtn primary" onclick="window.print()" style="background:var(--green)">🖨️ Print Receipt</button>
+      <button class="mbtn primary" onclick="window.print()" style="background:var(--green)">\ud83d\udda8\ufe0f Print Receipt</button>
     </div>
   </div>
 </div>
@@ -684,10 +684,10 @@ button{cursor:pointer;font-family:inherit}
 <div class="modal-overlay" id="loyaltyQRModal">
   <div class="modal" style="width:380px;max-width:96vw;text-align:center">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div class="modal-title" style="margin-bottom:0">🎉 Oniisan Loyalty Program</div>
-      <button onclick="document.getElementById('loyaltyQRModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">×</button>
+      <div class="modal-title" style="margin-bottom:0">\ud83c\udf89 Oniisan Loyalty Program</div>
+      <button onclick="document.getElementById('loyaltyQRModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">\u00d7</button>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Ask the customer to scan with their phone to join or check points. No cashier action needed — fully self-service.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Ask the customer to scan with their phone to join or check points. No cashier action needed \u2014 fully self-service.</div>
     <div id="loyaltyQRCode" style="display:flex;justify-content:center;margin:10px 0"></div>
     <div style="font-size:11px;color:var(--muted);margin-top:10px;word-break:break-all" id="loyaltyQRUrl"></div>
   </div>
@@ -698,7 +698,7 @@ button{cursor:pointer;font-family:inherit}
   <div class="modal" style="width:560px;max-width:98vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="modal-title" id="paymentDetailTitle" style="margin-bottom:0">GCash Transactions</div>
-      <button onclick="document.getElementById('paymentDetailModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">×</button>
+      <button onclick="document.getElementById('paymentDetailModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">\u00d7</button>
     </div>
     <div id="paymentDetailContent"></div>
   </div>
@@ -724,7 +724,7 @@ button{cursor:pointer;font-family:inherit}
   <div class="modal" style="width:420px;max-width:98vw">
     <div class="receipt-header">
       <div class="receipt-brand">ONIISAN</div>
-      <div class="receipt-sub">Tempura &amp; Japanese Food · SM Bicutan</div>
+      <div class="receipt-sub">Tempura &amp; Japanese Food \u00b7 SM Bicutan</div>
       <div class="receipt-sub" id="receiptDate"></div>
       <div class="receipt-sub" id="receiptOrNum"></div>
     </div>
@@ -745,12 +745,12 @@ button{cursor:pointer;font-family:inherit}
     <div id="cashSection">
       <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:8px">CUSTOMER CASH</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
-        <button class="denom-btn" onclick="addDenom(20)">₱20</button>
-        <button class="denom-btn" onclick="addDenom(50)">₱50</button>
-        <button class="denom-btn" onclick="addDenom(100)">₱100</button>
-        <button class="denom-btn" onclick="addDenom(200)">₱200</button>
-        <button class="denom-btn" onclick="addDenom(500)">₱500</button>
-        <button class="denom-btn" onclick="addDenom(1000)">₱1,000</button>
+        <button class="denom-btn" onclick="addDenom(20)">\u20b120</button>
+        <button class="denom-btn" onclick="addDenom(50)">\u20b150</button>
+        <button class="denom-btn" onclick="addDenom(100)">\u20b1100</button>
+        <button class="denom-btn" onclick="addDenom(200)">\u20b1200</button>
+        <button class="denom-btn" onclick="addDenom(500)">\u20b1500</button>
+        <button class="denom-btn" onclick="addDenom(1000)">\u20b11,000</button>
       </div>
       <!-- Custom amount -->
       <div style="display:flex;gap:6px;margin-bottom:10px">
@@ -763,11 +763,11 @@ button{cursor:pointer;font-family:inherit}
       </div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:11px;color:var(--muted);font-weight:700">Cash Tendered:</div>
-        <div style="font-size:20px;font-weight:900;color:var(--blue)" id="cashTendered">₱0.00</div>
+        <div style="font-size:20px;font-weight:900;color:var(--blue)" id="cashTendered">\u20b10.00</div>
       </div>
       <div style="display:flex;justify-content:space-between;padding:10px;background:var(--green-light);border-radius:10px;border:1px solid #a9dfbf;margin-bottom:8px">
         <div style="font-size:13px;color:var(--green);font-weight:800">CHANGE:</div>
-        <div style="font-size:24px;font-weight:900;color:var(--green)" id="changeAmt">₱0.00</div>
+        <div style="font-size:24px;font-weight:900;color:var(--green)" id="changeAmt">\u20b10.00</div>
       </div>
       <button class="denom-btn" style="width:100%;background:#f0f0f0;color:var(--muted);border-color:#ddd;font-size:11px;padding:7px" onclick="resetDenom()">Reset</button>
     </div>
@@ -795,12 +795,12 @@ button{cursor:pointer;font-family:inherit}
       </div>
       <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:13px;color:var(--blue);font-weight:800;margin-bottom:4px" id="cashlessLabel">GCash Payment</div>
-        <div style="font-size:11px;color:var(--muted)">Exact amount — no change needed</div>
+        <div style="font-size:11px;color:var(--muted)">Exact amount \u2014 no change needed</div>
         <div style="font-size:28px;font-weight:900;color:var(--blue);margin-top:8px" id="cashlessAmt"></div>
       </div>
     </div>
 
-    <!-- DISCOUNT ID SECTION — shows when PWD or Senior selected -->
+    <!-- DISCOUNT ID SECTION \u2014 shows when PWD or Senior selected -->
     <div id="discountIdSection" style="display:none;margin-top:12px;background:var(--gold-light);border:1px solid #f9e29a;border-radius:10px;padding:12px">
       <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px" id="discountIdLabel">PWD DETAILS</div>
       <div class="input-group" style="margin-bottom:8px">
@@ -813,7 +813,7 @@ button{cursor:pointer;font-family:inherit}
       </div>
     </div>
 
-    <div class="receipt-footer">Thank you! · ありがとうございます</div>
+    <div class="receipt-footer">Thank you! \u00b7 \u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059</div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="mbtn secondary" onclick="closeReceipt()">Cancel</button>
       <button class="mbtn primary" id="confirmBtn" onclick="confirmCharge()" style="opacity:.4" disabled>Confirm Payment</button>
@@ -860,7 +860,7 @@ button{cursor:pointer;font-family:inherit}
         <option value="drinks">Drinks</option>
       </select>
     </div>
-    <div class="input-group"><div class="input-label">Price (₱)</div><input class="inp" id="prodModalPrice" type="number" placeholder="0" min="0"/></div>
+    <div class="input-group"><div class="input-label">Price (\u20b1)</div><input class="inp" id="prodModalPrice" type="number" placeholder="0" min="0"/></div>
     <div class="input-group"><div class="input-label">Description (optional)</div><input class="inp" id="prodModalDesc" placeholder="e.g. w/ Miso Soup"/></div>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeProdModal()">Cancel</button>
@@ -905,7 +905,7 @@ button{cursor:pointer;font-family:inherit}
       </select>
     </div>
     <div class="input-group"><div class="input-label">Description</div><input class="inp" id="expModalDesc" placeholder="e.g. Vegetables from supplier"/></div>
-    <div class="input-group"><div class="input-label">Amount (₱)</div><input class="inp" id="expModalAmt" type="number" placeholder="0" min="0"/></div>
+    <div class="input-group"><div class="input-label">Amount (\u20b1)</div><input class="inp" id="expModalAmt" type="number" placeholder="0" min="0"/></div>
     <input type="hidden" id="expModalDate"/>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeExpModal()">Cancel</button>
@@ -955,7 +955,7 @@ button{cursor:pointer;font-family:inherit}
       <div class="input-group"><div class="input-label">Reorder Level</div><input class="inp" id="invModalReorder" type="number" placeholder="0" min="0" step="0.01"/></div>
     </div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">Cost per Unit (₱)</div><input class="inp" id="invModalCost" type="number" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="input-group"><div class="input-label">Cost per Unit (\u20b1)</div><input class="inp" id="invModalCost" type="number" placeholder="0.00" min="0" step="0.01"/></div>
       <div class="input-group"><div class="input-label">Supplier</div><input class="inp" id="invModalSupplier" placeholder="e.g. SM Market"/></div>
     </div>
     <div class="modal-btns">
@@ -990,7 +990,7 @@ const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
 const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-// ══════ LOYALTY PROGRAM (self-service, no cashier point entry) ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 LOYALTY PROGRAM (self-service, no cashier point entry) \u2550\u2550\u2550\u2550\u2550\u2550
 const LOYALTY_REBATE_RATE=0.025;
 const LOYALTY_SIGNUP_URL='https://oniisan-pos.vercel.app/loyalty.html'; // standalone signup/lookup page
 
@@ -1016,7 +1016,7 @@ async function lookupLoyaltyForCheckout(phone){
 async function creditLoyaltyRebate(phone,txnTotal,orNum){
   if(!phone||phone.length<10)return;
   const{data:cust}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
-  if(!cust||!cust.length)return; // not enrolled — silently skip, no error shown to cashier
+  if(!cust||!cust.length)return; // not enrolled \u2014 silently skip, no error shown to cashier
   const customer=cust[0];
   // idempotency guard: skip if this OR number was already credited
   const{data:existingTxn}=await sb.from('loyalty_transactions').select('id').eq('or_num',orNum).limit(1);
@@ -1031,13 +1031,13 @@ async function creditLoyaltyRebate(phone,txnTotal,orNum){
   }).eq('id',customer.id);
 }
 
-// ══════ LOCAL STORAGE ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 LOCAL STORAGE \u2550\u2550\u2550\u2550\u2550\u2550
 const LS={
   get:(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d}catch{return d}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 };
 
-// ══════ OFFLINE QUEUE ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 OFFLINE QUEUE \u2550\u2550\u2550\u2550\u2550\u2550
 const QUEUE_KEY='oniisan_offline_q';
 function addToQueue(type,data){const q=LS.get(QUEUE_KEY,[]);q.push({type,data,ts:new Date().toISOString()});LS.set(QUEUE_KEY,q);updateSyncBadge();}
 function updateSyncBadge(){const q=LS.get(QUEUE_KEY,[]);const b=document.getElementById('syncBadge');if(b)b.textContent=q.length+' pending';}
@@ -1058,7 +1058,7 @@ async function syncQueue(){
   setLoading(false);
   updateSyncBadge();
   const synced=q.length-failed.length;
-  showToast(synced>0?`Synced ${synced} records!`:'Sync failed — check connection');
+  showToast(synced>0?`Synced ${synced} records!`:'Sync failed \u2014 check connection');
 }
 
 // Online/offline events
@@ -1069,12 +1069,12 @@ window.addEventListener('online',()=>{
 });
 window.addEventListener('offline',()=>{
   document.getElementById('offlineBanner').classList.add('show');
-  showToast('Offline — saving locally');
+  showToast('Offline \u2014 saving locally');
 });
 if(!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
 updateSyncBadge();
 
-// ══════ STATE ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 STATE \u2550\u2550\u2550\u2550\u2550\u2550
 let employees=[];
 let MENU=[];
 let selectedEmp=null;
@@ -1094,8 +1094,8 @@ let currentPayMethod='cash';
 
 // CATS is declared below as dynamic let
 
-// ══════ HELPERS ══════
-const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+// \u2550\u2550\u2550\u2550\u2550\u2550 HELPERS \u2550\u2550\u2550\u2550\u2550\u2550
+const fmt=n=>'\u20b1'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtn=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2});
 const tsNow=()=>new Date().toISOString();
 const timeStr=ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
@@ -1106,10 +1106,10 @@ const msToHM=ms=>{const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000
 function showToast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',dur);}
 function setLoading(on){document.getElementById('loadingBar').classList.toggle('active',on);}
 
-// ══════ SCREEN NAV ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 SCREEN NAV \u2550\u2550\u2550\u2550\u2550\u2550
 function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
-// ══════ UNIFIED LOGIN ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 UNIFIED LOGIN \u2550\u2550\u2550\u2550\u2550\u2550
 let selectedLoginEmp = null;
 
 function renderRoleEmpList(){
@@ -1132,12 +1132,12 @@ function renderRoleEmpList(){
       ?`<img src="${photo}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:3px solid ${isIn?'var(--green)':isBrk?'var(--gold)':'var(--border)'};flex-shrink:0"/>`
       :`<div style="width:52px;height:52px;border-radius:50%;background:${avatarBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0;border:3px solid ${isIn?'var(--green)':isBrk?'var(--gold)':'transparent'}">${initials}</div>`;
     const isSelected=selectedLoginEmp===e.id;
-    const statusDot=isIn?'🟢':isBrk?'🟡':'⚪';
+    const statusDot=isIn?'\ud83d\udfe2':isBrk?'\ud83d\udfe1':'\u26aa';
     return `<div onclick="selectLoginEmp('${e.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:6px;border:2px solid ${isSelected?'var(--red)':'transparent'};background:${isSelected?'var(--red-light)':'#f8f8f8'};transition:all .15s">
       ${avatarHtml}
       <div style="flex:1">
         <div style="font-size:15px;font-weight:800">${e.name}</div>
-        <div style="font-size:11px;color:${isIn?'var(--green)':isBrk?'var(--gold)':'var(--muted)'}">${statusDot} ${isIn?'Currently IN':isBrk?'On Break':'—'}</div>
+        <div style="font-size:11px;color:${isIn?'var(--green)':isBrk?'var(--gold)':'var(--muted)'}">${statusDot} ${isIn?'Currently IN':isBrk?'On Break':'\u2014'}</div>
       </div>
       <span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;background:${roleBg};color:${roleColor}">${e.role}</span>
     </div>`;
@@ -1151,7 +1151,7 @@ function selectLoginEmp(id){
   document.getElementById('unifiedPinInput').value='';
   document.getElementById('unifiedPinError').style.display='none';
   const emp=employees.find(e=>e.id===id);
-  document.getElementById('pinSectionLabel').textContent=`ENTER PIN — ${emp?.name||''}`;
+  document.getElementById('pinSectionLabel').textContent=`ENTER PIN \u2014 ${emp?.name||''}`;
   setTimeout(()=>document.getElementById('unifiedPinInput').focus(),100);
 }
 
@@ -1194,7 +1194,7 @@ function checkUnifiedPin(){
       try{
         document.getElementById('currentRolePill').textContent=emp.name;
         document.getElementById('currentRolePill').className='role-pill '+emp.role;
-        document.getElementById('adminRoleSub').textContent='SM Bicutan · '+emp.name;
+        document.getElementById('adminRoleSub').textContent='SM Bicutan \u00b7 '+emp.name;
       }catch(e){}
       goScreen('adminScreen');
       setActiveTab('dashboard');
@@ -1254,14 +1254,14 @@ function onAdminPINSuccess(emp){
   try{
     document.getElementById('currentRolePill').textContent=emp.name;
     document.getElementById('currentRolePill').className='role-pill '+emp.role;
-    document.getElementById('adminRoleSub').textContent='SM Bicutan · '+emp.name;
+    document.getElementById('adminRoleSub').textContent='SM Bicutan \u00b7 '+emp.name;
   }catch(e){}
   goScreen('adminScreen');
   setActiveTab('dashboard');
   renderTabContent('dashboard');
 }
 
-// ══════ CATEGORIES (dynamic) ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 CATEGORIES (dynamic) \u2550\u2550\u2550\u2550\u2550\u2550
 let CATS=[
   {id:'all',label:'All Items',slug:'all'},
   {id:'bento',label:'Bento Sets',slug:'bento'},
@@ -1283,9 +1283,9 @@ async function loadCategories(){
   }
 }
 
-// ══════ ROLE SELECT ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 ROLE SELECT \u2550\u2550\u2550\u2550\u2550\u2550
 function selectRole(role){
-  // Both cashier and admin require PIN — no direct access
+  // Both cashier and admin require PIN \u2014 no direct access
   // Cashier: handled by checkCashierPin()
   // Admin/Owner: handled by checkAdminPin()
   // Just load data in background
@@ -1297,7 +1297,7 @@ function openPosOrAdmin(){
   if(currentRole==='cashier'){
     // Check if day is already closed
     if(LS.get('day_closed_'+getTodayKey(),false)){
-      showToast('🔒 Day is closed. Cannot open POS.');
+      showToast('\ud83d\udd12 Day is closed. Cannot open POS.');
       return;
     }
     goScreen('posScreen');renderMenu();
@@ -1321,9 +1321,9 @@ function goBackFromPOS(){
   }
 }
 
-// ══════ LOAD DATA ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 LOAD DATA \u2550\u2550\u2550\u2550\u2550\u2550
 async function loadEmployees(){
-  // Hardcoded fallback — always shows even without Supabase
+  // Hardcoded fallback \u2014 always shows even without Supabase
   const FALLBACK_EMPLOYEES=[
     {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
     {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
@@ -1359,7 +1359,7 @@ async function loadEmployees(){
     console.log('Supabase unavailable, using cache/fallback');
   }
   const sel=document.getElementById('cashierEmpSelect');
-  if(sel){sel.innerHTML='<option value="">— Select your name —</option>'+employees.map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('');}
+  if(sel){sel.innerHTML='<option value="">\u2014 Select your name \u2014</option>'+employees.map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('');}
 }
 
 async function loadProducts(){
@@ -1372,11 +1372,11 @@ async function loadProducts(){
   }
 }
 
-// ══════ EMP STATUS ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 EMP STATUS \u2550\u2550\u2550\u2550\u2550\u2550
 function getEmpStatus(id){return LS.get('empstat_'+id,{status:'out',since:null,breakStart:null,totalWork:0});}
 function saveEmpStatus(id,s){LS.set('empstat_'+id,s);}
 
-// ══════ EMPLOYEE LIST ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 EMPLOYEE LIST \u2550\u2550\u2550\u2550\u2550\u2550
 function renderEmpList(){
   if(!employees.length){document.getElementById('empList').innerHTML='<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No employees found</div>';return;}
   document.getElementById('empList').innerHTML=employees.map(e=>{
@@ -1416,7 +1416,7 @@ function renderEmpList(){
 }
 function selectEmp(id){selectedEmp=id;renderEmpList();}
 
-// ══════ CASH ON HAND ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 CASH ON HAND \u2550\u2550\u2550\u2550\u2550\u2550
 let expectedCashSales = 0;
 
 function clearCashDeclaration(){
@@ -1445,14 +1445,14 @@ async function loadExpectedCash(){
     const posBtn=document.getElementById('openPosBtn');
     if(posBtn){
       posBtn.disabled=true;
-      posBtn.textContent='🔒 DAY CLOSED — POS Disabled';
+      posBtn.textContent='\ud83d\udd12 DAY CLOSED \u2014 POS Disabled';
       posBtn.style.background='#888';
       posBtn.style.cursor='not-allowed';
     }
     const cashInput=document.getElementById('cashOnHandAmt');
     const submitBtn=document.querySelector('[onclick="saveCashDeclaration()"]');
     if(cashInput) cashInput.disabled=true;
-    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='✅ Already Submitted';submitBtn.style.background='#aaa';}
+    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='\u2705 Already Submitted';submitBtn.style.background='#aaa';}
   }
 }
 
@@ -1473,7 +1473,7 @@ async function computeCashVariance(){
   document.getElementById('expectedCashAmt').textContent = fmt(expectedCashSales);
   document.getElementById('declaredCashAmt').textContent = fmt(declared);
   document.getElementById('varianceAmt').textContent = fmt(Math.abs(variance));
-  document.getElementById('varianceLabel').textContent = variance===0?'✅ EXACT':variance>0?'⬆️ OVER':'⬇️ SHORT';
+  document.getElementById('varianceLabel').textContent = variance===0?'\u2705 EXACT':variance>0?'\u2b06\ufe0f OVER':'\u2b07\ufe0f SHORT';
 
   const varianceRow = document.getElementById('varianceRow');
   if(variance===0){
@@ -1535,39 +1535,39 @@ async function saveCashDeclaration(){
     box.style.background='var(--green-light)';box.style.border='2px solid var(--green)';
     document.getElementById('varianceLabel').textContent='VARIANCE';
     document.getElementById('varianceAmt').style.color='var(--green)';
-    document.getElementById('varianceStatus').innerHTML='<span style="color:var(--green);font-size:18px">✅ EXACT — Cash is correct!</span>';
+    document.getElementById('varianceStatus').innerHTML='<span style="color:var(--green);font-size:18px">\u2705 EXACT \u2014 Cash is correct!</span>';
   } else if(variance>0){
     box.style.background='var(--blue-light)';box.style.border='2px solid var(--blue)';
     document.getElementById('varianceLabel').textContent='OVER by';
     document.getElementById('varianceAmt').style.color='var(--blue)';
-    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--blue);font-size:16px">⬆️ OVER — Extra ${fmt(variance)}</span>`;
+    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--blue);font-size:16px">\u2b06\ufe0f OVER \u2014 Extra ${fmt(variance)}</span>`;
   } else {
     box.style.background='var(--red-light)';box.style.border='2px solid var(--red)';
     document.getElementById('varianceLabel').textContent='SHORT by';
     document.getElementById('varianceAmt').style.color='var(--red)';
-    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--red);font-size:16px">⬇️ SHORT — Missing ${fmt(Math.abs(variance))}</span>`;
+    document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--red);font-size:16px">\u2b07\ufe0f SHORT \u2014 Missing ${fmt(Math.abs(variance))}</span>`;
   }
 
-  // Disable input after submit — recorded na
+  // Disable input after submit \u2014 recorded na
   document.getElementById('cashOnHandAmt').disabled=true;
   document.querySelector('[onclick="saveCashDeclaration()"]').disabled=true;
-  document.querySelector('[onclick="saveCashDeclaration()"]').textContent='✅ Submitted';
+  document.querySelector('[onclick="saveCashDeclaration()"]').textContent='\u2705 Submitted';
   document.querySelector('[onclick="saveCashDeclaration()"]').style.background='#aaa';
 
-  // CLOSE THE DAY — disable POS button
+  // CLOSE THE DAY \u2014 disable POS button
   LS.set('day_closed_'+getTodayKey(), true);
   const posBtn=document.getElementById('openPosBtn');
   if(posBtn){
     posBtn.disabled=true;
-    posBtn.textContent='🔒 DAY CLOSED — POS Disabled';
+    posBtn.textContent='\ud83d\udd12 DAY CLOSED \u2014 POS Disabled';
     posBtn.style.background='#888';
     posBtn.style.cursor='not-allowed';
   }
 
-  showToast(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later');
+  showToast(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline \u2014 will sync later');
 }
 
-// ══════ CASHIER EXPENSES ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 CASHIER EXPENSES \u2550\u2550\u2550\u2550\u2550\u2550
 let selectedExpCat = 'COS/Food Ingredients';
 
 function selectExpCat(btn){
@@ -1639,8 +1639,8 @@ async function renderCashierExpList(){
       return `<div class="cashier-exp-item">
         <span style="font-size:9px;font-weight:800;background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:8px;white-space:nowrap">${e.category}</span>
         <div style="flex:1;padding:0 6px">
-          <div style="font-size:11px;color:var(--text)">${e.description||'—'}</div>
-          <div style="font-size:10px;color:var(--muted)">VAT: ${fmt(vat)} · Net: ${fmt(net)}</div>
+          <div style="font-size:11px;color:var(--text)">${e.description||'\u2014'}</div>
+          <div style="font-size:10px;color:var(--muted)">VAT: ${fmt(vat)} \u00b7 Net: ${fmt(net)}</div>
         </div>
         <span style="font-weight:800;color:var(--red);font-size:12px">${fmt(e.amount)}</span>
       </div>`;
@@ -1662,7 +1662,7 @@ async function refreshCashierSales(){
   if(txnsEl) txnsEl.textContent=count;
 }
 
-// ══════ LIVE CLOCK ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 LIVE CLOCK \u2550\u2550\u2550\u2550\u2550\u2550
 function updateClock(){
   const now=new Date();
   const h=String(now.getHours()).padStart(2,'0');
@@ -1676,7 +1676,7 @@ function updateClock(){
 setInterval(updateClock,1000);
 updateClock();
 
-// ══════ RECENT ORDERS ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 RECENT ORDERS \u2550\u2550\u2550\u2550\u2550\u2550
 async function renderRecentOrders(){
   const el=document.getElementById('recentOrdersList');
   if(!el)return;
@@ -1687,8 +1687,8 @@ async function renderRecentOrders(){
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5">
       <div style="font-size:10px;font-weight:800;color:var(--muted);width:60px">${timeStr(t.ts)}</div>
       <div style="flex:1">
-        <div style="font-size:11px;font-weight:700">${t.table_name||'—'} · ${t.or_num||'—'}</div>
-        <div style="font-size:10px;color:var(--muted)">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</div>
+        <div style="font-size:11px;font-weight:700">${t.table_name||'\u2014'} \u00b7 ${t.or_num||'\u2014'}</div>
+        <div style="font-size:10px;color:var(--muted)">${(t.items||[]).slice(0,3).map(i=>i.name+'\u00d7'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:13px;font-weight:800;color:var(--green)">${fmt(t.total||0)}</div>
@@ -1697,7 +1697,7 @@ async function renderRecentOrders(){
     </div>`).join('');
 }
 
-// ══════ TIME ACTION ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 TIME ACTION \u2550\u2550\u2550\u2550\u2550\u2550
 function timeAction(action){
   if(!selectedEmp){showToast('Select an employee first.');return;}
   const emp=employees.find(e=>e.id===selectedEmp);
@@ -1715,7 +1715,7 @@ function timeAction(action){
   pendingTimeAction=action;
   pendingPhotoEmpId=selectedEmp;
   const labels={in:'TIME IN',brk_out:'BREAK OUT',brk_in:'BREAK IN',out:'TIME OUT'};
-  openCam(`${labels[action]||action} — ${emp.name}`);
+  openCam(`${labels[action]||action} \u2014 ${emp.name}`);
 }
 
 async function doTimeAction(action,empId,photoDataUrl){
@@ -1789,7 +1789,7 @@ async function doTimeAction(action,empId,photoDataUrl){
   showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded!`);
 }
 
-// ══════ CAMERA ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 CAMERA \u2550\u2550\u2550\u2550\u2550\u2550
 function openCam(title){
   document.getElementById('camModalTitle').textContent=title||'Take Photo';
   document.getElementById('photoPreview').style.display='none';
@@ -1824,7 +1824,7 @@ function finishCam(url){
 }
 function closeCam(){document.getElementById('camModal').classList.remove('open');if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}}
 
-// ══════ ADMIN TABS ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 ADMIN TABS \u2550\u2550\u2550\u2550\u2550\u2550
 function setActiveTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));}
 document.getElementById('adminTabs').addEventListener('click',e=>{
   const tab=e.target.closest('.tab');if(!tab)return;
@@ -1847,11 +1847,11 @@ function renderTabContent(tab){
   else if(tab==='categories')renderCategoryMgmt();
   else if(tab==='inventory')renderInventory();
   else if(tab==='payroll')renderPayroll();
-    else if(tab==='holidays')renderHolidays(); else if(tab==='loyalty')renderLoyalty();
-
+  else if(tab==='holidays')renderHolidays();
+  else if(tab==='loyalty')renderLoyalty();
 }
 
-// ══════ SUPABASE QUERIES ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 SUPABASE QUERIES \u2550\u2550\u2550\u2550\u2550\u2550
 async function sbGetTransactions(dateKey){
   const d=dateKey||getTodayKey();
   if(navigator.onLine){
@@ -1890,7 +1890,7 @@ async function sbSaveTxn(txn){
   if(navigator.onLine){const{error}=await sb.from('transactions').insert([row]);if(error)addToQueue('txn',row);}
   else addToQueue('txn',row);
   setLoading(false);
-  showToast(navigator.onLine?'Order saved!':'Saved offline — will sync later');
+  showToast(navigator.onLine?'Order saved!':'Saved offline \u2014 will sync later');
 }
 
 async function sbGetDailyReport(dk){
@@ -1907,7 +1907,7 @@ async function sbSaveDailyReport(rep){
   setLoading(false);
 }
 
-// ══════ EXPENSES ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 EXPENSES \u2550\u2550\u2550\u2550\u2550\u2550
 async function sbGetExpenses(dateKey){
   const d=dateKey||getTodayKey();
   if(navigator.onLine){const{data,error}=await sb.from('expenses').select('*').eq('date_key',d).eq('branch','SM Bicutan').order('created_at');if(!error){LS.set('exp_'+d,data||[]);return data||[];}}
@@ -1923,7 +1923,7 @@ async function renderExpenses(dateKey){
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Expenses — ${dateStr(key+'T12:00:00')}</div>
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Expenses \u2014 ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderExpenses(this.value)"/>
     <button class="btn-green" onclick="openExpModal('${key}')">+ Add Expense</button>
   </div>
@@ -1941,9 +1941,9 @@ async function renderExpenses(dateKey){
       <tbody>${exps.map(e=>`<tr>
         <td style="font-size:11px;color:var(--muted)">${timeStr(e.created_at)}</td>
         <td><span class="exp-cat">${e.category}</span></td>
-        <td>${e.description||'—'}</td>
+        <td>${e.description||'\u2014'}</td>
         <td class="num re">${fmt(e.amount)}</td>
-        <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
+        <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">\u00d7</span></td>
       </tr>`).join('')}</tbody>
     </table>`:'<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No expenses logged today</div>'}
   </div>`;
@@ -1981,7 +1981,7 @@ async function deleteExpense(id,dateKey){
   renderExpenses(dateKey);
 }
 
-// ══════ DASHBOARD ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 DASHBOARD \u2550\u2550\u2550\u2550\u2550\u2550
 async function renderDashboard(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading dashboard...</div>';
 
@@ -2044,7 +2044,7 @@ async function renderDashboard(){
   const maxTrend=Math.max(...trend.map(t=>t.gross),1);
 
   const rankColors=['#c0392b','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#1abc9c','#e74c3c'];
-  const rankEmojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+  const rankEmojis=['\ud83e\udd47','\ud83e\udd48','\ud83e\udd49','4\ufe0f\u20e3','5\ufe0f\u20e3','6\ufe0f\u20e3','7\ufe0f\u20e3','8\ufe0f\u20e3'];
 
   document.getElementById('adminBody').innerHTML=`
   <!-- HEADER -->
@@ -2053,7 +2053,7 @@ async function renderDashboard(){
       <div class="red-bar"></div>Power Dashboard
       <span style="font-size:12px;color:var(--muted);font-weight:400">${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</span>
     </div>
-    <button onclick="renderDashboard()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
+    <button onclick="renderDashboard()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udd04 Refresh</button>
   </div>
 
   <!-- TODAY METRICS -->
@@ -2062,7 +2062,7 @@ async function renderDashboard(){
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--green)">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">GROSS SALES</div>
       <div style="font-size:22px;font-weight:900;color:var(--green)">${fmtn(dGross)}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">₱ Philippine Peso</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">\u20b1 Philippine Peso</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--red)">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">EXPENSES</div>
@@ -2082,7 +2082,7 @@ async function renderDashboard(){
   </div>
 
   <!-- MONTHLY METRICS -->
-  <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">THIS MONTH — ${new Date().toLocaleDateString('en-PH',{month:'long',year:'numeric'})}</div>
+  <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">THIS MONTH \u2014 ${new Date().toLocaleDateString('en-PH',{month:'long',year:'numeric'})}</div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
     <div style="background:#1a1a2e;border-radius:12px;padding:16px;border-top:4px solid #4ade80">
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">MONTHLY GROSS</div>
@@ -2106,13 +2106,13 @@ async function renderDashboard(){
   <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px">
     <!-- TREND -->
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:14px">📈 7-DAY SALES TREND</div>
+      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:14px">\ud83d\udcc8 7-DAY SALES TREND</div>
       <div style="display:flex;align-items:flex-end;gap:6px;height:100px">
         ${trend.map(t=>{
           const h=Math.max(8,Math.round((t.gross/maxTrend)*90));
           const isToday=t.dk===today;
           return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="font-size:9px;color:${isToday?'var(--red)':'var(--muted)'};font-weight:${isToday?'800':'600'}">${t.gross>0?'₱'+Math.round(t.gross/1000)+'k':''}</div>
+            <div style="font-size:9px;color:${isToday?'var(--red)':'var(--muted)'};font-weight:${isToday?'800':'600'}">${t.gross>0?'\u20b1'+Math.round(t.gross/1000)+'k':''}</div>
             <div style="width:100%;height:${h}px;background:${isToday?'var(--red)':'#e0e0e0'};border-radius:4px 4px 0 0;transition:all .3s"></div>
             <div style="font-size:9px;color:${isToday?'var(--red)':'var(--muted)'};font-weight:${isToday?'800':'600'};text-align:center">${t.label}</div>
           </div>`;
@@ -2122,11 +2122,11 @@ async function renderDashboard(){
 
     <!-- PAYMENT BREAKDOWN TODAY -->
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:12px">💳 PAYMENT BREAKDOWN</div>
+      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:12px">\ud83d\udcb3 PAYMENT BREAKDOWN</div>
       ${Object.entries(pmDay).filter(([,v])=>v>0).map(([pm,amt])=>`
         <div style="cursor:pointer" onclick="showPaymentDetail('${pm}','${today}')" title="Click to view ${pm} transactions">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:11px;font-weight:700;text-transform:capitalize;color:var(--blue);text-decoration:underline dotted">${pm==='card'?'💳 Card':pm==='gcash'?'💚 GCash':pm==='maya'?'💙 Maya':pm==='gotyme'?'🏦 GoTyme':pm==='grabfood'?'🥦 GrabFood':pm==='foodpanda'?'🐼 FoodPanda':'💵 Cash'}</span>
+            <span style="font-size:11px;font-weight:700;text-transform:capitalize;color:var(--blue);text-decoration:underline dotted">${pm==='card'?'\ud83d\udcb3 Card':pm==='gcash'?'\ud83d\udc9a GCash':pm==='maya'?'\ud83d\udc99 Maya':pm==='gotyme'?'\ud83c\udfe6 GoTyme':pm==='grabfood'?'\ud83e\udd66 GrabFood':pm==='foodpanda'?'\ud83d\udc3c FoodPanda':'\ud83d\udcb5 Cash'}</span>
             <span style="font-size:12px;font-weight:800;color:var(--blue)">${fmt(amt)}</span>
           </div>
           <div style="height:4px;background:#f0f0f0;border-radius:2px;margin-bottom:10px">
@@ -2143,7 +2143,7 @@ async function renderDashboard(){
 
     <!-- TOP 8 TODAY -->
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:14px">🔥 TOP 8 BEST SELLERS — TODAY</div>
+      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:14px">\ud83d\udd25 TOP 8 BEST SELLERS \u2014 TODAY</div>
       ${top8Day.length?top8Day.map((item,idx)=>`
         <div style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -2165,7 +2165,7 @@ async function renderDashboard(){
 
     <!-- TOP 8 MONTHLY -->
     <div style="background:#1a1a2e;border-radius:12px;padding:16px;border:1px solid #333">
-      <div style="font-size:12px;font-weight:800;color:#888;letter-spacing:1px;margin-bottom:14px">⭐ TOP 8 BEST SELLERS — THIS MONTH</div>
+      <div style="font-size:12px;font-weight:800;color:#888;letter-spacing:1px;margin-bottom:14px">\u2b50 TOP 8 BEST SELLERS \u2014 THIS MONTH</div>
       ${top8Mon.length?top8Mon.map((item,idx)=>`
         <div style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -2187,7 +2187,7 @@ async function renderDashboard(){
   </div>`;
 }
 
-// ══════ SALES LOG ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 SALES LOG \u2550\u2550\u2550\u2550\u2550\u2550
 async function renderSalesLog(dateKey){
   const key=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
@@ -2221,34 +2221,34 @@ async function renderSalesLog(dateKey){
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px" class="no-print">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Sales Report \u2014 ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderSalesLog(this.value)"/>
     <button class="btn-green" onclick="window.print()" style="padding:8px 14px">Print / Save PDF</button>
   </div>
 
   <!-- SUMMARY METRICS -->
   <div class="metric-grid" style="margin-bottom:14px">
-    <div class="metric"><div class="metric-val gr">${fmtn(gross)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
-    <div class="metric"><div class="metric-val re">${fmtn(expTotal)}</div><div class="metric-lbl">Total Expenses (₱)</div></div>
-    <div class="metric"><div class="metric-val go">${fmtn(gross-expTotal)}</div><div class="metric-lbl">Net Sales (₱)</div></div>
+    <div class="metric"><div class="metric-val gr">${fmtn(gross)}</div><div class="metric-lbl">Gross Sales (\u20b1)</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(expTotal)}</div><div class="metric-lbl">Total Expenses (\u20b1)</div></div>
+    <div class="metric"><div class="metric-val go">${fmtn(gross-expTotal)}</div><div class="metric-lbl">Net Sales (\u20b1)</div></div>
     <div class="metric"><div class="metric-val bl">${txns.length}</div><div class="metric-lbl">Transactions</div></div>
   </div>
 
   <!-- TRANSACTION LOG - PER PUNCHED -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Transaction Log — Per Sales Invoice (${txns.length} transactions)</div>
+    <div class="card-title"><div class="red-bar"></div>Transaction Log \u2014 Per Sales Invoice (${txns.length} transactions)</div>
     ${txns.length?txns.map(t=>`
     <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
       <!-- Transaction Header -->
       <div style="background:#f8f8f8;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div>
-          <span style="font-size:14px;font-weight:900;color:var(--red)">${t.or_num||'—'}</span>
+          <span style="font-size:14px;font-weight:900;color:var(--red)">${t.or_num||'\u2014'}</span>
           <span style="font-size:11px;color:var(--muted);margin-left:10px">${timeStr(t.ts)}</span>
-          <span style="font-size:11px;color:var(--muted);margin-left:8px">· ${t.table_name||'—'}</span>
-          ${t.cashier_name?`<span style="font-size:11px;color:var(--blue);margin-left:8px;font-weight:700">· 👤 ${t.cashier_name}</span>`:''}
+          <span style="font-size:11px;color:var(--muted);margin-left:8px">\u00b7 ${t.table_name||'\u2014'}</span>
+          ${t.cashier_name?`<span style="font-size:11px;color:var(--blue);margin-left:8px;font-weight:700">\u00b7 \ud83d\udc64 ${t.cashier_name}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--blue-light);color:var(--blue);padding:3px 8px;border-radius:10px">${t.payment_method||'cash'}${t.card_type?' · '+t.card_type:''}${t.card_last4?' *'+t.card_last4:''}</span>
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--blue-light);color:var(--blue);padding:3px 8px;border-radius:10px">${t.payment_method||'cash'}${t.card_type?' \u00b7 '+t.card_type:''}${t.card_last4?' *'+t.card_last4:''}</span>
           ${t.discount&&t.discount!=='none'?`<span style="font-size:10px;font-weight:800;text-transform:uppercase;background:var(--gold-light);color:var(--gold);padding:3px 8px;border-radius:10px">${t.discount.toUpperCase()}</span>`:''}
           <span style="font-size:15px;font-weight:900;color:var(--green)">${fmt(t.total||0)}</span>
           <button onclick="voidTransaction('${t.id||t.or_num}','${t.or_num}')" style="padding:3px 10px;background:var(--red-light);color:var(--red);border:1px solid #f5b7b1;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">VOID</button>
@@ -2279,7 +2279,7 @@ async function renderSalesLog(dateKey){
             <span>Subtotal</span><span>${fmt(t.subtotal||0)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--red);margin-bottom:3px">
-            <span>Discount (${(t.discount||'').toUpperCase()})${t.discount_name?' — '+t.discount_name:''}${t.discount_id_num?' ['+t.discount_id_num+']':''}</span>
+            <span>Discount (${(t.discount||'').toUpperCase()})${t.discount_name?' \u2014 '+t.discount_name:''}${t.discount_id_num?' ['+t.discount_id_num+']':''}</span>
             <span>-${fmt(t.discount_amount||0)}</span>
           </div>`:''}
           <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900">
@@ -2300,7 +2300,7 @@ async function renderSalesLog(dateKey){
 
   <!-- ITEMS SOLD SUMMARY -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title"><div class="red-bar"></div>Items Sold Summary — ${totalQty} total items</div>
+    <div class="card-title"><div class="red-bar"></div>Items Sold Summary \u2014 ${totalQty} total items</div>
     <table class="tbl">
       <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty</th><th class="num">Total Amount</th></tr></thead>
       <tbody>
@@ -2343,8 +2343,8 @@ async function renderSalesLog(dateKey){
           return `<tr>
             <td style="font-weight:700;font-size:11px">${t.or_num}</td>
             <td><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--gold-light);color:var(--gold)">${(t.discount||'').toUpperCase()}</span></td>
-            <td style="font-size:11px">${t.discount_name||'—'}</td>
-            <td style="font-size:11px">${t.discount_id_num||'—'}</td>
+            <td style="font-size:11px">${t.discount_name||'\u2014'}</td>
+            <td style="font-size:11px">${t.discount_id_num||'\u2014'}</td>
             <td class="num re">${fmt(t.discount_amount||0)}</td>
             <td class="num re">${fmt(vat)}</td>
           </tr>`;}).join('')
@@ -2358,17 +2358,19 @@ async function renderSalesLog(dateKey){
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Net Summary</div>
     <div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
-    ${expTotal>0?`<div class="sum-row deduct"><span class="sum-label">— Total Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
-    ${pwdDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— PWD Discount</span><span class="sum-val">-${fmt(pwdDiscAmt)}</span></div>`:''}
-    ${seniorDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— Senior Discount</span><span class="sum-val">-${fmt(seniorDiscAmt)}</span></div>`:''}
-    ${(pwdVAT+seniorVAT)>0?`<div class="sum-row deduct"><span class="sum-label">— VAT Deduction</span><span class="sum-val">-${fmt(pwdVAT+seniorVAT)}</span></div>`:''}
+    ${expTotal>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Total Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
+    ${pwdDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 PWD Discount</span><span class="sum-val">-${fmt(pwdDiscAmt)}</span></div>`:''}
+    ${seniorDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Senior Discount</span><span class="sum-val">-${fmt(seniorDiscAmt)}</span></div>`:''}
+    ${(pwdVAT+seniorVAT)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 VAT Deduction</span><span class="sum-val">-${fmt(pwdVAT+seniorVAT)}</span></div>`:''}
     <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
     <div class="sum-row net-row"><span class="sum-label">NET SALES</span><span class="sum-val">${fmt(gross-expTotal-pwdDiscAmt-seniorDiscAmt-(pwdVAT+seniorVAT))}</span></div>
   </div>`;
 }
 
 async function voidTransaction(id, orNum){
-  if(!confirm(`VOID transaction ${orNum}?\n\nThis will mark it as voided in the records.`))return;
+  if(!confirm(`VOID transaction ${orNum}?\
+\
+This will mark it as voided in the records.`))return;
   if(navigator.onLine){
     await sb.from('transactions').update({is_voided:true,voided_at:tsNow()}).eq('or_num',orNum);
     showToast(`${orNum} voided!`);
@@ -2378,7 +2380,7 @@ async function voidTransaction(id, orNum){
   }
 }
 
-// ══════ DAILY REPORT ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 DAILY REPORT \u2550\u2550\u2550\u2550\u2550\u2550
 async function renderDailyReportForm(dateKey){
   const key=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
@@ -2392,7 +2394,7 @@ async function renderDailyReportForm(dateKey){
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Report — ${dateStr(key+'T12:00:00')}</div>
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Report \u2014 ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderDailyReportForm(this.value)"/>
   </div>
   <div class="card">
@@ -2406,25 +2408,25 @@ async function renderDailyReportForm(dateKey){
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Expenses Logged Today</div>
     <div class="sum-row deduct"><span class="sum-label">Total Expenses (from Expenses tab)</span><span class="sum-val">${fmt(expTotal)}</span></div>
-    <button onclick="setActiveTab('expenses');renderTabContent('expenses')" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;cursor:pointer">View / Add Expenses →</button>
+    <button onclick="setActiveTab('expenses');renderTabContent('expenses')" style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;cursor:pointer">View / Add Expenses \u2192</button>
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Other Deductions</div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">GrabFood Commission (₱)</div><input class="inp" type="number" id="dr_grabfood" value="${rep.grabfood||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">FoodPanda Commission (₱)</div><input class="inp" type="number" id="dr_foodpanda" value="${rep.foodpanda||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">GrabFood Commission (\u20b1)</div><input class="inp" type="number" id="dr_grabfood" value="${rep.grabfood||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">FoodPanda Commission (\u20b1)</div><input class="inp" type="number" id="dr_foodpanda" value="${rep.foodpanda||0}" min="0"/></div>
     </div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">GCash Fee (₱)</div><input class="inp" type="number" id="dr_gcash_fee" value="${rep.gcash_fee||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">Maya Fee (₱)</div><input class="inp" type="number" id="dr_maya_fee" value="${rep.maya_fee||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">GCash Fee (\u20b1)</div><input class="inp" type="number" id="dr_gcash_fee" value="${rep.gcash_fee||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">Maya Fee (\u20b1)</div><input class="inp" type="number" id="dr_maya_fee" value="${rep.maya_fee||0}" min="0"/></div>
     </div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">GoTyme Fee (₱)</div><input class="inp" type="number" id="dr_gotyme_fee" value="${rep.gotyme_fee||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">PWD Discount VAT (₱)</div><input class="inp" type="number" id="dr_discount_pwd" value="${rep.discount_pwd||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">GoTyme Fee (\u20b1)</div><input class="inp" type="number" id="dr_gotyme_fee" value="${rep.gotyme_fee||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">PWD Discount VAT (\u20b1)</div><input class="inp" type="number" id="dr_discount_pwd" value="${rep.discount_pwd||0}" min="0"/></div>
     </div>
     <div class="input-row">
-      <div class="input-group"><div class="input-label">Senior Citizen VAT (₱)</div><input class="inp" type="number" id="dr_discount_senior" value="${rep.discount_senior||0}" min="0"/></div>
-      <div class="input-group"><div class="input-label">Other (₱)</div><input class="inp" type="number" id="dr_other" value="${rep.other_deductions||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">Senior Citizen VAT (\u20b1)</div><input class="inp" type="number" id="dr_discount_senior" value="${rep.discount_senior||0}" min="0"/></div>
+      <div class="input-group"><div class="input-label">Other (\u20b1)</div><input class="inp" type="number" id="dr_other" value="${rep.other_deductions||0}" min="0"/></div>
     </div>
     <div class="input-group"><div class="input-label">Notes</div><textarea class="inp" id="dr_notes" rows="2">${rep.notes||''}</textarea></div>
     <button class="save-btn" onclick="saveDailyReportForm('${key}')">Save to Cloud</button>
@@ -2436,8 +2438,8 @@ async function renderDailyReportForm(dateKey){
   </div>`;
 }
 
-// Cash on Hand = Gross − Store Expenses − (full GCash/Maya/GoTyme/Card/GrabFood/FoodPanda sales)
-//   − PWD/Senior discount-related VAT deduction − Other manual deductions
+// Cash on Hand = Gross \u2212 Store Expenses \u2212 (full GCash/Maya/GoTyme/Card/GrabFood/FoodPanda sales)
+//   \u2212 PWD/Senior discount-related VAT deduction \u2212 Other manual deductions
 // Note: pmSales and discount amounts come directly from actual transaction records,
 // not manual entry, so cashiers/admins cannot alter these figures.
 function buildNetSummary(gross,rep,expTotal,pmSales,pwdDiscAmt,seniorDiscAmt,pwdVAT,seniorVAT){
@@ -2447,16 +2449,16 @@ function buildNetSummary(gross,rep,expTotal,pmSales,pwdDiscAmt,seniorDiscAmt,pwd
   const ded=(expTotal||0)+cashlessTotal+discTotal+(rep.other_deductions||0);
   const net=gross-ded;
   return `<div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
-  ${(expTotal||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Store Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
-  ${(pmSales.gcash||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GCash Sales</span><span class="sum-val">-${fmt(pmSales.gcash)}</span></div>`:''}
-  ${(pmSales.maya||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Maya Sales</span><span class="sum-val">-${fmt(pmSales.maya)}</span></div>`:''}
-  ${(pmSales.gotyme||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GoTyme Sales</span><span class="sum-val">-${fmt(pmSales.gotyme)}</span></div>`:''}
-  ${(pmSales.card||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Card Sales</span><span class="sum-val">-${fmt(pmSales.card)}</span></div>`:''}
-  ${(pmSales.grabfood||0)>0?`<div class="sum-row deduct"><span class="sum-label">— GrabFood Sales</span><span class="sum-val">-${fmt(pmSales.grabfood)}</span></div>`:''}
-  ${(pmSales.foodpanda||0)>0?`<div class="sum-row deduct"><span class="sum-label">— FoodPanda Sales</span><span class="sum-val">-${fmt(pmSales.foodpanda)}</span></div>`:''}
-  ${pwdDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— PWD Discount (incl. VAT)</span><span class="sum-val">-${fmt(pwdDiscAmt)}</span></div>`:''}
-  ${seniorDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">— Senior Discount (incl. VAT)</span><span class="sum-val">-${fmt(seniorDiscAmt)}</span></div>`:''}
-  ${(rep.other_deductions||0)>0?`<div class="sum-row deduct"><span class="sum-label">— Other</span><span class="sum-val">-${fmt(rep.other_deductions)}</span></div>`:''}
+  ${(expTotal||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Store Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
+  ${(pmSales.gcash||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 GCash Sales</span><span class="sum-val">-${fmt(pmSales.gcash)}</span></div>`:''}
+  ${(pmSales.maya||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Maya Sales</span><span class="sum-val">-${fmt(pmSales.maya)}</span></div>`:''}
+  ${(pmSales.gotyme||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 GoTyme Sales</span><span class="sum-val">-${fmt(pmSales.gotyme)}</span></div>`:''}
+  ${(pmSales.card||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Card Sales</span><span class="sum-val">-${fmt(pmSales.card)}</span></div>`:''}
+  ${(pmSales.grabfood||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 GrabFood Sales</span><span class="sum-val">-${fmt(pmSales.grabfood)}</span></div>`:''}
+  ${(pmSales.foodpanda||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 FoodPanda Sales</span><span class="sum-val">-${fmt(pmSales.foodpanda)}</span></div>`:''}
+  ${pwdDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 PWD Discount (incl. VAT)</span><span class="sum-val">-${fmt(pwdDiscAmt)}</span></div>`:''}
+  ${seniorDiscAmt>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Senior Discount (incl. VAT)</span><span class="sum-val">-${fmt(seniorDiscAmt)}</span></div>`:''}
+  ${(rep.other_deductions||0)>0?`<div class="sum-row deduct"><span class="sum-label">\u2014 Other</span><span class="sum-val">-${fmt(rep.other_deductions)}</span></div>`:''}
   <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
   <div class="sum-row net-row"><span class="sum-label">CASH ON HAND</span><span class="sum-val">${fmt(net)}</span></div>`;
 }
@@ -2469,7 +2471,7 @@ async function saveDailyReportForm(key){
   document.getElementById('net_summary_inner').innerHTML=buildNetSummary(gross,rep,expTotal);
 }
 
-// ══════ MONTHLY ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 MONTHLY \u2550\u2550\u2550\u2550\u2550\u2550
 async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
@@ -2498,12 +2500,12 @@ async function renderMonthly(monthKey){
     const grabfood=dayTxns.filter(t=>t.payment_method==='grabfood').reduce((s,t)=>s+(t.total||0),0);
     const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
     const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-    // Cash on Hand = Gross − Expenses − full cashless sales (gcash/maya/gotyme/card/grabfood/foodpanda) − PWD/Senior discount − other manual deductions
+    const vat=discount/1.12*0.12;
+    // Cash on Hand = Gross \u2212 Expenses \u2212 full cashless sales (gcash/maya/gotyme/card/grabfood/foodpanda) \u2212 PWD/Senior discount \u2212 VAT \u2212 other manual deductions
     const cashlessTotal=gcash+maya+gotyme+card+grabfood+foodpanda;
     const otherDed=(rep.other_deductions||0);
-const vat=discount/1.12*0.12;
-const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
-       // cash declaration
+    const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
+    // cash declaration
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     const variance=cashDecl?cashDecl.variance:null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mNet+=net;mTxns+=dayTxns.length;
@@ -2515,9 +2517,9 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
 
   window.__monthlyRows=rows; // expose for click-to-detail modal
 
-  const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">—</span>';
-  const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
-  const fmtExp=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
+  const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">\u2014</span>';
+  const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">\u2014</span>';
+  const fmtExp=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">\u2014</span>';
   let mVAT=0;
 
   document.getElementById('adminBody').innerHTML=`
@@ -2527,8 +2529,8 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
       <select class="inp" style="width:180px" onchange="renderMonthly(this.value)">
         ${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}
       </select>
-      <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
-      <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download Excel</button>
+      <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udda8\ufe0f Print</button>
+      <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udce5 Download Excel</button>
     </div>
   </div>
   <div class="metric-grid" style="margin-bottom:14px">
@@ -2541,14 +2543,14 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
     <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1200px">
       <thead>
         <tr style="background:#1a1a2e;color:#fff">
-          <th style="padding:12px 10px;text-align:left;white-space:nowrap">📅 Date</th>
+          <th style="padding:12px 10px;text-align:left;white-space:nowrap">\ud83d\udcc5 Date</th>
           <th style="padding:12px 8px;text-align:right;color:#4ade80">Gross</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💚 GCash</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💙 Maya</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa">🏦 GoTyme</th>
-          <th style="padding:12px 8px;text-align:right;color:#fb923c">🐼 FoodPanda</th>
-          <th style="padding:12px 8px;text-align:right;color:#4ade80">🥦 GrabFood</th>
-          <th style="padding:12px 8px;text-align:right;color:#60a5fa">💳 Card</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">\ud83d\udc9a GCash</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">\ud83d\udc99 Maya</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">\ud83c\udfe6 GoTyme</th>
+          <th style="padding:12px 8px;text-align:right;color:#fb923c">\ud83d\udc3c FoodPanda</th>
+          <th style="padding:12px 8px;text-align:right;color:#4ade80">\ud83e\udd66 GrabFood</th>
+          <th style="padding:12px 8px;text-align:right;color:#60a5fa">\ud83d\udcb3 Card</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171">Discount</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171">VAT</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171">Expenses</th>
@@ -2561,8 +2563,8 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
         ${rows.map((r,idx)=>{
           const vat=r.discount/1.12*0.12;
           mVAT+=vat;
-          const varStr=r.variance===null?'—':
-            r.variance===0?'<span style="color:#4ade80;font-weight:800">✅ EXACT</span>':
+          const varStr=r.variance===null?'\u2014':
+            r.variance===0?'<span style="color:#4ade80;font-weight:800">\u2705 EXACT</span>':
             r.variance>0?`<span style="color:#60a5fa;font-weight:800">OVER ${fmt(r.variance)}</span>`:
             `<span style="color:#f87171;font-weight:800">SHORT ${fmt(Math.abs(r.variance))}</span>`;
           const cashInput=`<div style="display:flex;align-items:center;gap:4px;justify-content:center" onclick="event.stopPropagation()">
@@ -2572,13 +2574,13 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
               style="padding:4px 8px;background:#22c55e;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer">Save</button>
             <button onclick="event.stopPropagation();toggleBankDeposit('${r.dk}')"
               style="padding:4px 8px;background:${r.cashDecl&&r.cashDecl.bank_deposited?'#16a34a':'#555'};color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer" title="Mark as deposited to bank">
-              🏦 ${r.cashDecl&&r.cashDecl.bank_deposited?'Deposited':'Bank'}
+              \ud83c\udfe6 ${r.cashDecl&&r.cashDecl.bank_deposited?'Deposited':'Bank'}
             </button>
           </div>`;
           const isDeposited=r.cashDecl&&r.cashDecl.bank_deposited;
           const clickCell=(val,html,filterFn,label)=>val>0?`<span onclick="event.stopPropagation();showPaymentDetail('${r.dk}','${label}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${html}</span>`:html;
           return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
-            <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span>${isDeposited?' <span style="color:#4ade80;font-size:10px">✅ DEPOSITED</span>':''}</td>
+            <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span>${isDeposited?' <span style="color:#4ade80;font-size:10px">\u2705 DEPOSITED</span>':''}</td>
             <td style="padding:10px;text-align:right;color:#4ade80;font-weight:800">${fmt(r.gross)}</td>
             <td style="padding:10px;text-align:right">${clickCell(r.gcash,fmtCell(r.gcash),null,'gcash')}</td>
             <td style="padding:10px;text-align:right">${clickCell(r.maya,fmtCell(r.maya),null,'maya')}</td>
@@ -2587,9 +2589,9 @@ const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
             <td style="padding:10px;text-align:right">${clickCell(r.grabfood,fmtCell(r.grabfood),null,'grabfood')}</td>
             <td style="padding:10px;text-align:right">${clickCell(r.card,fmtCell(r.card),null,'card')}</td>
             <td style="padding:10px;text-align:right">${clickCell(r.discount,fmtDisc(r.discount),null,'discount')}</td>
-            <td style="padding:10px;text-align:right"><span style="color:#f87171;font-weight:700">${vat>0?'-'+fmt(vat):'—'}</span></td>
+            <td style="padding:10px;text-align:right"><span style="color:#f87171;font-weight:700">${vat>0?'-'+fmt(vat):'\u2014'}</span></td>
             <td style="padding:10px;text-align:right">${fmtExp(r.expenses)}</td>
-            <td style="padding:10px;text-align:right;color:${isDeposited?'#22c55e':'#fbbf24'};font-weight:900;${isDeposited?'font-size:13px':''}">${fmt(r.net)}${isDeposited?' ✅':''}</td>
+            <td style="padding:10px;text-align:right;color:${isDeposited?'#22c55e':'#fbbf24'};font-weight:900;${isDeposited?'font-size:13px':''}">${fmt(r.net)}${isDeposited?' \u2705':''}</td>
             <td style="padding:10px">${cashInput}</td>
             <td style="padding:10px;text-align:center">${varStr}</td>
           </tr>`;
@@ -2627,7 +2629,7 @@ function showPaymentDetail(dk,type){
     : row.dayTxns.filter(t=>t.payment_method===type);
   const total=matching.reduce((s,t)=>s+(isDiscount?(t.discount_amount||0):(t.total||0)),0);
 
-  document.getElementById('paymentDetailTitle').textContent=`${PAYMENT_LABELS[type]||type} — ${dk} (${matching.length} ${matching.length===1?'order':'orders'})`;
+  document.getElementById('paymentDetailTitle').textContent=`${PAYMENT_LABELS[type]||type} \u2014 ${dk} (${matching.length} ${matching.length===1?'order':'orders'})`;
   document.getElementById('paymentDetailContent').innerHTML=matching.length?`
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="border-bottom:2px solid var(--border)">
@@ -2640,11 +2642,11 @@ function showPaymentDetail(dk,type){
       </tr></thead>
       <tbody>
         ${matching.map(t=>`<tr style="border-bottom:1px solid #f5f5f5">
-          <td style="padding:6px 8px">${t.or_num||'—'}</td>
+          <td style="padding:6px 8px">${t.or_num||'\u2014'}</td>
           <td style="padding:6px 8px">${new Date(t.ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})}</td>
-          <td style="padding:6px 8px">${t.table_name||'—'}</td>
-          <td style="padding:6px 8px">${t.cashier_name||'—'}</td>
-          ${isDiscount?`<td style="padding:6px 8px;text-transform:uppercase;font-size:11px">${t.discount||'—'}</td>`:''}
+          <td style="padding:6px 8px">${t.table_name||'\u2014'}</td>
+          <td style="padding:6px 8px">${t.cashier_name||'\u2014'}</td>
+          ${isDiscount?`<td style="padding:6px 8px;text-transform:uppercase;font-size:11px">${t.discount||'\u2014'}</td>`:''}
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(isDiscount?(t.discount_amount||0):(t.total||0))}</td>
         </tr>`).join('')}
       </tbody>
@@ -2678,11 +2680,11 @@ async function saveCashOnHand(dk){
     else{await sb.from('cash_declarations').insert([rec]);}
   }
   setLoading(false);
-  showToast(`Saved! ${variance===0?'✅ EXACT':variance>0?'⬆️ OVER '+fmt(variance):'⬇️ SHORT '+fmt(Math.abs(variance))}`);
+  showToast(`Saved! ${variance===0?'\u2705 EXACT':variance>0?'\u2b06\ufe0f OVER '+fmt(variance):'\u2b07\ufe0f SHORT '+fmt(Math.abs(variance))}`);
   renderMonthly(dk.slice(0,7));
 }
 
-// Toggle bank deposit confirmation for a given day. Only flips the flag —
+// Toggle bank deposit confirmation for a given day. Only flips the flag \u2014
 // does not touch declared/expected/variance amounts, so it can't be used
 // to alter sales figures, only to mark that the cash was physically banked.
 async function toggleBankDeposit(dk){
@@ -2694,11 +2696,11 @@ async function toggleBankDeposit(dk){
   const{error}=await sb.from('cash_declarations').update({bank_deposited:newState}).eq('date_key',dk).eq('branch','SM Bicutan');
   setLoading(false);
   if(error){showToast('Error updating bank status.');return;}
-  showToast(newState?'✅ Marked as deposited to bank':'Unmarked bank deposit');
+  showToast(newState?'\u2705 Marked as deposited to bank':'Unmarked bank deposit');
   renderMonthly(dk.slice(0,7));
 }
 
-// ══════ PAYROLL ══════
+// \u2550\u2550\u2550\u2550\u2550\u2550 PAYROLL \u2550\u2550\u2550\u2550\u2550\u2550
 const DAILY_RATE=695;
 const OT_RATE=DAILY_RATE/8*1.25;
 const TOTAL_DEDUCTIONS=850;
@@ -2729,18 +2731,18 @@ async function renderPayroll(){
       <select class="inp" style="width:260px" id="payrollPeriodSel" onchange="LS.set('payroll_period',this.value);renderPayroll()">
         ${periods.map(p=>`<option value="${p.start}_${p.end}"${p.start+'_'+p.end===selPeriodKey?' selected':''}>${p.label}</option>`).join('')}
       </select>
-      <button onclick="computePayroll('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Compute</button>
-      <button onclick="downloadPayrollExcel('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Excel</button>
-      <button onclick="window.print()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
+      <button onclick="computePayroll('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udd04 Compute</button>
+      <button onclick="downloadPayrollExcel('${selStart}','${selEnd}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udce5 Excel</button>
+      <button onclick="window.print()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">\ud83d\udda8\ufe0f Print</button>
     </div>
   </div>
   <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue)">
     <strong>Period:</strong> ${selStart} to ${selEnd} &nbsp;|&nbsp;
-    <strong>Daily Rate:</strong> ₱${DAILY_RATE} &nbsp;|&nbsp;
-    <strong>OT Rate:</strong> ₱${OT_RATE.toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
-    <strong>Deductions:</strong> SSS ₱450 + PhilHealth ₱200 + Pag-IBIG ₱200 = ₱850 (every 30th)
+    <strong>Daily Rate:</strong> \u20b1${DAILY_RATE} &nbsp;|&nbsp;
+    <strong>OT Rate:</strong> \u20b1${OT_RATE.toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
+    <strong>Deductions:</strong> SSS \u20b1450 + PhilHealth \u20b1200 + Pag-IBIG \u20b1200 = \u20b1850 (every 30th)
   </div>
-  <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click 🔄 Compute to generate payroll for this period</div></div>
+  <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click \ud83d\udd04 Compute to generate payroll for this period</div></div>
   <div class="card" style="margin-top:14px">
     <div class="card-title"><div class="red-bar"></div>Manual Payroll Entry</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Use this if Time Records weren't logged for an employee. Enter days worked directly and the payslip computes automatically using the same rates above.</div>
@@ -2758,10 +2760,10 @@ async function renderPayroll(){
         <input class="inp" type="number" id="manualPayrollOT" min="0" step="0.5" placeholder="0"/>
       </div>
       <div style="width:110px">
-        <div class="input-label">Holiday Pay (₱)</div>
+        <div class="input-label">Holiday Pay (\u20b1)</div>
         <input class="inp" type="number" id="manualPayrollHoliday" min="0" placeholder="0"/>
       </div>
-      <button onclick="computeManualPayslip('${selStart}','${selEnd}')" class="btn-green" style="padding:9px 16px">📄 Generate Payslip</button>
+      <button onclick="computeManualPayslip('${selStart}','${selEnd}')" class="btn-green" style="padding:9px 16px">\ud83d\udcc4 Generate Payslip</button>
     </div>
   </div>
   <div class="card" style="margin-top:14px">
@@ -2826,7 +2828,7 @@ async function computePayroll(start,end){
   const totalNet=payrollRows.reduce((s,r)=>s+r.netPay,0);
   document.getElementById('payrollTable').innerHTML=`
   <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Payroll — ${start} to ${end}</div>
+    <div class="card-title"><div class="red-bar"></div>Payroll \u2014 ${start} to ${end}</div>
     <div style="overflow-x:auto">
     <table class="tbl">
       <thead><tr><th>Employee</th><th class="num">Days</th><th class="num">Hrs</th><th class="num">OT Hrs</th><th class="num">Basic</th><th class="num">OT Pay</th><th class="num">Holiday</th><th class="num">Gross</th><th class="num">Deductions</th><th class="num">NET PAY</th><th>Payslip</th></tr></thead>
@@ -2835,14 +2837,14 @@ async function computePayroll(start,end){
           <td style="font-weight:700">${r.name}</td>
           <td class="num">${r.daysWorked}</td>
           <td class="num">${r.totalHours}</td>
-          <td class="num">${+r.otHours>0?`<span style="color:var(--gold);font-weight:700">${r.otHours}</span>`:'—'}</td>
+          <td class="num">${+r.otHours>0?`<span style="color:var(--gold);font-weight:700">${r.otHours}</span>`:'\u2014'}</td>
           <td class="num">${fmt(r.basicPay)}</td>
-          <td class="num">${r.otPay>0?`<span style="color:var(--gold)">${fmt(r.otPay)}</span>`:'—'}</td>
-          <td class="num">${r.holidayPay>0?`<span style="color:var(--blue)">${fmt(r.holidayPay)}</span>`:'—'}</td>
+          <td class="num">${r.otPay>0?`<span style="color:var(--gold)">${fmt(r.otPay)}</span>`:'\u2014'}</td>
+          <td class="num">${r.holidayPay>0?`<span style="color:var(--blue)">${fmt(r.holidayPay)}</span>`:'\u2014'}</td>
           <td class="num gr" style="font-weight:800">${fmt(r.grossPay)}</td>
-          <td class="num re">${r.totalDed>0?'-'+fmt(r.totalDed):'—'}</td>
+          <td class="num re">${r.totalDed>0?'-'+fmt(r.totalDed):'\u2014'}</td>
           <td class="num" style="font-weight:900;color:var(--green);font-size:14px">${fmt(r.netPay)}</td>
-          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
+          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">\ud83d\udcc4 Payslip</button></td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="background:#f0f0f0;font-weight:900">
@@ -2953,7 +2955,6 @@ async function submitOTApproval(){
   if(!hrs){showToast('Enter OT hours.');return;}
   if(!reason){showToast('Enter reason for OT.');return;}
   setLoading(true);
-  // Auto-approve since only approvers can submit
   await sb.from('ot_approvals').insert([{emp_id:empId,emp_name:emp?.name,date_key:dateKey,ot_hours:hrs,reason,status:'approved',approved_by:currentLoginEmp?.name,branch:'SM Bicutan'}]);
   setLoading(false);
   showToast('OT approved and recorded!');
@@ -3030,27 +3031,21 @@ function printMonthlyReport(){
 }
 
 async function downloadMonthlyExcel(mk){
-  // Ask for date range
   const fromDate=prompt('From date (YYYY-MM-DD):', mk+'-01');
   if(!fromDate)return;
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
   const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
   if(!toDate)return;
-
   setLoading(true);
   const{data:allTxns}=await sb.from('transactions').select('*').gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts');
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
   setLoading(false);
-
   const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];
   const dayMap={};
   txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
-
-  // Build CSV
   const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','Expenses','NET SALES','Cash Declared','Variance','Status'];
   const csvRows=[headers.join(',')];
-
   Object.keys(dayMap).sort().forEach(dk=>{
     const dayTxns=dayMap[dk];
     const gross=dayTxns.reduce((s,t)=>s+(t.total||0),0);
@@ -3070,8 +3065,6 @@ async function downloadMonthlyExcel(mk){
     const status=cashDecl?(cashDecl.variance===0?'EXACT':cashDecl.variance>0?'OVER':'SHORT'):'';
     csvRows.push([dk,dayTxns.length,gross,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-dayExps,net,declared,variance,status].join(','));
   });
-
-  // Download CSV
   const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -3112,13 +3105,9 @@ async function renderZReading(){
 
 function buildReadingContent(txns,now,type,exps){
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-
-  // Payment breakdown
   const pmBreak={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
   txns.forEach(t=>{if(pmBreak[t.payment_method]!==undefined)pmBreak[t.payment_method]+=(t.total||0);});
   const nonCash=pmBreak.gcash+pmBreak.maya+pmBreak.gotyme+pmBreak.card+pmBreak.grabfood+pmBreak.foodpanda;
-
-  // Item category summary
   const catMap={};
   txns.forEach(t=>(t.items||[]).forEach(i=>{
     const cat=i.cat||'Others';
@@ -3126,8 +3115,6 @@ function buildReadingContent(txns,now,type,exps){
     catMap[cat].qty+=i.qty;catMap[cat].amt+=i.price*i.qty;
   }));
   const totalQty=txns.reduce((s,t)=>s+(t.items||[]).reduce((ss,i)=>ss+i.qty,0),0);
-
-  // Discount summary
   const pwdTxns=txns.filter(t=>t.discount==='pwd');
   const seniorTxns=txns.filter(t=>t.discount==='senior');
   const staffTxns=txns.filter(t=>t.discount==='staff');
@@ -3135,24 +3122,17 @@ function buildReadingContent(txns,now,type,exps){
   const seniorDisc=seniorTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const staffDisc=staffTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const totalDisc=pwdDisc+seniorDisc+staffDisc;
-
-  // VAT computation
   const vatableSales=gross/1.12;
   const vatAmount=gross-vatableSales;
   const lessVAT=totalDisc/1.12*0.12;
   const netSales=gross-totalDisc-lessVAT;
-
-  // Expenses (Z only)
   const expTotal=exps?exps.reduce((s,e)=>s+(e.amount||0),0):0;
-
   const line=(label,val,bold=false)=>`
     <div style="display:flex;justify-content:space-between;padding:2px 0;${bold?'font-weight:900;font-size:13px;':'font-size:12px;'}border-bottom:1px dotted #eee">
       <span>${label}</span><span>${val}</span>
     </div>`;
   const divider=(label='')=>`<div style="border-top:1px dashed #333;margin:6px 0;text-align:center;font-size:11px;color:#888">${label}</div>`;
-
   return `
-  <!-- HEADER -->
   <div style="text-align:center;margin-bottom:12px;line-height:1.6">
     <div style="font-size:16px;font-weight:900">ONIISAN TEMPURA FOOD CART</div>
     <div style="font-size:11px">SM City Bicutan, Parañaque City</div>
@@ -3165,8 +3145,6 @@ function buildReadingContent(txns,now,type,exps){
     <div style="font-size:11px">Date: ${now.toLocaleDateString('en-PH',{month:'2-digit',day:'2-digit',year:'numeric'})} ${now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
   </div>
   ${divider()}
-
-  <!-- TRANSACTION COUNTERS -->
   <div style="font-size:11px;margin-bottom:6px">
     ${line('Beginning Balance','0.00')}
     ${line('Ending Balance',fmtn(gross))}
@@ -3179,18 +3157,11 @@ function buildReadingContent(txns,now,type,exps){
     ${line('Finalize Non-Cash',fmtn(nonCash))}
   </div>
   ${divider('Item Category Summary')}
-
-  <!-- ITEM CATEGORY SUMMARY -->
   <div style="font-size:11px;margin-bottom:6px">
-    ${Object.entries(catMap).map(([cat,v])=>line(
-      `${v.qty} ${cat.toUpperCase()}`,
-      fmtn(v.amt)
-    )).join('')}
+    ${Object.entries(catMap).map(([cat,v])=>line(`${v.qty} ${cat.toUpperCase()}`,fmtn(v.amt))).join('')}
     ${line('TOTAL',fmtn(gross),true)}
   </div>
   ${divider('Discount Summary')}
-
-  <!-- DISCOUNT SUMMARY -->
   <div style="font-size:11px;margin-bottom:6px">
     ${line(`${seniorTxns.length} Senior (20%)`,fmtn(seniorDisc))}
     ${line(`${pwdTxns.length} PWD (20%)`,fmtn(pwdDisc))}
@@ -3202,8 +3173,6 @@ function buildReadingContent(txns,now,type,exps){
     ${line('  PWD:',`-${fmtn(pwdDisc/1.12*0.12)}`)}
   </div>
   ${divider()}
-
-  <!-- GROSS/NET COMPUTATION -->
   <div style="font-size:12px;margin-bottom:6px">
     ${line('GROSS TOTAL',fmtn(gross),true)}
     ${line('DISCOUNTS',`(-) ${fmtn(totalDisc)}`)}
@@ -3214,8 +3183,6 @@ function buildReadingContent(txns,now,type,exps){
     ${line('NET SALES',fmtn(netSales),true)}
   </div>
   ${divider('Breakdown of Sales')}
-
-  <!-- VAT BREAKDOWN -->
   <div style="font-size:11px;margin-bottom:6px">
     ${line('VATTable Sales',fmtn(vatableSales))}
     ${line('VAT Amount',fmtn(vatAmount))}
@@ -3223,8 +3190,6 @@ function buildReadingContent(txns,now,type,exps){
     ${line('Zero Rated Sales','0.00')}
   </div>
   ${divider('Payment Summary')}
-
-  <!-- PAYMENT SUMMARY -->
   <div style="font-size:11px;margin-bottom:6px">
     ${line(`${txns.filter(t=>t.payment_method==='cash').length} Cash`,fmtn(pmBreak.cash))}
     ${line('0 EDC AMEX','0.00')}
@@ -3243,7 +3208,6 @@ function buildReadingContent(txns,now,type,exps){
     ${divider()}
     ${line('TOTAL',fmtn(gross),true)}
   </div>
-
   ${type==='Z'&&expTotal>0?`${divider('Expenses')}
   <div style="font-size:11px;margin-bottom:6px">
     ${(exps||[]).map(e=>line(e.category,fmtn(e.amount))).join('')}
@@ -3251,7 +3215,6 @@ function buildReadingContent(txns,now,type,exps){
     ${divider()}
     ${line('NET AFTER EXPENSES',fmtn(netSales-expTotal),true)}
   </div>`:''}
-
   <div style="text-align:center;font-size:11px;margin-top:12px;color:#888">
     ${now.toLocaleDateString('en-PH',{month:'2-digit',day:'2-digit',year:'numeric'})} ${now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} PM
   </div>`;
@@ -3261,15 +3224,11 @@ function buildReadingContent(txns,now,type,exps){
 async function renderDTR(dateKey){
   const dk=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading DTR...</div>';
-
-  // Get cutoff period containing this date
   const d=new Date(dk+'T12:00:00');
   const year=d.getFullYear();
   const month=d.getMonth()+1;
   const day=d.getDate();
   const pad=n=>String(n).padStart(2,'0');
-
-  // Determine cutoff period
   let cutoffStart,cutoffEnd,cutoffLabel;
   if(day>=26){
     cutoffStart=`${year}-${pad(month)}-26`;
@@ -3288,34 +3247,22 @@ async function renderDTR(dateKey){
     cutoffEnd=`${year}-${pad(month)}-25`;
     cutoffLabel=`${pad(month)}/11/${year} - ${pad(month)}/25/${year}`;
   }
-
-  // Generate all dates in cutoff period
   const dates=[];
   let cur=new Date(cutoffStart+'T12:00:00');
   const endDate=new Date(cutoffEnd+'T12:00:00');
-  while(cur<=endDate){
-    dates.push(cur.toISOString().slice(0,10));
-    cur.setDate(cur.getDate()+1);
-  }
-
-  // Load time records for period
+  while(cur<=endDate){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
   const{data:records}=await sb.from('time_records').select('*').gte('ts',cutoffStart+'T00:00:00.000Z').lte('ts',cutoffEnd+'T23:59:59.999Z').order('ts');
   const{data:holidays}=await sb.from('holidays').select('*');
   const recs=records||[];
   const holidayMap={};
   (holidays||[]).forEach(h=>{holidayMap[h.date_key]=h;});
-
-  // Group by employee then by date
   const empDayMap={};
   recs.forEach(r=>{
-    const empId=r.emp_id;
-    const dayKey=r.ts.slice(0,10);
+    const empId=r.emp_id;const dayKey=r.ts.slice(0,10);
     if(!empDayMap[empId]){empDayMap[empId]={name:r.emp_name,days:{}};}
     if(!empDayMap[empId].days[dayKey])empDayMap[empId].days[dayKey]=[];
     empDayMap[empId].days[dayKey].push(r);
   });
-
-  // Generate period options
   const periods=[];
   for(let y=2025;y<=2027;y++){
     for(let m=1;m<=12;m++){
@@ -3324,37 +3271,27 @@ async function renderDTR(dateKey){
       periods.push({val:`${y}-${pad(m)}-11`,label:`${pad(m)}/11/${y} - ${pad(m)}/25/${y}`,dk:`${y}-${pad(m)}-11`});
     }
   }
-
-  // Day headers
   const dayHeaders=dates.map(dt=>{
     const d=new Date(dt+'T12:00:00');
     const dayNames=['S','M','T','W','T','F','S'];
-    const isHoliday=!!holidayMap[dt];
-    const isSunday=d.getDay()===0;
+    const isHoliday=!!holidayMap[dt];const isSunday=d.getDay()===0;
     const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
     return `<th style="padding:6px 4px;text-align:center;min-width:38px;background:${bg};white-space:nowrap;font-size:10px;border-right:1px solid #e0e0e0">
       <div style="font-weight:800;color:${isSunday?'var(--red)':isHoliday?'var(--gold)':'var(--muted)'}">${dayNames[d.getDay()]}</div>
       <div style="font-weight:700;color:${isSunday?'var(--red)':isHoliday?'var(--gold)':'#333'}">${d.getDate()}</div>
     </th>`;
   }).join('');
-
-  // Employee rows
   const empRows=employees.map(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
     let totalHours=0;let daysWorked=0;
-
     const dayCells=dates.map(dt=>{
       const dayRecs=empData.days[dt]||[];
       const outRec=dayRecs.find(r=>r.action==='out');
       const inRec=dayRecs.find(r=>r.action==='in');
-      const isHoliday=!!holidayMap[dt];
-      const isSunday=new Date(dt+'T12:00:00').getDay()===0;
+      const isHoliday=!!holidayMap[dt];const isSunday=new Date(dt+'T12:00:00').getDay()===0;
       const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
-
       if(outRec&&outRec.total_work){
-        const hrs=outRec.total_work/3600000;
-        totalHours+=hrs;
-        daysWorked++;
+        const hrs=outRec.total_work/3600000;totalHours+=hrs;daysWorked++;
         const color=hrs>=8?'var(--green)':hrs>=4?'var(--gold)':'var(--red)';
         return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;font-weight:700;color:${color}">${hrs.toFixed(1)}</td>`;
       } else if(inRec){
@@ -3363,17 +3300,12 @@ async function renderDTR(dateKey){
         return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;color:#ddd">—</td>`;
       }
     }).join('');
-
     const initials=emp.initials||emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-
     return `<tr>
       <td style="padding:8px 10px;font-weight:700;white-space:nowrap;border-right:2px solid var(--border);position:sticky;left:0;background:#fff;z-index:1">
         <div style="display:flex;align-items:center;gap:6px">
           <div style="width:28px;height:28px;border-radius:50%;background:${emp.role==='owner'?'#c8900a':emp.role==='admin'?'#1a5fa8':'#555'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${initials}</div>
-          <div>
-            <div style="font-size:12px">${emp.name}</div>
-            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">${emp.role}</div>
-          </div>
+          <div><div style="font-size:12px">${emp.name}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">${emp.role}</div></div>
         </div>
       </td>
       ${dayCells}
@@ -3381,7 +3313,6 @@ async function renderDTR(dateKey){
       <td style="padding:6px 8px;text-align:center;font-weight:900;color:var(--blue);font-size:13px">${totalHours.toFixed(1)}</td>
     </tr>`;
   }).join('');
-
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>DTR — ${cutoffLabel}</div>
@@ -3390,7 +3321,6 @@ async function renderDTR(dateKey){
     </select>
     <button onclick="window.print()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print DTR</button>
   </div>
-
   <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap">
     <span style="color:var(--green);font-weight:700">■ Green = 8+ hrs</span>
     <span style="color:var(--gold);font-weight:700">■ Gold = 4-8 hrs</span>
@@ -3398,7 +3328,6 @@ async function renderDTR(dateKey){
     <span style="background:#fef9e7;padding:0 6px;border-radius:4px;font-weight:700;color:var(--gold)">Holiday</span>
     <span style="background:#fff5f5;padding:0 6px;border-radius:4px;font-weight:700;color:var(--red)">Sunday</span>
   </div>
-
   <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
     <table style="border-collapse:collapse;font-size:12px;width:100%">
       <thead>
@@ -3409,9 +3338,7 @@ async function renderDTR(dateKey){
           <th style="padding:6px 8px;text-align:center;background:#eaf2fb;color:var(--blue);font-size:11px;min-width:50px">Total Hrs</th>
         </tr>
       </thead>
-      <tbody>
-        ${empRows||'<tr><td colspan="100" style="text-align:center;padding:30px;color:#ccc">No records for this period</td></tr>'}
-      </tbody>
+      <tbody>${empRows||'<tr><td colspan="100" style="text-align:center;padding:30px;color:#ccc">No records for this period</td></tr>'}</tbody>
     </table>
   </div>`;
 }
@@ -3487,14 +3414,10 @@ async function renderProductMgmt(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   await loadProducts();
   const byCat={};MENU.forEach(p=>{if(!byCat[p.cat])byCat[p.cat]=[];byCat[p.cat].push(p);});
-
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Product Management</div>
-    <label class="btn-green" style="cursor:pointer">
-      📥 Bulk Upload CSV
-      <input type="file" accept=".csv" style="display:none" onchange="bulkUploadCSV(this)"/>
-    </label>
+    <label class="btn-green" style="cursor:pointer">📥 Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadCSV(this)"/></label>
     <button class="btn-green" onclick="openProdModal()">+ Add Product</button>
   </div>
   <div class="card" style="margin-bottom:10px;background:var(--blue-light);border-color:#a9cce3">
@@ -3505,10 +3428,7 @@ async function renderProductMgmt(){
     return `<div class="card" style="margin-bottom:10px">
       <div class="card-title"><div class="red-bar"></div>${cat.label} (${items.length})</div>
       ${items.map(p=>`<div class="prod-row">
-        <div class="prod-info">
-          <div class="prod-name">${p.name}</div>
-          ${p.desc?`<div class="prod-meta">${p.desc}</div>`:''}
-        </div>
+        <div class="prod-info"><div class="prod-name">${p.name}</div>${p.desc?`<div class="prod-meta">${p.desc}</div>`:''}</div>
         <div class="prod-price">${fmt(p.price)}</div>
         <div class="prod-actions">
           <button class="act-btn edit" onclick="openProdModal('${p.id}')">Edit</button>
@@ -3525,7 +3445,6 @@ function openProdModal(prodId){
   document.getElementById('prodModalTitle').textContent=prod?'Edit Product':'Add Product';
   document.getElementById('prodModalId').value=prod?.id||'';
   document.getElementById('prodModalName').value=prod?.name||'';
-  // populate categories dynamically
   const catSelect=document.getElementById('prodModalCat');
   catSelect.innerHTML=CATS.filter(c=>c.id!=='all').map(c=>`<option value="${c.slug}"${prod?.cat===c.slug?' selected':''}>${c.label}</option>`).join('');
   document.getElementById('prodModalPrice').value=prod?.price||'';
@@ -3582,44 +3501,23 @@ async function bulkUploadCSV(input){
   input.value='';
 }
 
-// ══════ INVENTORY MANAGEMENT ══════
+// ══════ INVENTORY ══════
 async function renderInventory(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading inventory...</div>';
-  const{data:items,error}=await sb.from('inventory').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('category').order('name');
+  const{data:items}=await sb.from('inventory').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('category').order('name');
   const inv=items||[];
-
-  // Group by category
-  const cats={};
-  inv.forEach(i=>{if(!cats[i.category])cats[i.category]=[];cats[i.category].push(i);});
-
-  // Low stock count
+  const cats={};inv.forEach(i=>{if(!cats[i.category])cats[i.category]=[];cats[i.category].push(i);});
   const lowStock=inv.filter(i=>i.quantity<=i.reorder_level&&i.reorder_level>0);
-
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Inventory — SM Bicutan</div>
-    <label class="btn-green" style="cursor:pointer;font-size:12px;padding:7px 14px">
-      📥 Bulk Upload CSV
-      <input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/>
-    </label>
+    <label class="btn-green" style="cursor:pointer;font-size:12px;padding:7px 14px">📥 Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/></label>
     <button class="btn-green" onclick="openInvModal()">+ Add Item</button>
   </div>
-
-  ${lowStock.length?`
-  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:20px">⚠️</span>
-    <div>
-      <div style="font-size:13px;font-weight:800;color:#856404">${lowStock.length} item(s) LOW STOCK</div>
-      <div style="font-size:11px;color:#856404">${lowStock.map(i=>i.name).join(', ')}</div>
-    </div>
-  </div>`:''}
-
+  ${lowStock.length?`<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><div><div style="font-size:13px;font-weight:800;color:#856404">${lowStock.length} item(s) LOW STOCK</div><div style="font-size:11px;color:#856404">${lowStock.map(i=>i.name).join(', ')}</div></div></div>`:''}
   <div class="card" style="margin-bottom:10px;background:var(--blue-light);border-color:#a9cce3">
-    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, unit, quantity, reorder_level, cost_per_unit, supplier<br/>
-    Categories: Meat, Seafood, Vegetables, Condiments, Packaging, Dry Goods, Beverages, Others<br/>
-    Units: pcs, kilo, grams, box, pack, bag, dozen, liters, ml, can, bottle, tray</div>
+    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, unit, quantity, reorder_level, cost_per_unit, supplier</div>
   </div>
-
   ${Object.keys(cats).length?Object.entries(cats).map(([cat,items])=>`
   <div class="card" style="margin-bottom:10px">
     <div class="card-title"><div class="red-bar"></div>${cat} (${items.length} items)</div>
@@ -3632,9 +3530,7 @@ async function renderInventory(){
           <div class="inv-meta">Reorder at: ${i.reorder_level} ${i.unit} · Cost: ${fmt(i.cost_per_unit||0)}/${i.unit} · Supplier: ${i.supplier||'—'}</div>
           <div style="font-size:10px;color:var(--muted)">Total Value: ${fmt(totalValue)}</div>
         </div>
-        <div style="text-align:right;min-width:100px">
-          <div class="inv-qty ${isLow?'low':'ok'}">${i.quantity} <span style="font-size:11px;font-weight:600">${i.unit}</span></div>
-        </div>
+        <div style="text-align:right;min-width:100px"><div class="inv-qty ${isLow?'low':'ok'}">${i.quantity} <span style="font-size:11px;font-weight:600">${i.unit}</span></div></div>
         <div class="inv-actions">
           <button class="stock-in-btn" onclick="openStockModal('${i.id}','${i.name}',${i.quantity},'${i.unit}','in')">+IN</button>
           <button class="stock-out-btn" onclick="openStockModal('${i.id}','${i.name}',${i.quantity},'${i.unit}','out')">-OUT</button>
@@ -3644,23 +3540,16 @@ async function renderInventory(){
       </div>`;
     }).join('')}
     <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f8f8f8;font-size:11px;font-weight:700">
-      <span>Category Total Value</span>
-      <span style="color:var(--blue)">${fmt(items.reduce((s,i)=>s+(i.quantity||0)*(i.cost_per_unit||0),0))}</span>
+      <span>Category Total Value</span><span style="color:var(--blue)">${fmt(items.reduce((s,i)=>s+(i.quantity||0)*(i.cost_per_unit||0),0))}</span>
     </div>
   </div>`).join('')
-  :'<div class="card" style="text-align:center;padding:40px;color:#ccc">No inventory items yet. Add items or bulk upload CSV.</div>'}`;
+  :'<div class="card" style="text-align:center;padding:40px;color:#ccc">No inventory items yet.</div>'}`;
 }
 
 function openInvModal(id){
   document.getElementById('invModalId').value=id||'';
   document.getElementById('invModalTitle').textContent=id?'Edit Item':'Add Inventory Item';
-  if(!id){
-    document.getElementById('invModalName').value='';
-    document.getElementById('invModalQty').value='';
-    document.getElementById('invModalReorder').value='';
-    document.getElementById('invModalCost').value='';
-    document.getElementById('invModalSupplier').value='';
-  }
+  if(!id){document.getElementById('invModalName').value='';document.getElementById('invModalQty').value='';document.getElementById('invModalReorder').value='';document.getElementById('invModalCost').value='';document.getElementById('invModalSupplier').value='';}
   document.getElementById('invModal').classList.add('open');
 }
 function closeInvModal(){document.getElementById('invModal').classList.remove('open');}
@@ -3679,18 +3568,10 @@ async function saveInventoryItem(){
   const record={name,category,unit,quantity,reorder_level,cost_per_unit,supplier,branch:'SM Bicutan',is_active:true};
   let error;
   if(id){({error}=await sb.from('inventory').update(record).eq('id',id));}
-  else{
-    ({error}=await sb.from('inventory').insert([record]));
-    // log initial stock
-    if(!error&&quantity>0){
-      await sb.from('inventory_transactions').insert([{inventory_id:null,item_name:name,transaction_type:'initial',quantity,unit,notes:'Initial stock',performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);
-    }
-  }
+  else{({error}=await sb.from('inventory').insert([record]));if(!error&&quantity>0){await sb.from('inventory_transactions').insert([{inventory_id:null,item_name:name,transaction_type:'initial',quantity,unit,notes:'Initial stock',performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);}}
   setLoading(false);
   if(error){showToast('Error: '+error.message);return;}
-  closeInvModal();
-  showToast(id?'Item updated!':'Item added!');
-  renderInventory();
+  closeInvModal();showToast(id?'Item updated!':'Item added!');renderInventory();
 }
 
 async function deleteInventoryItem(id,name){
@@ -3718,25 +3599,12 @@ async function saveStockAdjustment(){
   const notes=document.getElementById('stockModalNotes').value.trim();
   if(!qty||qty<=0){showToast('Enter a valid quantity.');return;}
   setLoading(true);
-
-  // get current item
   const{data:item}=await sb.from('inventory').select('*').eq('id',id).single();
   if(!item){showToast('Item not found.');setLoading(false);return;}
-
   const newQty=type==='in'?item.quantity+qty:Math.max(0,item.quantity-qty);
-
-  // update quantity
   await sb.from('inventory').update({quantity:newQty}).eq('id',id);
-
-  // log transaction
-  await sb.from('inventory_transactions').insert([{
-    inventory_id:id,item_name:item.name,
-    transaction_type:type,quantity:qty,unit:item.unit,
-    notes,performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'
-  }]);
-
-  setLoading(false);
-  closeStockModal();
+  await sb.from('inventory_transactions').insert([{inventory_id:id,item_name:item.name,transaction_type:type,quantity:qty,unit:item.unit,notes,performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);
+  setLoading(false);closeStockModal();
   showToast(`Stock ${type==='in'?'IN':'OUT'} recorded! New qty: ${newQty} ${item.unit}`);
   renderInventory();
 }
@@ -3758,10 +3626,9 @@ async function bulkUploadInventory(input){
   const{error}=await sb.from('inventory').insert(rows);
   setLoading(false);
   if(error){showToast('Upload failed: '+error.message);return;}
-  showToast(`Uploaded ${rows.length} items!`);
-  renderInventory();
-  input.value='';
+  showToast(`Uploaded ${rows.length} items!`);renderInventory();input.value='';
 }
+
 async function renderCategoryMgmt(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   await loadCategories();
@@ -3773,17 +3640,8 @@ async function renderCategoryMgmt(){
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Categories (${cats.length})</div>
-    ${cats.map(c=>`
-    <div class="emp-mgmt-row">
-      <div class="emp-mgmt-info">
-        <div class="emp-mgmt-name">${c.label}</div>
-        <div class="emp-mgmt-meta">Slug: ${c.slug}</div>
-      </div>
-      <div class="emp-mgmt-actions">
-        <button class="act-btn edit" onclick="openCatModal('${c.dbId||c.id}','${c.label}','${c.slug}')">Edit</button>
-        <button class="act-btn del" onclick="deleteCategory('${c.dbId||c.id}','${c.label}')">Delete</button>
-      </div>
-    </div>`).join('')}
+    ${cats.map(c=>`<div class="emp-mgmt-row"><div class="emp-mgmt-info"><div class="emp-mgmt-name">${c.label}</div><div class="emp-mgmt-meta">Slug: ${c.slug}</div></div>
+    <div class="emp-mgmt-actions"><button class="act-btn edit" onclick="openCatModal('${c.dbId||c.id}','${c.label}','${c.slug}')">Edit</button><button class="act-btn del" onclick="deleteCategory('${c.dbId||c.id}','${c.label}')">Delete</button></div></div>`).join('')}
   </div>`;
 }
 
@@ -3814,89 +3672,39 @@ async function saveCategory(){
 }
 
 async function deleteCategory(id,name){
-  if(!confirm(`Delete category "${name}"? Products in this category will remain but won't show in the category filter.`))return;
+  if(!confirm(`Delete category "${name}"?`))return;
   await sb.from('categories').update({is_active:false}).eq('id',id);
   showToast('Category removed.');await loadCategories();renderCategoryMgmt();
 }
 
 // ══════ POS MENU ══════
 function renderMenu(){
-  document.getElementById('catSidebar').innerHTML=CATS.map(c=>`
-    <div class="cat-item${currentCat===c.id?' active':''}" data-cat="${c.id}" onclick="filterCat('${c.id}')">${c.label}</div>
-  `).join('');
+  document.getElementById('catSidebar').innerHTML=CATS.map(c=>`<div class="cat-item${currentCat===c.id?' active':''}" data-cat="${c.id}" onclick="filterCat('${c.id}')">${c.label}</div>`).join('');
   const items=currentCat==='all'?MENU:MENU.filter(i=>i.cat===currentCat);
-  document.getElementById('menuGrid').innerHTML=items.length?items.map(item=>`
-    <div class="mcard" onclick="addItem('${item.id}')">
-      <div class="mcard-cat">${CATS.find(c=>c.id===item.cat)?.label||item.cat}</div>
-      <div class="mcard-name">${item.name}</div>
-      ${item.desc?`<div class="mcard-desc">${item.desc}</div>`:''}
-      <div class="mcard-price">${fmt(item.price)}</div>
-    </div>`).join('')
+  document.getElementById('menuGrid').innerHTML=items.length?items.map(item=>`<div class="mcard" onclick="addItem('${item.id}')"><div class="mcard-cat">${CATS.find(c=>c.id===item.cat)?.label||item.cat}</div><div class="mcard-name">${item.name}</div>${item.desc?`<div class="mcard-desc">${item.desc}</div>`:''}<div class="mcard-price">${fmt(item.price)}</div></div>`).join('')
   :'<div style="text-align:center;padding:40px;color:#ccc;grid-column:span 3">No items in this category</div>';
 }
 function filterCat(c){
   currentCat=c;
-  // update active state
-  document.querySelectorAll('.cat-item').forEach(el=>{
-    el.classList.toggle('active',el.dataset.cat===c);
-  });
-  // render menu items
+  document.querySelectorAll('.cat-item').forEach(el=>{el.classList.toggle('active',el.dataset.cat===c);});
   const items=c==='all'?MENU:MENU.filter(i=>i.cat===c);
-  document.getElementById('menuGrid').innerHTML=items.length?items.map(item=>`
-    <div class="mcard" onclick="addItem('${item.id}')">
-      <div class="mcard-cat">${CATS.find(x=>x.id===item.cat)?.label||item.cat}</div>
-      <div class="mcard-name">${item.name}</div>
-      ${item.desc?`<div class="mcard-desc">${item.desc}</div>`:''}
-      <div class="mcard-price">${fmt(item.price)}</div>
-    </div>`).join('')
+  document.getElementById('menuGrid').innerHTML=items.length?items.map(item=>`<div class="mcard" onclick="addItem('${item.id}')"><div class="mcard-cat">${CATS.find(x=>x.id===item.cat)?.label||item.cat}</div><div class="mcard-name">${item.name}</div>${item.desc?`<div class="mcard-desc">${item.desc}</div>`:''}<div class="mcard-price">${fmt(item.price)}</div></div>`).join('')
   :'<div style="text-align:center;padding:40px;color:#ccc;grid-column:span 3">No items in this category</div>';
 }
 
 // ══════ ORDER ══════
-// ══════ DISCOUNT LOGIC ══════
-// Categories NOT eligible for PWD/Senior discount (promo prices)
 const NO_DISCOUNT_CATS=['svm','super_value_meal','family_set_meals','teishoku_set_meals','family','teishoku','set_meals','packaging','take_out'];
-
 const getDisc=()=>document.getElementById('discountSelect')?.value||'none';
-
-// Check if an item is eligible for discount
-function isDiscountEligible(item){
-  const cat=(item.cat||item.category||'').toLowerCase();
-  return !NO_DISCOUNT_CATS.some(nc=>cat.includes(nc)||nc.includes(cat));
-}
-
-// Compute discount on eligible items only
-// PWD/Senior (OSCA) discount per Philippine law: VAT-exempt, so we must first
-// strip VAT (divide by 1.12) before applying the 20% discount.
-// Total deduction shown to customer = VAT removed + 20% of the VAT-exclusive amount.
-function calcDisc(items, discType){
-  if(discType==='none'||!discType) return 0;
-  const eligibleSubtotal=items
-    .filter(i=>isDiscountEligible(i))
-    .reduce((s,i)=>s+(i.price*i.qty),0);
-  if(discType==='pwd'||discType==='senior'){
-    const vatExclusive=eligibleSubtotal/1.12;       // remove 12% VAT
-    const discountAmt=vatExclusive*0.20;             // 20% of VAT-exclusive amount
-    const vatRemoved=eligibleSubtotal-vatExclusive;  // the VAT portion itself
-    return discountAmt+vatRemoved;                   // total deducted from gross price
-  }
-  if(discType==='staff'){
-    return eligibleSubtotal*0.50;
-  }
+function isDiscountEligible(item){const cat=(item.cat||item.category||'').toLowerCase();return !NO_DISCOUNT_CATS.some(nc=>cat.includes(nc)||nc.includes(cat));}
+function calcDisc(items,discType){
+  if(discType==='none'||!discType)return 0;
+  const eligibleSubtotal=items.filter(i=>isDiscountEligible(i)).reduce((s,i)=>s+(i.price*i.qty),0);
+  if(discType==='pwd'||discType==='senior'){const vatExclusive=eligibleSubtotal/1.12;const discountAmt=vatExclusive*0.20;const vatRemoved=eligibleSubtotal-vatExclusive;return discountAmt+vatRemoved;}
+  if(discType==='staff'){return eligibleSubtotal*0.50;}
   return 0;
 }
-
-// Get eligible items for discount display
-function getEligibleItems(items, discType){
-  if(discType==='none'||!discType) return [];
-  return items.filter(i=>isDiscountEligible(i));
-}
-
-// Get ineligible items message
-function getIneligibleItems(items, discType){
-  if(discType==='none'||!discType) return [];
-  return items.filter(i=>!isDiscountEligible(i));
-}
+function getEligibleItems(items,discType){if(discType==='none'||!discType)return[];return items.filter(i=>isDiscountEligible(i));}
+function getIneligibleItems(items,discType){if(discType==='none'||!discType)return[];return items.filter(i=>!isDiscountEligible(i));}
 function addItem(id){const item=MENU.find(i=>String(i.id)===String(id));if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
 function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0)delete order[id];}renderOrderPanel();}
 function deleteItem(id){delete order[id];renderOrderPanel();}
@@ -3905,47 +3713,19 @@ function clearOrder(){order={};renderOrderPanel();}
 function renderOrderPanel(){
   const items=Object.values(order);
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
-  const disc=getDisc();
-  const discAmt=calcDisc(items,disc);
-  const total=sub-discAmt;
-
-  const eligibleItems=getEligibleItems(items,disc);
-  const ineligibleItems=getIneligibleItems(items,disc);
+  const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
+  const eligibleItems=getEligibleItems(items,disc);const ineligibleItems=getIneligibleItems(items,disc);
   const eligibleSub=eligibleItems.reduce((s,i)=>s+i.price*i.qty,0);
-
   document.getElementById('orderItemsWrap').innerHTML=items.length?items.map(i=>{
-    const eligible=isDiscountEligible(i);
-    const isDiscounted=disc!=='none'&&eligible;
-    const itemDisc=isDiscounted?calcDisc([i],disc):0;
-    const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.50:0;
-    return `<div class="oitem">
-      <div class="oitem-name" style="${!eligible&&disc!=='none'?'color:var(--muted)':''}">
-        ${i.name}
-        ${!eligible&&disc!=='none'?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}
-        ${isDiscounted?`<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:1px 4px;border-radius:4px;margin-left:4px">${Math.round(rate*100)}% OFF</span>`:''}
-      </div>
-      <div class="qty-ctrl">
-        <button class="qbtn" onclick="removeItemQty('${i.id}')">−</button>
-        <span style="font-size:11px;font-weight:800;min-width:18px;text-align:center">${i.qty}</span>
-        <button class="qbtn" onclick="addItem('${i.id}')">+</button>
-      </div>
-      <div class="oitem-price">
-        ${isDiscounted?`<span style="text-decoration:line-through;color:#ccc;font-size:10px">${fmt(i.price*i.qty)}</span><br/><span style="color:var(--green)">${fmt(i.price*i.qty-itemDisc)}</span>`:fmt(i.price*i.qty)}
-      </div>
-      <span class="oitem-del" onclick="deleteItem('${i.id}')">×</span>
-    </div>`;
+    const eligible=isDiscountEligible(i);const isDiscounted=disc!=='none'&&eligible;
+    const itemDisc=isDiscounted?calcDisc([i],disc):0;const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.50:0;
+    return `<div class="oitem"><div class="oitem-name" style="${!eligible&&disc!=='none'?'color:var(--muted)':''}">${i.name}${!eligible&&disc!=='none'?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${isDiscounted?`<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:1px 4px;border-radius:4px;margin-left:4px">${Math.round(rate*100)}% OFF</span>`:''}</div>
+    <div class="qty-ctrl"><button class="qbtn" onclick="removeItemQty('${i.id}')">−</button><span style="font-size:11px;font-weight:800;min-width:18px;text-align:center">${i.qty}</span><button class="qbtn" onclick="addItem('${i.id}')">+</button></div>
+    <div class="oitem-price">${isDiscounted?`<span style="text-decoration:line-through;color:#ccc;font-size:10px">${fmt(i.price*i.qty)}</span><br/><span style="color:var(--green)">${fmt(i.price*i.qty-itemDisc)}</span>`:fmt(i.price*i.qty)}</div>
+    <span class="oitem-del" onclick="deleteItem('${i.id}')">×</span></div>`;
   }).join(''):'<div class="order-empty">No items yet</div>';
-
-  // Subtotals display
   let subtotalHtml='';
-  if(disc!=='none'&&discAmt>0){
-    subtotalHtml=`
-      <div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>
-      ${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}
-      ${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}
-      <div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'VAT-Exempt 20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;
-  }
-
+  if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'VAT-Exempt 20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;}
   document.getElementById('subtotalsDiv').innerHTML=subtotalHtml;
   document.getElementById('orderTotal').textContent=fmt(total);
 }
@@ -3953,21 +3733,18 @@ function renderOrderPanel(){
 document.getElementById('pmethods').addEventListener('click',e=>{
   const pm=e.target.closest('.pmethod');if(!pm)return;
   document.querySelectorAll('.pmethod').forEach(p=>p.classList.remove('active'));
-  pm.classList.add('active');
-  selectedPM=pm.dataset.pm;
-  currentPayMethod=pm.dataset.pm; // sync with modal
+  pm.classList.add('active');selectedPM=pm.dataset.pm;currentPayMethod=pm.dataset.pm;
 });
 
 // ══════ PAYMENT ══════
 function selectPayMethod(pm){
   currentPayMethod=pm;
   document.querySelectorAll('.pay-method-btn').forEach(b=>b.classList.toggle('active',b.dataset.pm===pm));
-  const isCash=pm==='cash';
-  const isCard=pm==='card';
+  const isCash=pm==='cash';const isCard=pm==='card';
   document.getElementById('cashSection').style.display=isCash?'block':'none';
   document.getElementById('cashlessSection').style.display=isCash?'none':'block';
   document.getElementById('cardDetails').style.display=isCard?'block':'none';
-  if(isCard) document.getElementById('cardLast4').value='';
+  if(isCard)document.getElementById('cardLast4').value='';
   const labels={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',card:'Credit/Debit Card',grabfood:'GrabFood',foodpanda:'FoodPanda'};
   if(!isCash){document.getElementById('cashlessLabel').textContent=(labels[pm]||pm)+' Payment';document.getElementById('cashlessAmt').textContent=fmt(currentOrderTotal);}
   updateConfirmBtn();
@@ -3976,11 +3753,11 @@ function selectPayMethod(pm){
 function updateConfirmBtn(){
   const btn=document.getElementById('confirmBtn');
   let ok=false;
-  if(currentPayMethod==='cash') ok=cashTendered>=currentOrderTotal;
-  else if(currentPayMethod==='card') ok=(document.getElementById('cardLast4')?.value?.length===4);
+  if(currentPayMethod==='cash')ok=cashTendered>=currentOrderTotal;
+  else if(currentPayMethod==='card')ok=(document.getElementById('cardLast4')?.value?.length===4);
   else ok=true;
   const disc=getDisc();
-  if((disc==='pwd'||disc==='senior')&&!document.getElementById('discountName')?.value?.trim()) ok=false;
+  if((disc==='pwd'||disc==='senior')&&!document.getElementById('discountName')?.value?.trim())ok=false;
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
 
@@ -3988,8 +3765,7 @@ function addCustomDenom(){
   const input=document.getElementById('customDenomInput');
   const val=+input.value||0;
   if(val<=0){showToast('Enter a valid amount.');return;}
-  addDenom(val);
-  input.value='';
+  addDenom(val);input.value='';
   document.getElementById('customDenomBtn').disabled=true;
   document.getElementById('customDenomBtn').style.opacity='.5';
 }
@@ -4019,43 +3795,27 @@ function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
   const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
-  currentOrderTotal=total;cashTendered=0;currentPayMethod=selectedPM; // use selected from order panel
+  currentOrderTotal=total;cashTendered=0;currentPayMethod=selectedPM;
   const d=new Date();const orNum=nextOR();
   document.getElementById('receiptDate').textContent=d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('receiptOrNum').textContent='OR: '+orNum;
   document.getElementById('receiptItemsList').innerHTML=items.map(i=>`<div class="receipt-item-row"><span>${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('');
-  document.getElementById('receiptSubtotals').innerHTML=discAmt>0?`
-    <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>
-    ${getIneligibleItems(items,disc).length>0?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`:''}
-    <div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`:'';
+  document.getElementById('receiptSubtotals').innerHTML=discAmt>0?`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>${getIneligibleItems(items,disc).length>0?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`:''}<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`:'';
   document.getElementById('receiptTotal').textContent=fmt(total);
   document.getElementById('cashlessAmt').textContent=fmt(total);
   document.getElementById('receiptModal').dataset.orNum=orNum;
-  // reset fields
-  document.getElementById('discountName').value='';
-  document.getElementById('discountIdNum').value='';
-  document.getElementById('cardLast4').value='';
-  // show/hide discount section
+  document.getElementById('discountName').value='';document.getElementById('discountIdNum').value='';document.getElementById('cardLast4').value='';
   const showDiscount=disc==='pwd'||disc==='senior';
   document.getElementById('discountIdSection').style.display=showDiscount?'block':'none';
-  if(disc==='pwd'){
-    document.getElementById('discountIdLabel').textContent='PWD DETAILS';
-    document.getElementById('discountIdNumLabel').textContent='PWD ID Number';
-    document.getElementById('discountIdNum').placeholder='e.g. PWD-2024-XXXXX';
-  } else if(disc==='senior'){
-    document.getElementById('discountIdLabel').textContent='SENIOR CITIZEN DETAILS';
-    document.getElementById('discountIdNumLabel').textContent='OSCA Number';
-    document.getElementById('discountIdNum').placeholder='e.g. OSCA-XXXXX';
-  }
-  // add oninput listener for discount name to enable confirm
+  if(disc==='pwd'){document.getElementById('discountIdLabel').textContent='PWD DETAILS';document.getElementById('discountIdNumLabel').textContent='PWD ID Number';document.getElementById('discountIdNum').placeholder='e.g. PWD-2024-XXXXX';}
+  else if(disc==='senior'){document.getElementById('discountIdLabel').textContent='SENIOR CITIZEN DETAILS';document.getElementById('discountIdNumLabel').textContent='OSCA Number';document.getElementById('discountIdNum').placeholder='e.g. OSCA-XXXXX';}
   document.getElementById('discountName').oninput=updateConfirmBtn;
   document.getElementById('discountIdNum').oninput=updateConfirmBtn;
-  resetDenom();selectPayMethod(selectedPM); // use selected PM from order panel
+  resetDenom();selectPayMethod(selectedPM);
   document.getElementById('receiptModal').classList.add('open');
 }
 function closeReceipt(){document.getElementById('receiptModal').classList.remove('open');}
 
-// Live loyalty lookup while typing at checkout — read-only feedback, no balances editable here
 let loyaltyLookupTimer=null;
 function checkLoyaltyPhoneLive(phone){
   clearTimeout(loyaltyLookupTimer);
@@ -4065,11 +3825,8 @@ function checkLoyaltyPhoneLive(phone){
   status.textContent='Checking...';
   loyaltyLookupTimer=setTimeout(async()=>{
     const cust=await lookupLoyaltyForCheckout(phone);
-    if(cust){
-      status.innerHTML=`<span style="color:var(--green);font-weight:700">✓ ${cust.name} — will earn 2.5% rebate</span>`;
-    } else {
-      status.innerHTML=`<span style="color:var(--muted)">Not enrolled — show 🎉 Loyalty QR to sign up</span>`;
-    }
+    if(cust){status.innerHTML=`<span style="color:var(--green);font-weight:700">✓ ${cust.name} — will earn 2.5% rebate</span>`;}
+    else{status.innerHTML=`<span style="color:var(--muted)">Not enrolled — show 🎉 Loyalty QR to sign up</span>`;}
   },500);
 }
 
@@ -4079,34 +3836,18 @@ async function confirmCharge(){
   const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
   const table=document.getElementById('tableSelect').value;
   const orNum=document.getElementById('receiptModal').dataset.orNum;
-  // card details
   const cardLast4=currentPayMethod==='card'?document.getElementById('cardLast4').value:'';
   const cardType=currentPayMethod==='card'?document.getElementById('cardType').value:'';
-  // discount details
   const discountName=document.getElementById('discountName').value.trim();
   const discountIdNum=document.getElementById('discountIdNum').value.trim();
-  const txn={
-    orNum,ts:tsNow(),table,items:[...items],
-    subtotal:sub,discount:disc,discountAmount:discAmt,total,
-    paymentMethod:currentPayMethod,
-    cashTendered:currentPayMethod==='cash'?cashTendered:total,
-    change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,
-    cardLast4,cardType,
-    discountName,discountIdNum
-  };
+  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum};
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
   order={};renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
-  if(loyaltyPhone){
-    creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum); // fire-and-forget; amount comes only from txn.total
-    document.getElementById('loyaltyPhoneInput').value='';
-    document.getElementById('loyaltyLinkStatus').textContent='';
-  }
-  renderRecentOrders();
-  refreshCashierSales();
-  // Show receipt with QR code
+  if(loyaltyPhone){creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum);document.getElementById('loyaltyPhoneInput').value='';document.getElementById('loyaltyLinkStatus').textContent='';}
+  renderRecentOrders();refreshCashierSales();
   showPrintReceipt(txn);
 }
 
@@ -4114,11 +3855,8 @@ function showPrintReceipt(txn){
   const modal=document.getElementById('printReceiptModal');
   const content=document.getElementById('printReceiptContent');
   const menuUrl='https://oniisan-pos.vercel.app/#menu';
-  const receiptData=`OR:${txn.orNum}|DATE:${txn.ts.slice(0,10)}|TOTAL:${txn.total}|PAY:${txn.paymentMethod}`;
-
   const line=(l,r,bold=false)=>`<div style="display:flex;justify-content:space-between;${bold?'font-weight:900;':''}margin:1px 0"><span>${l}</span><span>${r}</span></div>`;
   const divider=()=>'<div style="border-top:1px dashed #999;margin:6px 0"></div>';
-
   content.innerHTML=`
   <div style="text-align:center;margin-bottom:8px">
     <div style="font-size:15px;font-weight:900">ONIISAN TEMPURA FOOD CART</div>
@@ -4137,42 +3875,21 @@ function showPrintReceipt(txn){
   </div>
   ${divider()}
   <div style="font-size:10px;margin-bottom:4px">
-    ${(txn.items||[]).map(i=>`
-      <div style="margin:2px 0">
-        <div style="font-weight:700">${i.name}</div>
-        <div style="display:flex;justify-content:space-between;color:#666">
-          <span>${i.qty} x ₱${i.price.toFixed(2)}</span>
-          <span>₱${(i.qty*i.price).toFixed(2)}</span>
-        </div>
-      </div>`).join('')}
+    ${(txn.items||[]).map(i=>`<div style="margin:2px 0"><div style="font-weight:700">${i.name}</div><div style="display:flex;justify-content:space-between;color:#666"><span>${i.qty} x ₱${i.price.toFixed(2)}</span><span>₱${(i.qty*i.price).toFixed(2)}</span></div></div>`).join('')}
   </div>
   ${divider()}
   <div style="font-size:10px;margin-bottom:4px">
-    ${txn.discount&&txn.discount!=='none'?`
-      ${line('Subtotal:','₱'+txn.subtotal.toFixed(2))}
-      ${line(`Discount (${txn.discount.toUpperCase()}):`,'-₱'+(txn.discountAmount||0).toFixed(2))}
-      ${txn.discountName?line('Name:',txn.discountName):''}
-      ${txn.discountIdNum?line('ID #:',txn.discountIdNum):''}
-    `:''}
+    ${txn.discount&&txn.discount!=='none'?`${line('Subtotal:','₱'+txn.subtotal.toFixed(2))}${line(`Discount (${txn.discount.toUpperCase()}):`,'-₱'+(txn.discountAmount||0).toFixed(2))}${txn.discountName?line('Name:',txn.discountName):''}${txn.discountIdNum?line('ID #:',txn.discountIdNum):''}`:'' }
     ${line('TOTAL:','₱'+txn.total.toFixed(2),true)}
     ${line('Payment:',txn.paymentMethod.toUpperCase())}
-    ${txn.paymentMethod==='cash'?`
-      ${line('Cash:','₱'+(txn.cashTendered||0).toFixed(2))}
-      ${line('Change:','₱'+(txn.change||0).toFixed(2))}
-    `:''}
-    ${txn.cardType?line('Card:',txn.cardType+' *'+txn.cardLast4):''}
+    ${txn.paymentMethod==='cash'?`${line('Cash:','₱'+(txn.cashTendered||0).toFixed(2))}${line('Change:','₱'+(txn.change||0).toFixed(2))}`:'' }
+    ${txn.cardType?line('Card:',txn.cardType+' *'+txn.cardLast4):'' }
   </div>
   ${divider()}
   <div style="font-size:10px;margin-bottom:4px">
-    <div style="display:flex;justify-content:space-between">
-      <span>VATable Sales:</span><span>₱${(txn.total/1.12).toFixed(2)}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between">
-      <span>VAT (12%):</span><span>₱${(txn.total-(txn.total/1.12)).toFixed(2)}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between">
-      <span>VAT Exempt:</span><span>₱0.00</span>
-    </div>
+    <div style="display:flex;justify-content:space-between"><span>VATable Sales:</span><span>₱${(txn.total/1.12).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>VAT (12%):</span><span>₱${(txn.total-(txn.total/1.12)).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>VAT Exempt:</span><span>₱0.00</span></div>
   </div>
   ${divider()}
   <div style="text-align:center;margin:10px 0">
@@ -4186,25 +3903,13 @@ function showPrintReceipt(txn){
     <div>ありがとうございます</div>
     <div style="margin-top:4px">This serves as your official receipt.</div>
   </div>`;
-
   modal.classList.add('open');
-
-  // Generate QR code
   setTimeout(()=>{
     const qrEl=document.getElementById('receiptQR');
-    if(qrEl&&typeof QRCode!=='undefined'){
-      qrEl.innerHTML='';
-      new QRCode(qrEl,{
-        text: menuUrl,
-        width: 100,
-        height: 100,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    }
+    if(qrEl&&typeof QRCode!=='undefined'){qrEl.innerHTML='';new QRCode(qrEl,{text:menuUrl,width:100,height:100,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
   },300);
 }
+
 async function showPaymentDetail(pm,dateKey){
   const dk=dateKey||getTodayKey();
   const labels={cash:'💵 Cash',gcash:'💚 GCash',maya:'💙 Maya',gotyme:'🏦 GoTyme',card:'💳 Credit/Debit Card',grabfood:'🥦 GrabFood',foodpanda:'🐼 FoodPanda'};
@@ -4214,57 +3919,29 @@ async function showPaymentDetail(pm,dateKey){
   const txns=await sbGetTransactions(dk);
   const filtered=txns.filter(t=>t.payment_method===pm);
   const total=filtered.reduce((s,t)=>s+(t.total||0),0);
-  if(!filtered.length){
-    document.getElementById('paymentDetailContent').innerHTML=`<div style="text-align:center;padding:30px;color:#ccc">No ${pm} transactions for this date</div>`;
-    return;
-  }
+  if(!filtered.length){document.getElementById('paymentDetailContent').innerHTML=`<div style="text-align:center;padding:30px;color:#ccc">No ${pm} transactions for this date</div>`;return;}
   const isCard=pm==='card';
   document.getElementById('paymentDetailContent').innerHTML=`
-    <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:11px;color:var(--muted);font-weight:700">${filtered.length} TRANSACTIONS</div>
-        <div style="font-size:22px;font-weight:900;color:var(--blue)">${fmt(total)}</div>
-      </div>
-      ${isCard?`<div style="text-align:right">
-        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px">BY CARD TYPE</div>
-        ${Object.entries(filtered.reduce((acc,t)=>{const k=t.card_type||'Unknown';acc[k]=(acc[k]||0)+(t.total||0);return acc;},{})).map(([type,amt])=>`<div style="font-size:11px;font-weight:700">${type}: ${fmt(amt)}</div>`).join('')}
-      </div>`:''}
-    </div>
-    <div style="overflow-x:auto">
-    <table class="tbl">
-      <thead><tr>
-        <th>Time</th><th>OR#</th><th>Table</th><th>Items</th>
-        ${isCard?'<th>Card Details</th>':''}
-        <th>Cashier</th><th class="num">Amount</th>
-      </tr></thead>
-      <tbody>
-        ${filtered.map(t=>`<tr>
-          <td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td>
-          <td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td>
-          <td style="font-size:11px">${t.table_name||'—'}</td>
-          <td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>
-          ${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}
-          <td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td>
-          <td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td>
-        </tr>`).join('')}
-      </tbody>
-      <tfoot><tr style="background:#f0f0f0;font-weight:900">
-        <td colspan="${isCard?5:4}">TOTAL</td>
-        <td class="num gr">${fmt(total)}</td>
-      </tr></tfoot>
-    </table></div>`;
+  <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <div><div style="font-size:11px;color:var(--muted);font-weight:700">${filtered.length} TRANSACTIONS</div><div style="font-size:22px;font-weight:900;color:var(--blue)">${fmt(total)}</div></div>
+    ${isCard?`<div style="text-align:right"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px">BY CARD TYPE</div>${Object.entries(filtered.reduce((acc,t)=>{const k=t.card_type||'Unknown';acc[k]=(acc[k]||0)+(t.total||0);return acc;},{})).map(([type,amt])=>`<div style="font-size:11px;font-weight:700">${type}: ${fmt(amt)}</div>`).join('')}</div>`:''}
+  </div>
+  <div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>Time</th><th>OR#</th><th>Table</th><th>Items</th>${isCard?'<th>Card Details</th>':''}<th>Cashier</th><th class="num">Amount</th></tr></thead>
+    <tbody>${filtered.map(t=>`<tr><td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:11px">${t.table_name||'—'}</td><td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}<td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td><td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr style="background:#f0f0f0;font-weight:900"><td colspan="${isCard?5:4}">TOTAL</td><td class="num gr">${fmt(total)}</td></tr></tfoot>
+  </table></div>`;
 }
 
 function renderKitchen(){
   const grid=document.getElementById('kitchenGrid');
   if(!kitchenTickets.length){grid.innerHTML='<div class="kitchen-empty">No orders in queue</div>';return;}
-  grid.innerHTML=kitchenTickets.map((t,idx)=>`
-    <div class="kticket k${t.status}">
-      <div class="kt-head"><span class="kt-table">${t.table} #${t.id}</span><span class="kt-stat k${t.status}">${t.status==='new'?'NEW':t.status==='cooking'?'COOKING':'DONE'}</span></div>
-      <div style="font-size:11px;color:#666;margin-bottom:6px">${t.time}</div>
-      <div class="kt-items">${t.items.map(i=>`<div class="kt-item"><span class="kt-qty">×${i.qty}</span>${i.name}</div>`).join('')}</div>
-      <button class="kt-bump" onclick="bumpTicket(${idx})">${t.status==='new'?'Start Cooking':t.status==='cooking'?'Mark Done':'✓ Done'}</button>
-    </div>`).join('');
+  grid.innerHTML=kitchenTickets.map((t,idx)=>`<div class="kticket k${t.status}">
+    <div class="kt-head"><span class="kt-table">${t.table} #${t.id}</span><span class="kt-stat k${t.status}">${t.status==='new'?'NEW':t.status==='cooking'?'COOKING':'DONE'}</span></div>
+    <div style="font-size:11px;color:#666;margin-bottom:6px">${t.time}</div>
+    <div class="kt-items">${t.items.map(i=>`<div class="kt-item"><span class="kt-qty">×${i.qty}</span>${i.name}</div>`).join('')}</div>
+    <button class="kt-bump" onclick="bumpTicket(${idx})">${t.status==='new'?'Start Cooking':t.status==='cooking'?'Mark Done':'✓ Done'}</button>
+  </div>`).join('');
 }
 function bumpTicket(idx){const t=kitchenTickets[idx];if(t.status==='new')t.status='cooking';else if(t.status==='cooking')t.status='done';LS.set('kitchen_tickets',kitchenTickets);renderKitchen();}
 
@@ -4272,46 +3949,68 @@ function bumpTicket(idx){const t=kitchenTickets[idx];if(t.status==='new')t.statu
 const CAT_EMOJIS={bento:'🍱',donburi:'🍚',ramen:'🍜',tempura:'🍤',svm:'⭐',alacarte:'🍽️',drinks:'🥤',add_ons:'➕',customize_foods:'🎨',family_set_meals:'👨‍👩‍👧‍👦',packaging:'📦',super_value_meal:'💫',take_out:'🥡',teishoku_set_meals:'🍣'};
 let menuScreenCat='all';
 
-function openMenuScreen(){
-  goScreen('menuScreen');
-  renderMenuScreen();
-}
+function openMenuScreen(){goScreen('menuScreen');renderMenuScreen();}
 
 function renderMenuScreen(cat){
   menuScreenCat=cat||'all';
-  // render cat nav
   const nav=document.getElementById('menuScreenCatNav');
   const cats=[{id:'all',label:'All Items'},...CATS.filter(c=>c.id!=='all')];
   nav.innerHTML=cats.map(c=>`<div onclick="renderMenuScreen('${c.id}')" style="padding:12px 14px;font-size:12px;font-weight:700;color:${menuScreenCat===c.id?'var(--red)':'var(--muted)'};border-bottom:3px solid ${menuScreenCat===c.id?'var(--red)':'transparent'};cursor:pointer;white-space:nowrap">${CAT_EMOJIS[c.id]||'🍽️'} ${c.label}</div>`).join('');
-
-  // render items
   const items=menuScreenCat==='all'?MENU:MENU.filter(p=>p.cat===menuScreenCat);
   if(!items.length){document.getElementById('menuScreenContent').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">No items available</div>';return;}
-
-  // group by category
-  const catMap={};
-  items.forEach(p=>{if(!catMap[p.cat])catMap[p.cat]=[];catMap[p.cat].push(p);});
-
+  const catMap={};items.forEach(p=>{if(!catMap[p.cat])catMap[p.cat]=[];catMap[p.cat].push(p);});
   document.getElementById('menuScreenContent').innerHTML=Object.entries(catMap).map(([cat,items])=>`
-    <div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <span>${CAT_EMOJIS[cat]||'🍽️'} ${CATS.find(c=>c.id===cat)?.label||cat}</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${items.map(p=>`<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-          <div style="height:80px;background:linear-gradient(135deg,#f5e6e6,#fdf2f2);display:flex;align-items:center;justify-content:center;font-size:36px">${CAT_EMOJIS[p.cat]||'🍽️'}</div>
-          <div style="padding:10px">
-            <div style="font-size:12px;font-weight:700;line-height:1.3;margin-bottom:2px">${p.name}</div>
-            ${p.desc?`<div style="font-size:10px;color:var(--muted);margin-bottom:4px">${p.desc}</div>`:''}
-            <div style="font-size:15px;font-weight:900;color:var(--red)">${fmt(p.price)}</div>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>`).join('');
+  <div style="margin-bottom:20px">
+    <div style="font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span>${CAT_EMOJIS[cat]||'🍽️'} ${CATS.find(c=>c.id===cat)?.label||cat}</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${items.map(p=>`<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div style="height:80px;background:linear-gradient(135deg,#f5e6e6,#fdf2f2);display:flex;align-items:center;justify-content:center;font-size:36px">${CAT_EMOJIS[p.cat]||'🍽️'}</div>
+        <div style="padding:10px"><div style="font-size:12px;font-weight:700;line-height:1.3;margin-bottom:2px">${p.name}</div>${p.desc?`<div style="font-size:10px;color:var(--muted);margin-bottom:4px">${p.desc}</div>`:''}<div style="font-size:15px;font-weight:900;color:var(--red)">${fmt(p.price)}</div></div>
+      </div>`).join('')}
+    </div>
+  </div>`).join('');
 }
 
-renderLoyalty() function + // ══════ BOOT ══════
+// ══════ LOYALTY ADMIN ══════
+async function renderLoyalty(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading loyalty data...</div>';
+  const{data:customers}=await sb.from('loyalty_customers').select('*').order('created_at',{ascending:false});
+  const{data:txns}=await sb.from('loyalty_transactions').select('*').order('created_at',{ascending:false}).limit(50);
+  const custs=customers||[];const trans=txns||[];
+  const totalRebateEarned=custs.reduce((s,c)=>s+(c.rebate_earned||0),0);
+  const totalSpent=custs.reduce((s,c)=>s+(c.total_spent||0),0);
+  const totalRebateUsed=custs.reduce((s,c)=>s+(c.rebate_used||0),0);
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Loyalty Program</div>
+    <button onclick="renderLoyalty()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
+  </div>
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val bl">${custs.length}</div><div class="metric-lbl">Enrolled Members</div></div>
+    <div class="metric"><div class="metric-val gr">${'₱'+Number(totalSpent).toLocaleString('en-PH',{minimumFractionDigits:2})}</div><div class="metric-lbl">Total Spent</div></div>
+    <div class="metric"><div class="metric-val go">${'₱'+Number(totalRebateEarned).toLocaleString('en-PH',{minimumFractionDigits:2})}</div><div class="metric-lbl">Total Rebate Earned</div></div>
+    <div class="metric"><div class="metric-val re">${'₱'+Number(totalRebateUsed).toLocaleString('en-PH',{minimumFractionDigits:2})}</div><div class="metric-lbl">Total Rebate Used</div></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Members (${custs.length})</div>
+    ${custs.length?`<div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>Name</th><th>Phone</th><th>Birthday</th><th class="num">Total Spent</th><th class="num">Rebate Earned</th><th class="num">Rebate Used</th><th class="num">Available</th><th>Joined</th></tr></thead>
+      <tbody>${custs.map(c=>{const available=(c.rebate_earned||0)-(c.rebate_used||0);return `<tr><td style="font-weight:700">${c.name}</td><td style="font-size:11px">${c.phone}</td><td style="font-size:11px;color:var(--muted)">${c.birthday||'—'}</td><td class="num gr">₱${Number(c.total_spent||0).toFixed(2)}</td><td class="num go">₱${Number(c.rebate_earned||0).toFixed(2)}</td><td class="num re">₱${Number(c.rebate_used||0).toFixed(2)}</td><td class="num" style="font-weight:900;color:var(--blue)">₱${Number(available).toFixed(2)}</td><td style="font-size:11px;color:var(--muted)">${c.created_at?new Date(c.created_at).toLocaleDateString('en-PH'):'—'}</td></tr>`;}).join('')}</tbody>
+    </table></div>`:'<div style="text-align:center;padding:30px;color:#ccc">No members yet</div>'}
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Recent Loyalty Transactions (Last 50)</div>
+    ${trans.length?`<div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>OR #</th><th>Customer</th><th class="num">Purchase Amount</th><th class="num">Rebate Earned</th><th>Date</th></tr></thead>
+      <tbody>${trans.map(t=>{const cust=custs.find(c=>c.id===t.customer_id);return `<tr><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:12px">${cust?cust.name:'—'}</td><td class="num gr">₱${Number(t.amount||0).toFixed(2)}</td><td class="num go">₱${Number(t.rebate_earned||0).toFixed(2)}</td><td style="font-size:11px;color:var(--muted)">${t.created_at?new Date(t.created_at).toLocaleDateString('en-PH'):'—'}</td></tr>`;}).join('')}</tbody>
+    </table></div>`:'<div style="text-align:center;padding:30px;color:#ccc">No transactions yet</div>'}
+  </div>`;
+}
+
+// ══════ BOOT ══════
 window.addEventListener('DOMContentLoaded',function(){
   const now=new Date();
   const dateText=now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -4319,12 +4018,9 @@ window.addEventListener('DOMContentLoaded',function(){
   const loginDate=document.getElementById('loginDate');
   if(roleDate)roleDate.textContent=dateText;
   if(loginDate)loginDate.textContent=dateText;
-
-  // Show fallback employees IMMEDIATELY
   const _cached=LS.get('employees_cache',[]);
-  if(_cached.length){
-    employees=_cached;
-  } else {
+  if(_cached.length){employees=_cached;}
+  else{
     employees=[
       {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
       {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
@@ -4334,8 +4030,6 @@ window.addEventListener('DOMContentLoaded',function(){
     ];
   }
   renderRoleEmpList();
-
-  // Load from Supabase in background
   loadEmployees();
   loadCategories().then(loadProducts);
 });
