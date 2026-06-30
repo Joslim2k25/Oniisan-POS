@@ -991,7 +991,7 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ══════ LOYALTY PROGRAM (self-service, no cashier point entry) ══════
 const LOYALTY_REBATE_RATE=0.025;
-const LOYALTY_SIGNUP_URL='https://oniisan-pos.vercel.app/loyalty'; // standalone signup/lookup page
+const LOYALTY_SIGNUP_URL='https://oniisan-pos.vercel.app/loyalty.html'; // standalone signup/lookup page
 
 function openLoyaltyQR(){
   document.getElementById('loyaltyQRModal').classList.add('open');
@@ -1022,8 +1022,7 @@ async function creditLoyaltyRebate(phone,txnTotal,orNum){
   if(existingTxn&&existingTxn.length)return;
   const rebateEarned=txnTotal*LOYALTY_REBATE_RATE;
   await sb.from('loyalty_transactions').insert([{
-    customer_id:customer.id,phone:customer.phone,customer_name:customer.name,or_num:orNum,
-    transaction_amount:txnTotal,rebate_earned:rebateEarned,rebate_redeemed:0,type:'earn',branch:'SM Bicutan'
+    customer_id:customer.id,or_num:orNum,amount:txnTotal,rebate_earned:rebateEarned,branch:'SM Bicutan'
   }]);
   await sb.from('loyalty_customers').update({
     rebate_earned:(customer.rebate_earned||0)+rebateEarned,
@@ -2740,6 +2739,29 @@ async function renderPayroll(){
   </div>
   <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click 🔄 Compute to generate payroll for this period</div></div>
   <div class="card" style="margin-top:14px">
+    <div class="card-title"><div class="red-bar"></div>Manual Payroll Entry</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Use this if Time Records weren't logged for an employee. Enter days worked directly and the payslip computes automatically using the same rates above.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:140px">
+        <div class="input-label">Employee</div>
+        <select class="inp" id="manualPayrollEmpSel">${employees.filter(e=>e.role==='cashier'||e.role==='owner'||e.role==='admin').map(e=>`<option value="${e.name}">${e.name}</option>`).join('')}</select>
+      </div>
+      <div style="width:100px">
+        <div class="input-label">Days Worked</div>
+        <input class="inp" type="number" id="manualPayrollDays" min="0" max="15" step="0.5" placeholder="0"/>
+      </div>
+      <div style="width:90px">
+        <div class="input-label">OT Hours</div>
+        <input class="inp" type="number" id="manualPayrollOT" min="0" step="0.5" placeholder="0"/>
+      </div>
+      <div style="width:110px">
+        <div class="input-label">Holiday Pay (₱)</div>
+        <input class="inp" type="number" id="manualPayrollHoliday" min="0" placeholder="0"/>
+      </div>
+      <button onclick="computeManualPayslip('${selStart}','${selEnd}')" class="btn-green" style="padding:9px 16px">📄 Generate Payslip</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
     <div class="card-title"><div class="red-bar"></div>OT Approval Requests</div>
     <div id="otApprovalsList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading...</div></div>
     ${APPROVERS.includes(currentLoginEmp?.name)?`
@@ -2837,6 +2859,25 @@ async function computePayroll(start,end){
     else{await sb.from('payroll').insert([rec]);}
   }
   showToast('Payroll computed and saved!');
+}
+
+// Manual payslip generation when no Time Records exist for the period.
+// Uses the exact same DAILY_RATE/OT_RATE/deduction rules as computePayroll().
+function computeManualPayslip(start,end){
+  const name=document.getElementById('manualPayrollEmpSel').value;
+  const daysWorked=+document.getElementById('manualPayrollDays').value||0;
+  const otHours=+document.getElementById('manualPayrollOT').value||0;
+  const holidayPay=+document.getElementById('manualPayrollHoliday').value||0;
+  if(!name){showToast('Select an employee.');return;}
+  if(daysWorked<=0){showToast('Enter days worked.');return;}
+  const basicPay=daysWorked*DAILY_RATE;
+  const otPay=otHours*OT_RATE;
+  const grossPay=basicPay+otPay+holidayPay;
+  const isDeductionPeriod=new Date(end).getDate()>=25;
+  const totalDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
+  const netPay=grossPay-totalDed;
+  const totalHours=(daysWorked*8).toFixed(1);
+  showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,totalDed,netPay,start,end);
 }
 
 function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,totalDed,netPay,start,end){
