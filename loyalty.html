@@ -292,18 +292,14 @@ async function checkBalance(){
   if(!raw||raw.length<10){err.textContent='Please enter your 11-digit mobile number.';err.style.display='block';return;}
   btn.textContent='Checking...';btn.disabled=true;
 
-  // Try multiple formats
-  const formats=[raw];
-  if(raw.startsWith('0'))formats.push(raw.slice(1));
-  else formats.push('0'+raw);
-  if(raw.startsWith('+63'))formats.push('0'+raw.slice(3));
-  if(raw.startsWith('63'))formats.push('0'+raw.slice(2));
+  // Normalize phone then single query
+  let phone=raw.replace(/[\s\-]/g,'');
+  if(phone.startsWith('+63'))phone='0'+phone.slice(3);
+  else if(phone.startsWith('63')&&phone.length===12)phone='0'+phone.slice(2);
+  else if(!phone.startsWith('0'))phone='0'+phone;
 
-  let found=null;
-  for(const phone of formats){
-    const{data}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
-    if(data&&data.length){found=data[0];break;}
-  }
+  const{data}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
+  const found=data&&data.length?data[0]:null;
 
   btn.textContent='Check Balance';btn.disabled=false;
   if(!found){
