@@ -4063,7 +4063,7 @@ async function confirmCharge(){
 function showPrintReceipt(txn){
   const modal=document.getElementById('printReceiptModal');
   const content=document.getElementById('printReceiptContent');
-  const menuUrl='https://oniisan-pos.vercel.app/#menu';
+  const menuUrl='https://oniisan-pos.vercel.app/menu.html';
   const line=(l,r,bold=false)=>`<div style="display:flex;justify-content:space-between;${bold?'font-weight:900;':''}margin:1px 0"><span>${l}</span><span>${r}</span></div>`;
   const divider=()=>'<div style="border-top:1px dashed #999;margin:6px 0"></div>';
   content.innerHTML=`
