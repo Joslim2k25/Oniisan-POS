@@ -7,122 +7,130 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:#f8f8f8;color:#1a1a1a}
-:root{--red:#c0392b;--gold:#c8900a;--green:#1e8449;--border:#e0e0e0;--muted:#888}
-
-/* HEADER */
-.header{background:var(--red);padding:20px 16px;text-align:center;position:sticky;top:0;z-index:100}
-.brand{font-size:28px;font-weight:900;color:#fff;letter-spacing:4px}
-.brand-sub{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px}
-.header-badge{display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;margin-top:6px;letter-spacing:1px}
-
-/* CATEGORY NAV */
-.cat-nav{background:#fff;border-bottom:2px solid var(--border);display:flex;overflow-x:auto;padding:0 8px;position:sticky;top:80px;z-index:99}
-.cat-nav::-webkit-scrollbar{height:0}
-.cat-btn{padding:12px 14px;font-size:12px;font-weight:700;color:var(--muted);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;font-family:inherit}
-.cat-btn.active{color:var(--red);border-bottom-color:var(--red)}
+:root{
+  --red:#c0392b;--red-dark:#a93226;--gold:#c8900a;
+  --bg:#fafaf8;--card:#fff;--border:#ececec;--muted:#888;--text:#1a1a1a;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#c0392b,#922b21);padding:24px 16px;text-align:center;color:#fff}
-.hero-title{font-size:14px;font-weight:800;opacity:.8;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
-.hero-text{font-size:13px;opacity:.7;line-height:1.6}
-.hero-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
-.hero-tag{background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
+.hero{background:linear-gradient(160deg,#1a0a08 0%,#c0392b 60%,#e8593a 100%);padding:36px 20px 28px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.9);font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:14px}
+.hero-logo{font-size:42px;font-weight:900;color:#fff;letter-spacing:5px;text-transform:uppercase;line-height:1;margin-bottom:6px;text-shadow:0 2px 20px rgba(0,0,0,.3)}
+.hero-kanji{font-size:18px;color:rgba(255,255,255,.6);letter-spacing:8px;margin-bottom:8px}
+.hero-sub{font-size:13px;color:rgba(255,255,255,.75);letter-spacing:1px}
+.hero-divider{width:40px;height:3px;background:rgba(255,255,255,.4);border-radius:2px;margin:14px auto}
 
-/* MENU SECTION */
-.menu-section{padding:16px}
-.section-title{font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.section-line{flex:1;height:1px;background:var(--border)}
-.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
-.menu-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .15s}
-.menu-card:active{transform:scale(.97)}
-.menu-card-img{width:100%;height:100px;object-fit:cover;background:linear-gradient(135deg,#f5e6e6,#fdf2f2);display:flex;align-items:center;justify-content:center;font-size:32px}
-.menu-card-body{padding:10px}
-.menu-card-name{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:2px}
-.menu-card-desc{font-size:10px;color:var(--muted);margin-bottom:6px}
-.menu-card-price{font-size:15px;font-weight:900;color:var(--red)}
+/* PROMO STRIP */
+.promo-strip{background:#fff9ec;border-bottom:2px solid #f9e29a;padding:10px 16px;text-align:center;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.5px}
 
-/* BESTSELLER BADGE */
-.badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;text-transform:uppercase;margin-left:4px}
-.badge.best{background:#fff3cd;color:#856404}
-.badge.new{background:#d4edda;color:#155724}
-.badge.spicy{background:#f8d7da;color:#721c24}
+/* CATEGORY NAV */
+.cat-nav-wrap{background:#fff;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.cat-nav{display:flex;overflow-x:auto;padding:0 12px;gap:4px;-webkit-overflow-scrolling:touch}
+.cat-nav::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:10px 16px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px}
+.cat-pill:hover{color:var(--text)}
+.cat-pill.active{color:var(--red);border-bottom-color:var(--red)}
 
-/* INFO SECTION */
-.info-section{background:#fff;margin:0 16px 16px;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.info-title{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.info-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
-.info-row:last-child{border-bottom:none}
-.info-icon{font-size:18px;width:28px;text-align:center}
+/* MAIN CONTENT */
+.content{max-width:680px;margin:0 auto;padding:20px 14px 40px}
+
+/* SECTION HEADER */
+.section-head{display:flex;align-items:center;gap:10px;margin:24px 0 14px}
+.section-head-line{flex:1;height:1px;background:var(--border)}
+.section-title{font-size:11px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+/* MENU CARDS */
+.menu-grid{display:flex;flex-direction:column;gap:10px}
+.menu-item{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;gap:14px;padding:14px;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.menu-item:hover{border-color:var(--red);box-shadow:0 4px 16px rgba(192,57,43,.12);transform:translateY(-1px)}
+.menu-icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;background:linear-gradient(135deg,#fdf2f2,#fde8e8)}
+.menu-info{flex:1;min-width:0}
+.menu-name{font-size:14px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.menu-desc{font-size:11px;color:var(--muted);line-height:1.4}
+.menu-price{font-size:18px;font-weight:900;color:var(--red);flex-shrink:0}
+.menu-price-wrap{text-align:right}
+.menu-price-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block}
+
+/* FEATURED BADGE */
+.featured-badge{display:inline-block;background:var(--gold);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;margin-left:6px;letter-spacing:.5px}
+.new-badge{background:var(--red)}
+
+/* BESTSELLER BANNER */
+.bestseller-item{border-color:#f9e29a;background:linear-gradient(135deg,#fffdf5,#fff9e8)}
+.bestseller-item .menu-icon{background:linear-gradient(135deg,#fef9e7,#fdefc1)}
+
+/* INFO CARDS */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+.info-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;gap:10px;align-items:flex-start}
+.info-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.info-title{font-size:11px;font-weight:800;margin-bottom:3px;color:var(--text)}
+.info-text{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* LOYALTY BANNER */
+.loyalty-banner{background:linear-gradient(135deg,#1a0a08,#c0392b);border-radius:16px;padding:20px;margin-top:24px;color:#fff;text-align:center}
+.loyalty-banner h3{font-size:18px;font-weight:900;letter-spacing:1px;margin-bottom:6px}
+.loyalty-banner p{font-size:12px;opacity:.8;line-height:1.6;margin-bottom:14px}
+.loyalty-banner .rate{font-size:28px;font-weight:900;color:#fbbf24;letter-spacing:2px}
+.loyalty-btn{display:inline-block;background:#fff;color:var(--red);font-size:12px;font-weight:800;padding:10px 24px;border-radius:10px;text-decoration:none;margin-top:10px}
 
 /* FOOTER */
-.footer{background:var(--red);color:#fff;text-align:center;padding:20px 16px;margin-top:20px}
-.footer-brand{font-size:20px;font-weight:900;letter-spacing:3px}
-.footer-sub{font-size:11px;opacity:.7;margin-top:4px}
-.social-links{display:flex;gap:12px;justify-content:center;margin-top:12px}
-.social-btn{background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none}
+.footer{background:#1a0a08;color:rgba(255,255,255,.7);text-align:center;padding:28px 20px;margin-top:40px}
+.footer-logo{font-size:24px;font-weight:900;color:#fff;letter-spacing:4px;margin-bottom:4px}
+.footer-links{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.footer-link{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);font-size:11px;font-weight:700;padding:7px 16px;border-radius:20px;text-decoration:none}
 
 /* LOADING */
-.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.loading{text-align:center;padding:60px 20px;color:var(--muted)}
+.loading-spinner{width:36px;height:36px;border:3px solid #f0f0f0;border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* EMPTY EMOJI per category */
-.cat-emoji{font-size:40px;display:block;margin-bottom:6px}
-
-@media(min-width:480px){
-  .menu-grid{grid-template-columns:repeat(3,1fr)}
-}
-@media(min-width:768px){
-  .menu-section{max-width:600px;margin:0 auto}
-  .info-section{max-width:600px;margin:0 auto 16px}
-  .hero{padding:32px 16px}
-}
+/* PRICE BADGE */
+.price-note{font-size:10px;color:var(--muted);background:#f5f5f5;display:inline-block;padding:2px 8px;border-radius:10px;margin-top:3px}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="brand">ONIISAN</div>
-  <div class="brand-sub">Tempura &amp; Japanese Food · SM Bicutan</div>
-  <div class="header-badge">📋 Digital Menu</div>
-</div>
-
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-title">Authentic Japanese Flavors</div>
-  <div class="hero-text">Experience the taste of Japan right here in SM Bicutan. Freshly prepared tempura, donburi, ramen and more!</div>
-  <div class="hero-tags">
-    <span class="hero-tag">🍤 Tempura</span>
-    <span class="hero-tag">🍜 Ramen</span>
-    <span class="hero-tag">🍱 Bento</span>
-    <span class="hero-tag">🍚 Donburi</span>
-  </div>
+  <div class="hero-badge">📋 Digital Menu</div>
+  <div class="hero-logo">ONIISAN</div>
+  <div class="hero-kanji">お兄さん</div>
+  <div class="hero-sub">Tempura &amp; Japanese Food · SM City Bicutan</div>
+  <div class="hero-divider"></div>
+  <div style="font-size:11px;color:rgba(255,255,255,.6)">2nd Level Foodcourt · Building B · Parañaque City</div>
+</div>
+
+<!-- PROMO STRIP -->
+<div class="promo-strip">
+  🎉 Join our Loyalty Program &amp; earn 2.5% rebate on every purchase! &nbsp;·&nbsp; <a href="loyalty.html" style="color:var(--gold);text-decoration:none;font-weight:900">Sign Up Free →</a>
 </div>
 
 <!-- CATEGORY NAV -->
-<div class="cat-nav" id="catNav"></div>
+<div class="cat-nav-wrap">
+  <div class="cat-nav" id="catNav"></div>
+</div>
 
-<!-- MENU CONTENT -->
-<div id="menuContent"><div class="loading">🍱 Loading menu...</div></div>
-
-<!-- STORE INFO -->
-<div class="info-section">
-  <div class="info-title">Store Information</div>
-  <div class="info-row"><span class="info-icon">📍</span><span>2nd Level Foodcourt SM City Bicutan Bldg B, Dona Soledad Avenue, Parañaque City</span></div>
-  <div class="info-row"><span class="info-icon">🕐</span><span>Open daily · SM City Bicutan mall hours</span></div>
-  <div class="info-row"><span class="info-icon">💳</span><span>GCash · Maya · GoTyme · Credit/Debit Card · Cash</span></div>
-  <div class="info-row"><span class="info-icon">🛵</span><span>Available on GrabFood &amp; FoodPanda</span></div>
+<!-- MAIN CONTENT -->
+<div class="content" id="mainContent">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <div style="font-weight:700">Loading menu...</div>
+  </div>
 </div>
 
 <!-- FOOTER -->
 <div class="footer">
-  <div class="footer-brand">ONIISAN</div>
-  <div class="footer-sub">Tempura &amp; Japanese Food · SM Bicutan</div>
-  <div class="social-links">
-    <a href="https://www.facebook.com/oniisan.ph" target="_blank" class="social-btn">📘 Facebook</a>
-    <a href="https://www.google.com/maps/search/Oniisan+Tempura+2nd+Level+Foodcourt+SM+City+Bicutan+Bldg+B+Dona+Soledad+Avenue+Paranaque" target="_blank" class="social-btn">📍 Find Us</a>
+  <div class="footer-logo">ONIISAN</div>
+  <div style="font-size:11px;margin-top:4px">Tempura &amp; Japanese Food · SM Bicutan</div>
+  <div style="font-size:11px;margin-top:8px;opacity:.5">2nd Level Foodcourt SM City Bicutan Bldg B<br/>Dona Soledad Ave, Parañaque City</div>
+  <div class="footer-links">
+    <a href="https://www.facebook.com/oniisan.ph" target="_blank" class="footer-link">📘 Facebook</a>
+    <a href="https://www.google.com/maps/search/Oniisan+Tempura+SM+Bicutan" target="_blank" class="footer-link">📍 Find Us</a>
+    <a href="loyalty.html" class="footer-link">🎁 Loyalty</a>
   </div>
-  <div style="font-size:10px;opacity:.5;margin-top:12px">© 2026 Oniisan Tempura Food Cart</div>
+  <div style="font-size:10px;margin-top:16px;opacity:.4">Prices are VAT-inclusive · Subject to change without prior notice</div>
 </div>
 
 <script>
@@ -130,36 +138,26 @@ const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
 const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-const CAT_EMOJIS={
-  'bento':'🍱','donburi':'🍚','ramen':'🍜','tempura':'🍤',
-  'svm':'⭐','alacarte':'🍽️','drinks':'🥤','add_ons':'➕',
-  'customize_foods':'🎨','family_set_meals':'👨‍👩‍👧‍👦','packaging':'📦',
-  'super_value_meal':'💫','take_out':'🥡','teishoku_set_meals':'🍣'
+const CAT_EMOJI={
+  bento:'🍱',donburi:'🍚',ramen:'🍜',tempura:'🍤',svm:'⭐',alacarte:'🍽️',
+  drinks:'🥤',add_ons:'➕',customize_foods:'🎨',family_set_meals:'👨‍👩‍👧‍👦',
+  packaging:'📦',super_value_meal:'💫',take_out:'🥡',teishoku_set_meals:'🍣',all:'🍽️'
 };
 
-const CAT_LABELS={
-  'bento':'Bento Sets','donburi':'Donburi','ramen':'Ramen & Udon',
-  'tempura':'Tempura','svm':'Super Value','alacarte':'Ala Carte',
-  'drinks':'Drinks','add_ons':'Add Ons','customize_foods':'Customize Foods',
-  'family_set_meals':'Family Set Meals','packaging':'Packaging',
-  'super_value_meal':'Super Value Meal','take_out':'Take Out',
-  'teishoku_set_meals':'Teishoku Set Meals'
-};
-
-const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2});
+const BESTSELLERS=['Ebi Tempura','Chicken Karaage','Beef Udon','Ramen','Katsu Don'];
 
 let allProducts=[];
-let allCats=[];
+let categories=[];
 let currentCat='all';
 
-async function loadMenu(){
+async function init(){
   // Load categories
-  const{data:cats}=await sb.from('categories').select('*').eq('is_active',true).order('sort_order');
-  allCats=cats||[];
-
+  const{data:cats}=await sb.from('categories').select('*').eq('is_active',true).order('sort_order').order('name');
   // Load products
-  const{data:products}=await sb.from('products').select('*').eq('is_active',true).order('category').order('sort_order').order('name');
-  allProducts=products||[];
+  const{data:prods}=await sb.from('products').select('*').eq('is_active',true).order('category').order('name');
+
+  allProducts=prods||[];
+  categories=cats||[];
 
   renderCatNav();
   renderMenu('all');
@@ -167,64 +165,96 @@ async function loadMenu(){
 
 function renderCatNav(){
   const nav=document.getElementById('catNav');
-  const cats=[{slug:'all',name:'All Items'},...allCats];
-  nav.innerHTML=cats.map(c=>`
-    <button class="cat-btn${c.slug==='all'&&currentCat==='all'?' active':currentCat===c.slug?' active':''}" 
-      onclick="filterMenu('${c.slug}')">${CAT_EMOJIS[c.slug]||'🍽️'} ${c.name}</button>
-  `).join('');
+  const allCats=[{slug:'all',name:'All Items'},...categories];
+  nav.innerHTML=allCats.map(c=>`
+    <div class="cat-pill${c.slug==='all'?' active':''}" data-cat="${c.slug}" onclick="filterCat('${c.slug}')">
+      ${CAT_EMOJI[c.slug]||'🍽️'} ${c.name}
+    </div>`).join('');
 }
 
-function filterMenu(slug){
+function filterCat(slug){
   currentCat=slug;
-  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.cat-btn').forEach(b=>{
-    if(b.textContent.trim().includes(slug==='all'?'All Items':(CAT_LABELS[slug]||slug))) b.classList.add('active');
-  });
+  document.querySelectorAll('.cat-pill').forEach(el=>el.classList.toggle('active',el.dataset.cat===slug));
   renderMenu(slug);
-  // scroll to top of menu
-  document.getElementById('menuContent').scrollIntoView({behavior:'smooth'});
+  // Scroll to top of content
+  document.getElementById('mainContent').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function renderMenu(slug){
-  const products=slug==='all'?allProducts:allProducts.filter(p=>p.category===slug);
+function renderMenu(cat){
+  const items=cat==='all'?allProducts:allProducts.filter(p=>p.category===cat);
+  const content=document.getElementById('mainContent');
 
-  if(!products.length){
-    document.getElementById('menuContent').innerHTML='<div class="loading">No items available</div>';
+  if(!items.length){
+    content.innerHTML='<div style="text-align:center;padding:60px 20px;color:#ccc"><div style="font-size:48px;margin-bottom:12px">🍽️</div><div style="font-weight:700">No items in this category</div></div>';
     return;
   }
 
   // Group by category
-  const catMap={};
-  products.forEach(p=>{
-    if(!catMap[p.category])catMap[p.category]=[];
-    catMap[p.category].push(p);
+  const grouped={};
+  items.forEach(p=>{
+    if(!grouped[p.category])grouped[p.category]=[];
+    grouped[p.category].push(p);
   });
 
-  document.getElementById('menuContent').innerHTML=Object.entries(catMap).map(([cat,items])=>`
-    <div class="menu-section" id="cat-${cat}">
-      <div class="section-title">
-        <span>${CAT_EMOJIS[cat]||'🍽️'} ${CAT_LABELS[cat]||cat}</span>
-        <div class="section-line"></div>
-      </div>
-      <div class="menu-grid">
-        ${items.map(p=>`
-          <div class="menu-card">
-            <div class="menu-card-img">
-              <span class="cat-emoji">${CAT_EMOJIS[p.category]||'🍽️'}</span>
-            </div>
-            <div class="menu-card-body">
-              <div class="menu-card-name">${p.name}</div>
-              ${p.description?`<div class="menu-card-desc">${p.description}</div>`:''}
-              <div class="menu-card-price">${fmt(p.price)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
+  let html='';
+
+  Object.entries(grouped).forEach(([catSlug,catItems])=>{
+    const catName=categories.find(c=>c.slug===catSlug)?.name||catSlug;
+    const emoji=CAT_EMOJI[catSlug]||'🍽️';
+
+    html+=`<div class="section-head">
+      <span style="font-size:20px">${emoji}</span>
+      <div class="section-title">${catName}</div>
+      <div class="section-head-line"></div>
     </div>
-  `).join('');
+    <div class="menu-grid">`;
+
+    catItems.forEach(item=>{
+      const isBest=BESTSELLERS.some(b=>item.name.toLowerCase().includes(b.toLowerCase()));
+      html+=`<div class="menu-item${isBest?' bestseller-item':''}">
+        <div class="menu-icon">${CAT_EMOJI[item.category]||'🍽️'}</div>
+        <div class="menu-info">
+          <div class="menu-name">
+            ${item.name}
+            ${isBest?'<span class="featured-badge">⭐ Best</span>':''}
+          </div>
+          ${item.description?`<div class="menu-desc">${item.description}</div>`:''}
+        </div>
+        <div class="menu-price-wrap">
+          <span class="menu-price-label">Price</span>
+          <div class="menu-price">₱${Number(item.price).toLocaleString('en-PH',{minimumFractionDigits:0})}</div>
+        </div>
+      </div>`;
+    });
+
+    html+='</div>';
+  });
+
+  // Info cards
+  html+=`<div class="info-grid">
+    <div class="info-card">
+      <div class="info-icon">🕐</div>
+      <div><div class="info-title">Store Hours</div><div class="info-text">Open daily following SM City Bicutan mall hours</div></div>
+    </div>
+    <div class="info-card">
+      <div class="info-icon">💳</div>
+      <div><div class="info-title">We Accept</div><div class="info-text">Cash · GCash · Maya · GoTyme · Card · GrabFood · FoodPanda</div></div>
+    </div>
+  </div>`;
+
+  // Loyalty banner
+  html+=`<div class="loyalty-banner">
+    <div style="font-size:28px;margin-bottom:10px">🎁</div>
+    <h3>Oniisan Loyalty Program</h3>
+    <div class="rate">2.5% Rebate</div>
+    <p>Earn rebate points on every purchase! Redeem anytime as cash discount.</p>
+    <a href="loyalty.html" class="loyalty-btn">Join Free Now →</a>
+  </div>`;
+
+  content.innerHTML=html;
 }
 
-loadMenu();
+init();
 </script>
 </body>
 </html>
