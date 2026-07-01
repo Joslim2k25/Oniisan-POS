@@ -2134,7 +2134,7 @@ async function renderDashboard(){
   // Load data
   const[txnsDay, txnsMon, expsDay, expsMon] = await Promise.all([
     sbGetTransactions(today),
-    navigator.onLine ? sb.from('transactions').select('*').gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').then(r=>r.data||[]) : Promise.resolve([]),
+    navigator.onLine ? sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').then(r=>r.data||[]) : Promise.resolve([]),
     sbGetExpenses(today),
     navigator.onLine ? sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r.data||[]) : Promise.resolve([]),
   ]);
