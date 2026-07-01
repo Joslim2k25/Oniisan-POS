@@ -240,6 +240,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;min-height:1
       <div style="font-size:22px;margin-bottom:6px">🛵 Order Online</div>
       <div style="font-size:13px;color:rgba(255,255,255,.7)">Available for delivery on your favorite platforms!</div>
     </div>
+    <a href="https://oniisan-tempura.pickup.ph/oniisan" target="_blank"
+      style="display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#c0392b,#c8900a);color:#fff;border-radius:12px;padding:14px;text-decoration:none;font-weight:800;font-size:14px;margin-bottom:10px;letter-spacing:.5px">
+      🍱 Order on Oniisan Official Website
+    </a>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <a href="https://www.grab.com/ph/food/" target="_blank"
         style="display:flex;align-items:center;justify-content:center;gap:8px;background:#00b14f;color:#fff;border-radius:12px;padding:12px;text-decoration:none;font-weight:800;font-size:13px">
@@ -250,7 +254,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;min-height:1
         🐼 FoodPanda
       </a>
     </div>
-    <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.5)">Search "Oniisan Tempura SM Bicutan"</div>
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.5)">Search "Oniisan Tempura SM Bicutan" on delivery apps</div>
   </div>
 
   <!-- FACEBOOK -->
@@ -292,14 +296,27 @@ async function checkBalance(){
   if(!raw||raw.length<10){err.textContent='Please enter your 11-digit mobile number.';err.style.display='block';return;}
   btn.textContent='Checking...';btn.disabled=true;
 
-  // Normalize phone then single query
+  // Normalize phone
   let phone=raw.replace(/[\s\-]/g,'');
   if(phone.startsWith('+63'))phone='0'+phone.slice(3);
   else if(phone.startsWith('63')&&phone.length===12)phone='0'+phone.slice(2);
   else if(!phone.startsWith('0'))phone='0'+phone;
 
-  const{data}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
-  const found=data&&data.length?data[0]:null;
+  console.log('Looking up phone:', phone);
+
+  const{data,error:qErr}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
+  console.log('Result:', data, 'Error:', qErr);
+
+  // Fallback: search all and filter client-side
+  let found=data&&data.length?data[0]:null;
+  if(!found){
+    const{data:all}=await sb.from('loyalty_customers').select('*');
+    console.log('All customers:', all);
+    if(all&&all.length){
+      found=all.find(c=>c.phone===phone||c.phone===raw||
+        c.phone===('0'+phone)||c.phone===phone.slice(1));
+    }
+  }
 
   btn.textContent='Check Balance';btn.disabled=false;
   if(!found){
