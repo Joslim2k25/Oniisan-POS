@@ -1035,34 +1035,43 @@ async function creditLoyaltyRebate(phone,txnTotal,orNum){
 
   const customer=cust[0];
 
-  // Idempotency guard: skip if this OR number was already credited
-  const{data:existingTxn}=await sb.from('loyalty_transactions').select('id').eq('or_num',orNum).limit(1);
-  if(existingTxn&&existingTxn.length){
-    showToast('⚠️ Rebate already credited for '+orNum);
+  const rebateEarned=Math.round(txnTotal*LOYALTY_REBATE_RATE*100)/100;
+
+  // INSERT loyalty transaction — using exact table columns
+  const{data:insertedTxn,error:txnErr}=await sb.from('loyalty_transactions').insert([{
+    customer_id: customer.id,
+    phone: normalized,
+    rebate_earned: rebateEarned,
+    rebate_redeemed: 0,
+    type: 'earn',
+    branch: 'SM Bicutan'
+  }]).select();
+
+  if(txnErr){
+    showToast('❌ Loyalty error: '+txnErr.message,5000);
+    console.error('Loyalty TX error:',txnErr);
     return;
   }
 
-  const rebateEarned=Math.round(txnTotal*LOYALTY_REBATE_RATE*100)/100;
+  if(!insertedTxn||!insertedTxn.length){
+    showToast('⚠️ Rebate not saved — check Supabase RLS',6000);
+    console.warn('Insert returned no rows — RLS may be blocking');
+    return;
+  }
 
-  const{error:txnErr}=await sb.from('loyalty_transactions').insert([{
-    customer_id:customer.id,
-    or_num:orNum,
-    amount:txnTotal,
-    rebate_earned:rebateEarned,
-    branch:'SM Bicutan'
-  }]);
-  if(txnErr){showToast('❌ Loyalty error: '+txnErr.message);return;}
-
+  // UPDATE customer totals
   const{error:custErr}=await sb.from('loyalty_customers').update({
-    rebate_earned:Math.round(((customer.rebate_earned||0)+rebateEarned)*100)/100,
-    total_spent:Math.round(((customer.total_spent||0)+txnTotal)*100)/100
+    rebate_earned: Math.round(((customer.rebate_earned||0)+rebateEarned)*100)/100,
+    total_spent: Math.round(((customer.total_spent||0)+txnTotal)*100)/100
   }).eq('id',customer.id);
 
-  if(!custErr){
-    showToast('🎉 Rebate ₱'+rebateEarned.toFixed(2)+' credited to '+customer.name+'!',4000);
-  } else {
-    showToast('❌ Rebate update error: '+custErr.message);
+  if(custErr){
+    showToast('❌ Customer update error: '+custErr.message,5000);
+    console.error('Customer update error:',custErr);
+    return;
   }
+
+  showToast('🎉 Rebate ₱'+rebateEarned.toFixed(2)+' saved for '+customer.name+'!',4000);
 }
 
 // ══════ LOCAL STORAGE ══════
@@ -1125,6 +1134,8 @@ let orCounter=LS.get('or_counter',1000);
 let cashTendered=0;
 let currentOrderTotal=0;
 let currentPayMethod='cash';
+let loyaltyCustomerData=null;   // current loyalty customer found
+let loyaltyRebateToUse=0;       // rebate amount to deduct from order
 
 // CATS is declared below as dynamic let
 
@@ -3813,7 +3824,10 @@ function clearOrder(){order={};renderOrderPanel();}
 function renderOrderPanel(){
   const items=Object.values(order);
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
-  const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
+  const disc=getDisc();const discAmt=calcDisc(items,disc);
+  const afterDisc=sub-discAmt;
+  const rebateApplied=loyaltyRebateToUse>0?Math.min(loyaltyRebateToUse,afterDisc):0;
+  const total=Math.max(0,afterDisc-rebateApplied);
   const eligibleItems=getEligibleItems(items,disc);const ineligibleItems=getIneligibleItems(items,disc);
   const eligibleSub=eligibleItems.reduce((s,i)=>s+i.price*i.qty,0);
   document.getElementById('orderItemsWrap').innerHTML=items.length?items.map(i=>{
@@ -3826,8 +3840,15 @@ function renderOrderPanel(){
   }).join(''):'<div class="order-empty">No items yet</div>';
   let subtotalHtml='';
   if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'VAT-Exempt 20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;}
+  // Apply loyalty rebate deduction
+  let finalTotal=total;
+  if(loyaltyRebateToUse>0){
+    const rebateApplied=Math.min(loyaltyRebateToUse,total);
+    finalTotal=Math.max(0,total-rebateApplied);
+    subtotalHtml+=`<div class="subtotal-row" style="color:var(--blue);font-weight:800"><span>💰 Loyalty Rebate Used</span><span>-${fmt(rebateApplied)}</span></div>`;
+  }
   document.getElementById('subtotalsDiv').innerHTML=subtotalHtml;
-  document.getElementById('orderTotal').textContent=fmt(total);
+  document.getElementById('orderTotal').textContent=fmt(finalTotal);
 }
 
 document.getElementById('pmethods').addEventListener('click',e=>{
@@ -3894,13 +3915,23 @@ function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String
 function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
-  const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
+  const disc=getDisc();const discAmt=calcDisc(items,disc);
+  const afterDisc=sub-discAmt;
+  const rebateApplied=loyaltyRebateToUse>0?Math.min(loyaltyRebateToUse,afterDisc):0;
+  const total=Math.max(0,afterDisc-rebateApplied);
   currentOrderTotal=total;cashTendered=0;currentPayMethod=selectedPM;
   const d=new Date();const orNum=nextOR();
   document.getElementById('receiptDate').textContent=d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('receiptOrNum').textContent='OR: '+orNum;
   document.getElementById('receiptItemsList').innerHTML=items.map(i=>`<div class="receipt-item-row"><span>${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('');
-  document.getElementById('receiptSubtotals').innerHTML=discAmt>0?`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>${getIneligibleItems(items,disc).length>0?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`:''}<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`:'';
+  let receiptSubHtml='';
+  if(discAmt>0||rebateApplied>0){
+    receiptSubHtml+=`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>`;
+    if(getIneligibleItems(items,disc).length>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`;
+    if(discAmt>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;
+    if(rebateApplied>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--blue);font-weight:700"><span>💰 Loyalty Rebate</span><span>-${fmt(rebateApplied)}</span></div>`;
+  }
+  document.getElementById('receiptSubtotals').innerHTML=receiptSubHtml;
   document.getElementById('receiptTotal').textContent=fmt(total);
   document.getElementById('cashlessAmt').textContent=fmt(total);
   document.getElementById('receiptModal').dataset.orNum=orNum;
@@ -3921,19 +3952,73 @@ function checkLoyaltyPhoneLive(phone){
   clearTimeout(loyaltyLookupTimer);
   const status=document.getElementById('loyaltyLinkStatus');
   if(!status)return;
-  if(!phone||phone.length<10){status.textContent='';return;}
+  if(!phone||phone.length<10){
+    status.innerHTML='';
+    loyaltyCustomerData=null;
+    loyaltyRebateToUse=0;
+    renderOrderPanel();
+    return;
+  }
   status.textContent='Checking...';
   loyaltyLookupTimer=setTimeout(async()=>{
     const cust=await lookupLoyaltyForCheckout(phone);
-    if(cust){status.innerHTML=`<span style="color:var(--green);font-weight:700">✓ ${cust.name} — will earn 2.5% rebate</span>`;}
-    else{status.innerHTML=`<span style="color:var(--muted)">Not enrolled — show 🎉 Loyalty QR to sign up</span>`;}
+    if(cust){
+      loyaltyCustomerData=cust;
+      const available=Math.max(0,(cust.rebate_earned||0)-(cust.rebate_used||0));
+      if(available>0){
+        status.innerHTML=`
+          <div style="margin-top:4px">
+            <span style="color:var(--green);font-weight:700">✓ ${cust.name}</span><br/>
+            <span style="color:var(--blue);font-size:10px;font-weight:700">Available Rebate: ₱${available.toFixed(2)}</span><br/>
+            <button onclick="applyLoyaltyRebate(${available})" 
+              style="margin-top:4px;padding:4px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">
+              💰 Use ₱${available.toFixed(2)} Rebate
+            </button>
+            ${loyaltyRebateToUse>0?`<span style="color:var(--green);font-size:10px;font-weight:800;margin-left:6px">✓ Applied!</span>`:''}
+          </div>`;
+      } else {
+        status.innerHTML=`<span style="color:var(--green);font-weight:700">✓ ${cust.name} — will earn 2.5% rebate</span>`;
+      }
+    } else {
+      loyaltyCustomerData=null;
+      loyaltyRebateToUse=0;
+      status.innerHTML=`<span style="color:var(--muted)">Not enrolled — show 🎉 Loyalty QR to sign up</span>`;
+    }
+    renderOrderPanel();
   },500);
+}
+
+function applyLoyaltyRebate(available){
+  loyaltyRebateToUse=available;
+  renderOrderPanel();
+  // Update status to show applied
+  const status=document.getElementById('loyaltyLinkStatus');
+  if(status&&loyaltyCustomerData){
+    status.innerHTML=`
+      <div style="margin-top:4px">
+        <span style="color:var(--green);font-weight:700">✓ ${loyaltyCustomerData.name}</span><br/>
+        <span style="color:var(--green);font-size:10px;font-weight:800">✅ Rebate ₱${available.toFixed(2)} applied to order!</span><br/>
+        <button onclick="removeLoyaltyRebate()" 
+          style="margin-top:4px;padding:3px 8px;background:#f5f5f5;color:var(--red);border:1px solid var(--border);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer">
+          Remove Rebate
+        </button>
+      </div>`;
+  }
+}
+
+function removeLoyaltyRebate(){
+  loyaltyRebateToUse=0;
+  renderOrderPanel();
+  checkLoyaltyPhoneLive(document.getElementById('loyaltyPhoneInput')?.value||'');
 }
 
 async function confirmCharge(){
   const items=Object.values(order);
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
-  const disc=getDisc();const discAmt=calcDisc(items,disc);const total=sub-discAmt;
+  const disc=getDisc();const discAmt=calcDisc(items,disc);
+  const afterDisc=sub-discAmt;
+  const rebateApplied=loyaltyRebateToUse>0?Math.min(loyaltyRebateToUse,afterDisc):0;
+  const total=Math.max(0,afterDisc-rebateApplied);
   const table=document.getElementById('tableSelect').value;
   const orNum=document.getElementById('receiptModal').dataset.orNum;
   const cardLast4=currentPayMethod==='card'?document.getElementById('cardLast4').value:'';
@@ -3949,8 +4034,28 @@ async function confirmCharge(){
   if(loyaltyPhone){
     document.getElementById('loyaltyPhoneInput').value='';
     document.getElementById('loyaltyLinkStatus').textContent='';
-    await creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum); // awaited so errors surface
+    await creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum);
+    // If rebate was redeemed, record it
+    if(rebateApplied>0&&loyaltyCustomerData){
+      // Insert redemption transaction
+      await sb.from('loyalty_transactions').insert([{
+        customer_id: loyaltyCustomerData.id,
+        phone: loyaltyCustomerData.phone,
+        rebate_earned: 0,
+        rebate_redeemed: rebateApplied,
+        type: 'redeem',
+        branch: 'SM Bicutan'
+      }]);
+      // Update customer rebate_used balance
+      const{error}=await sb.from('loyalty_customers').update({
+        rebate_used: Math.round(((loyaltyCustomerData.rebate_used||0)+rebateApplied)*100)/100
+      }).eq('id',loyaltyCustomerData.id);
+      if(!error) showToast('💰 Rebate ₱'+rebateApplied.toFixed(2)+' redeemed for '+loyaltyCustomerData.name+'!',4000);
+    }
   }
+  // Reset rebate state
+  loyaltyCustomerData=null;
+  loyaltyRebateToUse=0;
   renderRecentOrders();refreshCashierSales();
   showPrintReceipt(txn);
 }
