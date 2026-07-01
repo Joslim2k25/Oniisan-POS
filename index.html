@@ -681,15 +681,54 @@ button{cursor:pointer;font-family:inherit}
 </div>
 
 <!-- LOYALTY QR MODAL -->
-<div class="modal-overlay" id="loyaltyQRModal">
-  <div class="modal" style="width:380px;max-width:96vw;text-align:center">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div class="modal-title" style="margin-bottom:0">🎉 Oniisan Loyalty Program</div>
-      <button onclick="document.getElementById('loyaltyQRModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">×</button>
+<div class="modal-overlay" id="loyaltyQRModal" style="z-index:300">
+  <div style="background:#fff;border-radius:20px;overflow:hidden;width:340px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <!-- Header -->
+    <div style="background:linear-gradient(160deg,#1a0a08,#c0392b 60%,#e8593a);padding:24px 20px 20px;text-align:center;position:relative">
+      <button onclick="document.getElementById('loyaltyQRModal').classList.remove('open')" 
+        style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:4px;margin-bottom:2px">ONIISAN</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.7);margin-bottom:12px">Tempura & Japanese Food · SM Bicutan</div>
+      <div style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:10px 20px;display:inline-block">
+        <div style="font-size:28px;font-weight:900;color:#fbbf24">2.5%</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.8)">Rebate on every purchase</div>
+      </div>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Ask the customer to scan with their phone to join or check points. No cashier action needed — fully self-service.</div>
-    <div id="loyaltyQRCode" style="display:flex;justify-content:center;margin:10px 0"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:10px;word-break:break-all" id="loyaltyQRUrl"></div>
+    <!-- QR -->
+    <div style="padding:20px;text-align:center">
+      <div style="font-size:11px;font-weight:800;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">📱 Scan to Join or Check Balance</div>
+      <div style="background:#fff;border:3px solid #f0f0f0;border-radius:14px;padding:12px;display:inline-block;margin-bottom:14px">
+        <div id="loyaltyQRCode"></div>
+      </div>
+      <!-- Perks -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="background:#fdf2f2;border-radius:10px;padding:10px 6px;text-align:center">
+          <div style="font-size:20px;margin-bottom:4px">💰</div>
+          <div style="font-size:9px;font-weight:700;color:var(--red);line-height:1.3">Earn 2.5% every order</div>
+        </div>
+        <div style="background:#fdf2f2;border-radius:10px;padding:10px 6px;text-align:center">
+          <div style="font-size:20px;margin-bottom:4px">🎁</div>
+          <div style="font-size:9px;font-weight:700;color:var(--red);line-height:1.3">Redeem as discount</div>
+        </div>
+        <div style="background:#fdf2f2;border-radius:10px;padding:10px 6px;text-align:center">
+          <div style="font-size:20px;margin-bottom:4px">🎂</div>
+          <div style="font-size:9px;font-weight:700;color:var(--red);line-height:1.3">Birthday surprise</div>
+        </div>
+      </div>
+      <div style="background:#f8f8f8;border-radius:8px;padding:8px 12px">
+        <div style="font-size:10px;color:#888;word-break:break-all" id="loyaltyQRUrl"></div>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div style="background:#1a0a08;padding:12px;text-align:center">
+      <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:6px">How it works:</div>
+      <div style="display:flex;justify-content:center;gap:14px">
+        <div style="text-align:center"><div style="font-size:16px">1️⃣</div><div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:700">Scan & Join</div></div>
+        <div style="text-align:center"><div style="font-size:16px">2️⃣</div><div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:700">Give Number</div></div>
+        <div style="text-align:center"><div style="font-size:16px">3️⃣</div><div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:700">Earn Rebate</div></div>
+        <div style="text-align:center"><div style="font-size:16px">4️⃣</div><div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:700">Redeem!</div></div>
+      </div>
+    </div>
   </div>
 </div>
 
