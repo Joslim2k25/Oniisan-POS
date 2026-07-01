@@ -3,207 +3,385 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Oniisan Loyalty — Join & Earn</title>
+<title>Oniisan Loyalty Program</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#c0392b,#922b21);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:#fff;border-radius:20px;padding:32px 24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.logo{text-align:center;margin-bottom:24px}
-.logo-brand{font-size:36px;font-weight:900;color:#c0392b;letter-spacing:4px}
-.logo-sub{font-size:12px;color:#888;margin-top:4px}
-.loyalty-badge{background:linear-gradient(135deg,#c0392b,#c8900a);color:#fff;border-radius:12px;padding:16px;text-align:center;margin-bottom:24px}
-.loyalty-badge-title{font-size:14px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
-.loyalty-badge-rate{font-size:28px;font-weight:900}
-.loyalty-badge-desc{font-size:11px;opacity:.8;margin-top:4px}
-.form-group{margin-bottom:16px}
-.form-label{font-size:12px;font-weight:800;color:#333;margin-bottom:6px;display:block;letter-spacing:.5px}
-.form-input{width:100%;padding:12px 14px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;font-family:inherit;transition:border .2s}
-.form-input:focus{outline:none;border-color:#c0392b}
-.btn{width:100%;padding:14px;background:#c0392b;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:8px;transition:background .2s}
-.btn:hover{background:#a93226}
-.btn:disabled{background:#ccc;cursor:not-allowed}
-.perks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:24px}
-.perk{text-align:center;padding:10px 6px;background:#f8f8f8;border-radius:10px}
-.perk-icon{font-size:24px;margin-bottom:4px}
-.perk-text{font-size:10px;font-weight:700;color:#555}
-.success-screen{display:none;text-align:center}
-.success-icon{font-size:64px;margin-bottom:16px}
-.success-title{font-size:22px;font-weight:900;color:#c0392b;margin-bottom:8px}
-.success-sub{font-size:13px;color:#888;line-height:1.6}
-.points-card{background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#fff;border-radius:12px;padding:20px;margin-top:20px}
-.points-label{font-size:11px;color:#888;font-weight:700;letter-spacing:1px}
-.points-val{font-size:32px;font-weight:900;color:#fbbf24}
-.points-sub{font-size:11px;color:#aaa;margin-top:4px}
-.lookup-screen{display:none}
-.tab-btns{display:flex;gap:8px;margin-bottom:20px}
-.tab-btn{flex:1;padding:10px;border:2px solid #e0e0e0;border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#888}
-.tab-btn.active{border-color:#c0392b;color:#c0392b;background:#fff5f5}
-.divider{text-align:center;color:#ccc;font-size:12px;margin:12px 0;position:relative}
-.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:#e0e0e0}
-.divider::before{left:0}.divider::after{right:0}
-.error{color:#c0392b;font-size:12px;margin-top:6px;display:none}
-.member-card{background:linear-gradient(135deg,#c0392b,#c8900a);border-radius:14px;padding:20px;color:#fff;margin-top:16px}
-.member-name{font-size:18px;font-weight:900}
-.member-phone{font-size:12px;opacity:.8;margin-top:2px}
-.member-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.member-stat{background:rgba(255,255,255,.15);border-radius:8px;padding:10px;text-align:center}
-.member-stat-val{font-size:20px;font-weight:900}
-.member-stat-lbl{font-size:9px;opacity:.8;margin-top:2px}
+:root{--red:#c0392b;--gold:#c8900a;--green:#1e8449;--blue:#1a5fa8;--border:#e0e0e0;--muted:#888}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;min-height:100vh}
+
+.hero{background:linear-gradient(160deg,#1a0a08,#c0392b 60%,#e8593a);padding:40px 20px 32px;text-align:center}
+.hero-logo{font-size:38px;font-weight:900;color:#fff;letter-spacing:5px;margin-bottom:4px}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.7);margin-bottom:16px}
+.hero-title{font-size:22px;font-weight:900;color:#fff;margin-bottom:6px}
+.hero-desc{font-size:13px;color:rgba(255,255,255,.8);line-height:1.6}
+
+.rate-badge{display:inline-block;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:16px;padding:12px 28px;margin:16px 0}
+.rate-num{font-size:36px;font-weight:900;color:#fbbf24}
+.rate-label{font-size:12px;color:rgba(255,255,255,.8);margin-top:2px}
+
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--border)}
+.tab{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--red);border-bottom-color:var(--red)}
+
+.content{max-width:480px;margin:0 auto;padding:20px 16px 60px}
+
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.card-title{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+
+.inp{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-family:inherit;outline:none;transition:border .2s}
+.inp:focus{border-color:var(--red)}
+.inp-label{font-size:12px;font-weight:700;color:#555;margin-bottom:6px;display:block}
+
+.btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:10px;transition:all .15s}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#a93226}
+.btn-red:disabled{background:#ccc;cursor:not-allowed}
+.btn-outline{background:#fff;color:var(--red);border:2px solid var(--red)}
+
+.member-card{background:linear-gradient(135deg,#c0392b,#c8900a);border-radius:16px;padding:22px;color:#fff;margin-bottom:16px}
+.member-name{font-size:20px;font-weight:900;margin-bottom:2px}
+.member-phone{font-size:12px;opacity:.8;margin-bottom:16px}
+.member-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:rgba(255,255,255,.15);border-radius:10px;padding:12px;text-align:center}
+.stat-val{font-size:22px;font-weight:900}
+.stat-lbl{font-size:10px;opacity:.8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.stat-val.gold{color:#fbbf24}
+.stat-val.green{color:#4ade80}
+
+.available-box{background:linear-gradient(135deg,#1a1a2e,#0f3460);border-radius:12px;padding:18px;text-align:center;margin-top:12px}
+.available-label{font-size:11px;color:#888;font-weight:700;letter-spacing:1px;margin-bottom:4px}
+.available-val{font-size:32px;font-weight:900;color:#fbbf24}
+.available-note{font-size:11px;color:#888;margin-top:6px}
+
+.txn-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.txn-row:last-child{border-bottom:none}
+.txn-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.txn-icon.earn{background:#eafaf1}
+.txn-icon.redeem{background:#fff3cd}
+.txn-info{flex:1}
+.txn-type{font-size:12px;font-weight:700}
+.txn-date{font-size:11px;color:var(--muted);margin-top:1px}
+.txn-amt{font-size:14px;font-weight:800}
+.txn-amt.earn{color:var(--green)}
+.txn-amt.redeem{color:var(--gold)}
+
+.perk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.perk{background:#f8f8f8;border-radius:12px;padding:14px 8px;text-align:center}
+.perk-icon{font-size:26px;margin-bottom:6px}
+.perk-text{font-size:10px;font-weight:700;color:#555;line-height:1.4}
+
+.form-group{margin-bottom:14px}
+.error{color:var(--red);font-size:12px;font-weight:700;margin-top:6px;display:none}
+.success-box{display:none;text-align:center;padding:24px 0}
+.success-icon{font-size:56px;margin-bottom:12px}
+.success-title{font-size:20px;font-weight:900;color:var(--red);margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--muted);line-height:1.6}
+
+.empty{text-align:center;padding:30px 0;color:#ccc}
+.empty-icon{font-size:40px;margin-bottom:8px}
+.loading{text-align:center;padding:30px;color:var(--muted);font-weight:700}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <div class="logo-brand">ONIISAN</div>
-    <div class="logo-sub">Tempura & Japanese Food · SM Bicutan</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-logo">ONIISAN</div>
+  <div class="hero-sub">Tempura &amp; Japanese Food · SM Bicutan</div>
+  <div class="hero-title">🎁 Loyalty Program</div>
+  <div class="rate-badge">
+    <div class="rate-num">2.5%</div>
+    <div class="rate-label">Rebate on every purchase</div>
   </div>
+  <div class="hero-desc">Earn rebate every time you dine.<br/>Redeem as cash discount anytime!</div>
+</div>
 
-  <!-- TAB BUTTONS -->
-  <div class="tab-btns">
-    <button class="tab-btn active" onclick="showTab('enroll')">✨ Join & Earn</button>
-    <button class="tab-btn" onclick="showTab('lookup')">🔍 Check Points</button>
-  </div>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('check')" id="tab-check">💰 Check Balance</div>
+  <div class="tab" onclick="showTab('join')" id="tab-join">✨ Join Now</div>
+  <div class="tab" onclick="showTab('how')" id="tab-how">❓ How It Works</div>
+</div>
 
-  <!-- ENROLL SCREEN -->
-  <div id="enrollScreen">
-    <div class="loyalty-badge">
-      <div class="loyalty-badge-title">🎉 ONIISAN LOYALTY PROGRAM</div>
-      <div class="loyalty-badge-rate">2.5% Rebate</div>
-      <div class="loyalty-badge-desc">Earn rebates on every purchase!</div>
-    </div>
+<!-- CONTENT -->
+<div class="content">
 
-    <div class="perks">
-      <div class="perk"><div class="perk-icon">🍱</div><div class="perk-text">Earn on every order</div></div>
-      <div class="perk"><div class="perk-icon">💰</div><div class="perk-text">₱200 = ₱5 rebate</div></div>
-      <div class="perk"><div class="perk-icon">🎂</div><div class="perk-text">Birthday treat!</div></div>
-    </div>
-
-    <div id="enrollForm">
+  <!-- CHECK BALANCE TAB -->
+  <div id="section-check">
+    <div class="card">
+      <div class="card-title">Check My Rebate Balance</div>
       <div class="form-group">
-        <label class="form-label">FULL NAME</label>
-        <input class="form-input" id="enrollName" type="text" placeholder="Juan Dela Cruz" autocomplete="name"/>
+        <label class="inp-label">Your Mobile Number</label>
+        <input class="inp" id="checkPhone" type="tel" maxlength="11" placeholder="09XXXXXXXXX"
+          oninput="this.value=this.value.replace(/\D/g,'')"/>
+        <div class="error" id="checkError">Phone number not found. Please check or sign up below.</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">MOBILE NUMBER</label>
-        <input class="form-input" id="enrollPhone" type="tel" placeholder="09XX XXX XXXX" maxlength="11"/>
-        <div class="error" id="phoneError">Phone number already registered!</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">BIRTHDAY (optional)</label>
-        <input class="form-input" id="enrollBday" type="date"/>
-      </div>
-      <button class="btn" id="enrollBtn" onclick="enrollCustomer()">🎉 Join Loyalty Program</button>
+      <button class="btn btn-red" onclick="checkBalance()" id="checkBtn">Check Balance</button>
     </div>
 
-    <!-- SUCCESS -->
-    <div class="success-screen" id="successScreen">
-      <div class="success-icon">🎉</div>
-      <div class="success-title">Welcome to Oniisan Loyalty!</div>
-      <div class="success-sub">You are now enrolled! Show this to the cashier to start earning rebates on your next visit.</div>
-      <div class="points-card">
-        <div class="points-label">MEMBER NAME</div>
-        <div style="font-size:18px;font-weight:900;margin-bottom:12px" id="successName">—</div>
-        <div class="points-label">AVAILABLE REBATE</div>
-        <div class="points-val" id="successRebate">₱0.00</div>
-        <div class="points-sub">Earn ₱5 rebate for every ₱200 spent</div>
-      </div>
-      <button class="btn" style="margin-top:16px" onclick="location.reload()">Enroll Another</button>
-    </div>
-  </div>
-
-  <!-- LOOKUP SCREEN -->
-  <div id="lookupScreen" class="lookup-screen">
-    <div class="form-group">
-      <label class="form-label">ENTER YOUR MOBILE NUMBER</label>
-      <input class="form-input" id="lookupPhone" type="tel" placeholder="09XX XXX XXXX" maxlength="11"
-        onkeydown="if(event.key==='Enter')lookupCustomer()"/>
-      <div class="error" id="lookupError">Phone number not found. Please enroll first.</div>
-    </div>
-    <button class="btn" onclick="lookupCustomer()">🔍 Check My Points</button>
-
-    <div id="memberCard" style="display:none">
-      <div class="member-card">
+    <!-- MEMBER RESULT -->
+    <div id="memberResult" style="display:none">
+      <div class="member-card" id="memberCard">
         <div class="member-name" id="memberName">—</div>
         <div class="member-phone" id="memberPhone">—</div>
         <div class="member-stats">
-          <div class="member-stat">
-            <div class="member-stat-val" id="memberRebate">₱0</div>
-            <div class="member-stat-lbl">AVAILABLE REBATE</div>
+          <div class="stat">
+            <div class="stat-val gold" id="statEarned">₱0.00</div>
+            <div class="stat-lbl">Total Earned</div>
           </div>
-          <div class="member-stat">
-            <div class="member-stat-val" id="memberSpent">₱0</div>
-            <div class="member-stat-lbl">TOTAL SPENT</div>
+          <div class="stat">
+            <div class="stat-val" id="statUsed">₱0.00</div>
+            <div class="stat-lbl">Total Used</div>
           </div>
         </div>
+        <div class="available-box">
+          <div class="available-label">AVAILABLE TO REDEEM</div>
+          <div class="available-val" id="statAvailable">₱0.00</div>
+          <div class="available-note">Show this to cashier to use your rebate</div>
+        </div>
       </div>
-      <div style="text-align:center;font-size:11px;color:#888;margin-top:12px">Show this to the cashier to earn or redeem rebates</div>
+
+      <!-- TRANSACTIONS -->
+      <div class="card">
+        <div class="card-title">Recent Transactions</div>
+        <div id="txnList"><div class="loading">Loading...</div></div>
+      </div>
+
+      <button class="btn btn-outline" onclick="resetCheck()" style="margin-top:4px">← Check Another Number</button>
     </div>
   </div>
 
-  <div style="text-align:center;font-size:10px;color:#ccc;margin-top:20px">
-    © 2026 Oniisan Tempura · SM Bicutan · facebook.com/oniisan.ph
+  <!-- JOIN TAB -->
+  <div id="section-join" style="display:none">
+    <!-- PERKS -->
+    <div class="perk-grid">
+      <div class="perk"><div class="perk-icon">💰</div><div class="perk-text">2.5% Rebate Every Purchase</div></div>
+      <div class="perk"><div class="perk-icon">🎂</div><div class="perk-text">Birthday Surprise Gift</div></div>
+      <div class="perk"><div class="perk-icon">🔄</div><div class="perk-text">Redeem Anytime as Discount</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sign Up — It's Free!</div>
+
+      <div id="signupForm">
+        <div class="form-group">
+          <label class="inp-label">Full Name *</label>
+          <input class="inp" id="signupName" placeholder="e.g. Juan dela Cruz"/>
+        </div>
+        <div class="form-group">
+          <label class="inp-label">Mobile Number *</label>
+          <input class="inp" id="signupPhone" type="tel" maxlength="11" placeholder="09XXXXXXXXX"
+            oninput="this.value=this.value.replace(/\D/g,'')"/>
+          <div class="error" id="signupPhoneError">Please enter a valid 11-digit mobile number.</div>
+        </div>
+        <div class="form-group">
+          <label class="inp-label">Birthday (optional)</label>
+          <input class="inp" id="signupBday" type="date"/>
+        </div>
+        <div class="error" id="signupError">This number is already enrolled!</div>
+        <button class="btn btn-red" onclick="signUp()" id="signupBtn">Join Loyalty Program 🎉</button>
+      </div>
+
+      <div class="success-box" id="signupSuccess">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">Welcome to Oniisan!</div>
+        <div class="success-sub" id="successMsg">You're now a loyalty member.<br/>Start earning 2.5% rebate on your next purchase!</div>
+        <button class="btn btn-red" onclick="showTab('check')" style="margin-top:16px">Check My Balance →</button>
+      </div>
+    </div>
   </div>
+
+  <!-- HOW IT WORKS TAB -->
+  <div id="section-how" style="display:none">
+    <div class="card">
+      <div class="card-title">How It Works</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:40px;height:40px;background:#fdf2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">1️⃣</div>
+          <div><div style="font-size:14px;font-weight:800;margin-bottom:3px">Sign Up</div><div style="font-size:12px;color:var(--muted);line-height:1.5">Register with your name and mobile number. It's free and takes 30 seconds!</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:40px;height:40px;background:#fdf2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">2️⃣</div>
+          <div><div style="font-size:14px;font-weight:800;margin-bottom:3px">Give Your Number</div><div style="font-size:12px;color:var(--muted);line-height:1.5">When ordering, tell the cashier your mobile number before paying.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:40px;height:40px;background:#eafaf1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">3️⃣</div>
+          <div><div style="font-size:14px;font-weight:800;margin-bottom:3px">Earn 2.5% Rebate</div><div style="font-size:12px;color:var(--muted);line-height:1.5">Automatically earn 2.5% of your total purchase as rebate. No minimum spend!</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:40px;height:40px;background:#fef9e7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">4️⃣</div>
+          <div><div style="font-size:14px;font-weight:800;margin-bottom:3px">Redeem Anytime</div><div style="font-size:12px;color:var(--muted);line-height:1.5">Use your rebate as cash discount on any future purchase. No expiry!</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#fdf2f2,#fff)">
+      <div style="text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">💡</div>
+        <div style="font-size:14px;font-weight:800;margin-bottom:6px">Example</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8">
+          You spend <strong>₱500</strong> → earn <strong style="color:var(--green)">₱12.50</strong> rebate<br/>
+          You spend <strong>₱1,000</strong> → earn <strong style="color:var(--green)">₱25.00</strong> rebate<br/>
+          Saved <strong>₱37.50</strong> → use as discount next visit!
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-red" onclick="showTab('join')">Join Now — It's Free! 🎉</button>
+  </div>
+
+</div>
+
+<!-- SOCIAL & ORDERING SECTION (shown in all tabs at bottom) -->
+<div style="max-width:480px;margin:0 auto;padding:0 16px 20px">
+
+  <!-- ORDER ONLINE -->
+  <div class="card" style="background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#fff;margin-bottom:12px">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:22px;margin-bottom:6px">🛵 Order Online</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7)">Available for delivery on your favorite platforms!</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <a href="https://www.grab.com/ph/food/" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:#00b14f;color:#fff;border-radius:12px;padding:12px;text-decoration:none;font-weight:800;font-size:13px">
+        🥦 GrabFood
+      </a>
+      <a href="https://www.foodpanda.ph/" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:#d70f64;color:#fff;border-radius:12px;padding:12px;text-decoration:none;font-weight:800;font-size:13px">
+        🐼 FoodPanda
+      </a>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.5)">Search "Oniisan Tempura SM Bicutan"</div>
+  </div>
+
+  <!-- FACEBOOK -->
+  <div class="card" style="background:linear-gradient(135deg,#1877f2,#0d5dbe);color:#fff">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="font-size:44px;flex-shrink:0">📘</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:900;margin-bottom:4px">Follow Us on Facebook!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.5;margin-bottom:10px">Get the latest promos, new menu items, and updates from Oniisan Tempura!</div>
+        <a href="https://www.facebook.com/oniisan.ph" target="_blank"
+          style="display:inline-block;background:#fff;color:#1877f2;font-size:12px;font-weight:800;padding:8px 18px;border-radius:8px;text-decoration:none">
+          👍 Like Our Page →
+        </a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
 const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
-const REBATE_RATE=0.025;
-const fmt=n=>'₱'+Number(n).toFixed(2);
 
 function showTab(tab){
-  document.getElementById('enrollScreen').style.display=tab==='enroll'?'block':'none';
-  document.getElementById('lookupScreen').style.display=tab==='lookup'?'block':'none';
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===(tab==='enroll'?0:1)));
-  document.getElementById('memberCard').style.display='none';
-  document.getElementById('lookupError').style.display='none';
+  ['check','join','how'].forEach(t=>{
+    document.getElementById('section-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  });
 }
 
-async function enrollCustomer(){
-  const name=document.getElementById('enrollName').value.trim();
-  const phone=document.getElementById('enrollPhone').value.trim();
-  const bday=document.getElementById('enrollBday').value||null;
-  const btn=document.getElementById('enrollBtn');
-  const err=document.getElementById('phoneError');
+function fmt(n){return '₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+async function checkBalance(){
+  const raw=document.getElementById('checkPhone').value.trim();
+  const err=document.getElementById('checkError');
+  const btn=document.getElementById('checkBtn');
   err.style.display='none';
-  if(!name){alert('Please enter your name.');return;}
-  if(!phone||phone.length<10){alert('Please enter a valid phone number.');return;}
-  btn.disabled=true;btn.textContent='Enrolling...';
-  const{data:existing}=await sb.from('loyalty_customers').select('id').eq('phone',phone).limit(1);
-  if(existing&&existing.length){
+  if(!raw||raw.length<10){err.textContent='Please enter your 11-digit mobile number.';err.style.display='block';return;}
+  btn.textContent='Checking...';btn.disabled=true;
+
+  // Try multiple formats
+  const formats=[raw];
+  if(raw.startsWith('0'))formats.push(raw.slice(1));
+  else formats.push('0'+raw);
+  if(raw.startsWith('+63'))formats.push('0'+raw.slice(3));
+  if(raw.startsWith('63'))formats.push('0'+raw.slice(2));
+
+  let found=null;
+  for(const phone of formats){
+    const{data}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
+    if(data&&data.length){found=data[0];break;}
+  }
+
+  btn.textContent='Check Balance';btn.disabled=false;
+  if(!found){
+    err.textContent='Number not found. Please sign up to join the loyalty program.';
     err.style.display='block';
-    btn.disabled=false;btn.textContent='🎉 Join Loyalty Program';
     return;
   }
-  const{data,error}=await sb.from('loyalty_customers').insert([{
-    name,phone,birthday:bday,points:0,total_spent:0,rebate_earned:0,rebate_used:0,branch:'SM Bicutan'
-  }]).select().single();
-  if(error){alert('Error enrolling. Please try again.');btn.disabled=false;btn.textContent='🎉 Join Loyalty Program';return;}
-  document.getElementById('enrollForm').style.display='none';
-  document.getElementById('successScreen').style.display='block';
-  document.getElementById('successName').textContent=name;
-  document.getElementById('successRebate').textContent='₱0.00';
-}
-
-async function lookupCustomer(){
-  const phone=document.getElementById('lookupPhone').value.trim();
-  const err=document.getElementById('lookupError');
-  err.style.display='none';
-  if(!phone||phone.length<10){alert('Enter a valid phone number.');return;}
-  const{data,error}=await sb.from('loyalty_customers').select('*').eq('phone',phone).limit(1);
-  if(error||!data||!data.length){err.style.display='block';document.getElementById('memberCard').style.display='none';return;}
-  const c=data[0];
-  const availableRebate=(c.rebate_earned||0)-(c.rebate_used||0);
+  const c=found;
+  const earned=c.rebate_earned||0;
+  const used=c.rebate_used||0;
+  const available=Math.max(0,earned-used);
   document.getElementById('memberName').textContent=c.name;
-  document.getElementById('memberPhone').textContent=c.phone;
-  document.getElementById('memberRebate').textContent=fmt(availableRebate);
-  document.getElementById('memberSpent').textContent=fmt(c.total_spent||0);
-  document.getElementById('memberCard').style.display='block';
+  document.getElementById('memberPhone').textContent=c.phone+(c.birthday?' · 🎂 '+c.birthday:'');
+  document.getElementById('statEarned').textContent=fmt(earned);
+  document.getElementById('statUsed').textContent=fmt(used);
+  document.getElementById('statAvailable').textContent=fmt(available);
+  document.getElementById('memberResult').style.display='block';
+  document.querySelector('.card').style.display='none';
+  loadTxns(c.id);
 }
 
-showTab('enroll');
+async function loadTxns(custId){
+  const el=document.getElementById('txnList');
+  const{data}=await sb.from('loyalty_transactions').select('*').eq('customer_id',custId).order('created_at',{ascending:false}).limit(20);
+  const txns=data||[];
+  if(!txns.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div>No transactions yet</div></div>';return;}
+  el.innerHTML=txns.map(t=>{
+    const isEarn=t.type==='earn'||(t.rebate_earned||0)>0;
+    const date=t.created_at?new Date(t.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'—';
+    const amt=isEarn?(t.rebate_earned||0):(t.rebate_redeemed||0);
+    return `<div class="txn-row">
+      <div class="txn-icon ${isEarn?'earn':'redeem'}">${isEarn?'💰':'🎁'}</div>
+      <div class="txn-info">
+        <div class="txn-type">${isEarn?'Rebate Earned':'Rebate Redeemed'}</div>
+        <div class="txn-date">${date}</div>
+      </div>
+      <div class="txn-amt ${isEarn?'earn':'redeem'}">${isEarn?'+':'-'}${fmt(amt)}</div>
+    </div>`;
+  }).join('');
+}
+
+function resetCheck(){
+  document.getElementById('memberResult').style.display='none';
+  document.querySelector('.card').style.display='block';
+  document.getElementById('checkPhone').value='';
+  document.getElementById('checkError').style.display='none';
+}
+
+async function signUp(){
+  const name=document.getElementById('signupName').value.trim();
+  const phone=document.getElementById('signupPhone').value.trim();
+  const bday=document.getElementById('signupBday').value;
+  const errPhone=document.getElementById('signupPhoneError');
+  const errGeneral=document.getElementById('signupError');
+  const btn=document.getElementById('signupBtn');
+  errPhone.style.display='none';errGeneral.style.display='none';
+  if(!name){alert('Please enter your full name.');return;}
+  if(!phone||phone.length!==11||!phone.startsWith('0')){errPhone.style.display='block';return;}
+  btn.textContent='Signing up...';btn.disabled=true;
+  // Check if already enrolled
+  const{data:existing}=await sb.from('loyalty_customers').select('id').eq('phone',phone).limit(1);
+  if(existing&&existing.length){
+    errGeneral.textContent='This number is already enrolled! Go to Check Balance tab.';
+    errGeneral.style.display='block';
+    btn.textContent='Join Loyalty Program 🎉';btn.disabled=false;
+    return;
+  }
+  const rec={name,phone,rebate_earned:0,rebate_used:0,total_spent:0};
+  if(bday)rec.birthday=bday;
+  const{error}=await sb.from('loyalty_customers').insert([rec]);
+  btn.textContent='Join Loyalty Program 🎉';btn.disabled=false;
+  if(error){alert('Error: '+error.message);return;}
+  document.getElementById('signupForm').style.display='none';
+  document.getElementById('successMsg').textContent=`Welcome, ${name}! You're now a loyalty member. Tell the cashier your number ${phone} when ordering to start earning rebates!`;
+  document.getElementById('signupSuccess').style.display='block';
+  // Pre-fill check tab
+  document.getElementById('checkPhone').value=phone;
+}
 </script>
 </body>
 </html>
