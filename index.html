@@ -1180,7 +1180,7 @@ let loyaltyRebateToUse=0;       // rebate amount to deduct from order
 
 // ══════ HELPERS ══════
 const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtn=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2});
+const fmtn=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const tsNow=()=>new Date().toISOString();
 const timeStr=ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
 const dateStr=ts=>new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});

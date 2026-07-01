@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Oniisan Loyalty QR</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f0f0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+
+.card{background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.15);width:320px}
+
+.card-top{background:linear-gradient(160deg,#1a0a08,#c0392b 60%,#e8593a);padding:28px 24px 24px;text-align:center}
+.brand{font-size:32px;font-weight:900;color:#fff;letter-spacing:5px;margin-bottom:2px}
+.brand-sub{font-size:11px;color:rgba(255,255,255,.7);letter-spacing:1px;margin-bottom:16px}
+.rate-box{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:12px 20px;display:inline-block}
+.rate-num{font-size:32px;font-weight:900;color:#fbbf24}
+.rate-label{font-size:11px;color:rgba(255,255,255,.8);margin-top:2px}
+
+.card-body{padding:24px;text-align:center}
+.scan-label{font-size:11px;font-weight:800;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.qr-wrap{background:#fff;border:3px solid #f0f0f0;border-radius:16px;padding:14px;display:inline-block;margin-bottom:16px}
+#qrcode canvas, #qrcode img{display:block}
+
+.divider{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.divider-line{flex:1;height:1px;background:#f0f0f0}
+.divider-text{font-size:10px;font-weight:700;color:#ccc}
+
+.perks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.perk{background:#fdf2f2;border-radius:10px;padding:10px 6px;text-align:center}
+.perk-icon{font-size:20px;margin-bottom:4px}
+.perk-text{font-size:9px;font-weight:700;color:#c0392b;line-height:1.3}
+
+.url-box{background:#f8f8f8;border-radius:10px;padding:10px 14px;margin-bottom:16px}
+.url-text{font-size:10px;color:#888;font-weight:700;word-break:break-all;line-height:1.5}
+
+.card-footer{background:#1a0a08;padding:14px;text-align:center}
+.footer-text{font-size:11px;color:rgba(255,255,255,.6)}
+.footer-steps{display:flex;justify-content:center;gap:16px;margin-top:8px}
+.step{text-align:center}
+.step-num{font-size:16px}
+.step-label{font-size:9px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:700}
+
+/* PRINT STYLES */
+@media print{
+  body{background:#fff;padding:0;margin:0}
+  .card{box-shadow:none;border:2px solid #ddd;margin:0 auto}
+  .no-print{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <!-- TOP -->
+  <div class="card-top">
+    <div class="brand">ONIISAN</div>
+    <div class="brand-sub">Tempura &amp; Japanese Food · SM Bicutan</div>
+    <div class="rate-box">
+      <div class="rate-num">2.5%</div>
+      <div class="rate-label">Rebate on every purchase</div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="card-body">
+    <div class="scan-label">📱 Scan to Join or Check Balance</div>
+
+    <div class="qr-wrap">
+      <div id="qrcode"></div>
+    </div>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">LOYALTY PERKS</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="perks">
+      <div class="perk">
+        <div class="perk-icon">💰</div>
+        <div class="perk-text">Earn 2.5% on every order</div>
+      </div>
+      <div class="perk">
+        <div class="perk-icon">🎁</div>
+        <div class="perk-text">Redeem as cash discount</div>
+      </div>
+      <div class="perk">
+        <div class="perk-icon">🎂</div>
+        <div class="perk-text">Birthday surprise</div>
+      </div>
+    </div>
+
+    <div class="url-box">
+      <div class="url-text" id="urlDisplay">Loading...</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="card-footer">
+    <div class="footer-text">How to earn rebate:</div>
+    <div class="footer-steps">
+      <div class="step"><div class="step-num">1️⃣</div><div class="step-label">Scan & Join</div></div>
+      <div class="step"><div class="step-num">2️⃣</div><div class="step-label">Give Number</div></div>
+      <div class="step"><div class="step-num">3️⃣</div><div class="step-label">Earn Rebate</div></div>
+      <div class="step"><div class="step-num">4️⃣</div><div class="step-label">Redeem!</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BUTTONS (no print) -->
+<div class="no-print" style="margin-top:20px;display:flex;gap:10px">
+  <button onclick="window.print()" style="padding:12px 28px;background:#c0392b;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">🖨️ Print This Card</button>
+  <button onclick="toggleFullscreen()" style="padding:12px 28px;background:#1a1a2e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">📺 Fullscreen Display</button>
+</div>
+<div class="no-print" style="margin-top:10px;font-size:11px;color:#888;text-align:center">Print and stick near POS counter · Or click Fullscreen to show on screen</div>
+
+<script>
+// Get the current URL base to build loyalty URL
+const loyaltyUrl = window.location.origin + '/loyalty.html';
+document.getElementById('urlDisplay').textContent = loyaltyUrl;
+
+// Generate QR code
+new QRCode(document.getElementById('qrcode'), {
+  text: loyaltyUrl,
+  width: 200,
+  height: 200,
+  colorDark: '#c0392b',
+  colorLight: '#ffffff',
+  correctLevel: QRCode.CorrectLevel.H
+});
+
+function toggleFullscreen(){
+  const card = document.querySelector('.card');
+  if(!document.fullscreenElement){
+    card.requestFullscreen().catch(()=>{
+      // fallback - just make it big
+      card.style.cssText='width:100vw;height:100vh;border-radius:0;position:fixed;inset:0;z-index:9999;overflow:auto';
+    });
+  } else {
+    document.exitFullscreen();
+    card.style.cssText='';
+  }
+}
+</script>
+</body>
+</html>
