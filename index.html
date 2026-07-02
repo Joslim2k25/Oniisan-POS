@@ -586,12 +586,21 @@ button{cursor:pointer;font-family:inherit}
           </select>
         </div>
         <div class="sel-row"><span>Discount:</span>
-          <select id="discountSelect" onchange="renderOrderPanel()">
+          <select id="discountSelect" onchange="onDiscountChange()">
             <option value="none">None</option>
             <option value="pwd">PWD (20%)</option>
             <option value="senior">Senior (20%)</option>
             <option value="staff">Staff Meal (50%)</option>
           </select>
+        </div>
+        <!-- PWD/Senior Warning -->
+        <div id="discountWarningBox" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:8px 10px;margin-top:4px">
+          <div style="font-size:10px;font-weight:800;color:#856404;margin-bottom:4px">⚠️ DISCOUNT POLICY REMINDER</div>
+          <div style="font-size:10px;color:#856404;line-height:1.5">This discount applies to <strong>1 person only</strong>. Ensure only the qualifying customer's items are included. One (1) discounted transaction per visit.</div>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer">
+            <input type="checkbox" id="discountConfirmCheck" onchange="checkDiscountConfirm()" style="width:14px;height:14px;accent-color:var(--red)"/>
+            <span style="font-size:10px;font-weight:800;color:#856404">I confirm this is a valid PWD/Senior discount</span>
+          </label>
         </div>
         <div class="sel-row" style="align-items:flex-start">
           <span style="padding-top:8px">Loyalty:</span>
@@ -3844,7 +3853,14 @@ function filterCat(c){
 
 // ══════ ORDER ══════
 const NO_DISCOUNT_CATS=['svm','super_value_meal','family_set_meals','teishoku_set_meals','family','teishoku','set_meals','packaging','take_out'];
-const getDisc=()=>document.getElementById('discountSelect')?.value||'none';
+const getDisc=()=>{
+  const disc=document.getElementById('discountSelect')?.value||'none';
+  if(disc==='pwd'||disc==='senior'){
+    const confirmed=document.getElementById('discountConfirmCheck')?.checked;
+    if(!confirmed) return 'none';
+  }
+  return disc;
+};
 function isDiscountEligible(item){const cat=(item.cat||item.category||'').toLowerCase();return !NO_DISCOUNT_CATS.some(nc=>cat.includes(nc)||nc.includes(cat));}
 function calcDisc(items,discType){
   if(discType==='none'||!discType)return 0;
@@ -4025,6 +4041,35 @@ function checkLoyaltyPhoneLive(phone){
     }
     renderOrderPanel();
   },500);
+}
+
+function onDiscountChange(){
+  const disc=document.getElementById('discountSelect').value;
+  const warningBox=document.getElementById('discountWarningBox');
+  const check=document.getElementById('discountConfirmCheck');
+  if(disc==='pwd'||disc==='senior'){
+    warningBox.style.display='block';
+    check.checked=false;
+  } else {
+    warningBox.style.display='none';
+    if(check) check.checked=false;
+  }
+  renderOrderPanel();
+}
+
+function checkDiscountConfirm(){
+  renderOrderPanel();
+}
+
+// Override getDisc to require confirmation for PWD/Senior
+const _origGetDisc=getDisc;
+function getDiscWithConfirm(){
+  const disc=document.getElementById('discountSelect')?.value||'none';
+  if((disc==='pwd'||disc==='senior')){
+    const confirmed=document.getElementById('discountConfirmCheck')?.checked;
+    if(!confirmed) return 'none'; // don't apply discount until confirmed
+  }
+  return disc;
 }
 
 function applyLoyaltyRebate(available){
