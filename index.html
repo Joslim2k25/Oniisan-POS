@@ -867,9 +867,9 @@ button{cursor:pointer;font-family:inherit}
         <div id="aiReadingStatus" style="display:none;text-align:center;padding:8px;font-size:11px;color:var(--blue);font-weight:700">🤖 AI reading ID...</div>
       </div>
 
-      <!-- STEP 2: Verify Details (auto-filled by AI) -->
+      <!-- STEP 2: Type Details from ID -->
       <div style="margin-bottom:12px">
-        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 2 — Verify Details ✅</div>
+        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 2 — Type Details from ID ✍️</div>
         <div class="input-group" style="margin-bottom:8px">
           <div class="input-label">Full Name</div>
           <input class="inp" id="discountName" placeholder="Auto-filled from ID"
@@ -4198,8 +4198,8 @@ function captureDiscountId(){
         document.getElementById('discountIdPhotoPreview').src=photoUrl;
         document.getElementById('discountIdPhotoPreview').style.display='block';
 
-        // AI read ID
-        await aiReadIdCard(photoUrl);
+        // Show instruction to type manually
+        aiReadIdCard(photoUrl);
         updateConfirmBtn();
       };
 
@@ -4212,56 +4212,17 @@ function captureDiscountId(){
     });
 }
 
-async function aiReadIdCard(photoBase64){
+function aiReadIdCard(photoBase64){
+  // Photo is saved as proof — cashier types details while looking at the photo
   const statusEl=document.getElementById('aiReadingStatus');
   statusEl.style.display='block';
-  statusEl.textContent='🤖 AI reading ID card...';
-  statusEl.style.color='var(--blue)';
-
-  try{
-    const base64Data=photoBase64.split(',')[1];
-    const response=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:200,
-        messages:[{
-          role:'user',
-          content:[
-            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64Data}},
-            {type:'text',text:'This is a Philippine PWD or Senior Citizen ID card. Extract ONLY: 1) Full name of the card holder, 2) ID number. Reply in JSON only: {"name":"","id_number":""}. If you cannot read clearly, put empty string.'}
-          ]
-        }]
-      })
-    });
-
-    if(response.ok){
-      const data=await response.json();
-      const text=data.content?.[0]?.text||'{}';
-      const clean=text.replace(/```json|```/g,'').trim();
-      const parsed=JSON.parse(clean);
-
-      if(parsed.name){
-        document.getElementById('discountName').value=parsed.name;
-        statusEl.textContent='✅ AI read: '+parsed.name;
-        statusEl.style.color='var(--green)';
-      }
-      if(parsed.id_number){
-        document.getElementById('discountIdNum').value=parsed.id_number;
-      }
-      if(!parsed.name&&!parsed.id_number){
-        statusEl.textContent='⚠️ Could not read ID clearly — please type manually';
-        statusEl.style.color='var(--gold)';
-      }
-    } else {
-      statusEl.textContent='⚠️ AI unavailable — please type details manually';
-      statusEl.style.color='var(--gold)';
-    }
-  } catch(e){
-    statusEl.textContent='⚠️ Could not read — please type manually';
-    statusEl.style.color='var(--gold)';
-  }
+  statusEl.innerHTML='✅ <strong>ID photo captured!</strong> Type the name and ID number below while looking at the photo.';
+  statusEl.style.color='var(--green)';
+  statusEl.style.background='#eafaf1';
+  statusEl.style.borderRadius='8px';
+  statusEl.style.padding='8px 10px';
+  // Focus on name field
+  setTimeout(()=>document.getElementById('discountName').focus(),200);
   updateConfirmBtn();
 }
 
