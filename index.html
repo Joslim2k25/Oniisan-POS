@@ -848,16 +848,52 @@ button{cursor:pointer;font-family:inherit}
       </div>
     </div>
 
-    <!-- DISCOUNT ID SECTION — shows when PWD or Senior selected -->
-    <div id="discountIdSection" style="display:none;margin-top:12px;background:var(--gold-light);border:1px solid #f9e29a;border-radius:10px;padding:12px">
-      <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px" id="discountIdLabel">PWD DETAILS</div>
-      <div class="input-group" style="margin-bottom:8px">
-        <div class="input-label">Full Name</div>
-        <input class="inp" id="discountName" placeholder="Name of PWD / Senior Citizen"/>
+    <!-- DISCOUNT ID SECTION — PWD/Senior full verification flow -->
+    <div id="discountIdSection" style="display:none;margin-top:12px;background:var(--gold-light);border:2px solid #f9e29a;border-radius:12px;padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--gold);letter-spacing:1px" id="discountIdLabel">PWD VERIFICATION</div>
+        <span style="background:#fff3cd;color:#856404;font-size:9px;font-weight:800;padding:3px 8px;border-radius:8px">1 CUSTOMER ONLY</span>
       </div>
-      <div class="input-group">
-        <div class="input-label" id="discountIdNumLabel">PWD ID Number</div>
-        <input class="inp" id="discountIdNum" placeholder="e.g. PWD-2024-XXXXX"/>
+
+      <!-- STEP 1: Capture ID -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 1 — Capture ID Card 📷</div>
+        <button type="button" onclick="captureDiscountId()" id="captureIdBtn"
+          style="width:100%;padding:10px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">
+          📷 Take Photo of ID Card
+        </button>
+        <img id="discountIdPhotoPreview" src="" alt=""
+          style="display:none;width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid var(--gold)"/>
+        <div id="aiReadingStatus" style="display:none;text-align:center;padding:8px;font-size:11px;color:var(--blue);font-weight:700">🤖 AI reading ID...</div>
+      </div>
+
+      <!-- STEP 2: Verify Details (auto-filled by AI) -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 2 — Verify Details ✅</div>
+        <div class="input-group" style="margin-bottom:8px">
+          <div class="input-label">Full Name</div>
+          <input class="inp" id="discountName" placeholder="Auto-filled from ID"
+            oninput="updateConfirmBtn()"/>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <div class="input-label" id="discountIdNumLabel">ID Number</div>
+          <input class="inp" id="discountIdNum" placeholder="Auto-filled from ID"
+            oninput="updateConfirmBtn()"/>
+        </div>
+      </div>
+
+      <!-- STEP 3: Customer Signature -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:10px;font-weight:800;color:#555">STEP 3 — Customer Signature ✍️</div>
+          <button type="button" onclick="clearSignature()" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:700">Clear</button>
+        </div>
+        <div style="background:#fff;border:2px solid #f9e29a;border-radius:10px;position:relative">
+          <canvas id="sigCanvas" width="320" height="120"
+            style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;display:block"></canvas>
+          <div id="sigPlaceholder" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#ccc;font-weight:700;pointer-events:none;white-space:nowrap">✍️ Customer signs here with finger</div>
+        </div>
+        <div id="sigStatus" style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">No signature yet</div>
       </div>
     </div>
 
@@ -3449,10 +3485,16 @@ async function renderDTR(dateKey){
       const inRec=dayRecs.find(r=>r.action==='in');
       const isHoliday=!!holidayMap[dt];const isSunday=new Date(dt+'T12:00:00').getDay()===0;
       const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
-      if(outRec&&outRec.total_work){
-        const hrs=outRec.total_work/3600000;totalHours+=hrs;daysWorked++;
+      const isManual=outRec&&outRec.photo_url==='MANUAL_ENTRY';
+      if(outRec&&inRec){
+        // Compute from actual timestamps — prevents cross-day carryover
+        const inTime=new Date(inRec.ts).getTime();
+        const outTime=new Date(outRec.ts).getTime();
+        const hrs=Math.min(Math.max(0,(outTime-inTime)/3600000),16); // cap 16hrs
+        totalHours+=hrs;daysWorked++;
         const color=hrs>=8?'var(--green)':hrs>=4?'var(--gold)':'var(--red)';
-        return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;font-weight:700;color:${color}">${hrs.toFixed(1)}</td>`;
+        const manualMark=isManual?`<span style="color:var(--red);font-size:9px;font-weight:900">*</span>`:'';
+        return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;font-weight:700;color:${color}">${hrs.toFixed(1)}${manualMark}</td>`;
       } else if(inRec){
         return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;color:var(--blue)">IN</td>`;
       } else {
@@ -3933,7 +3975,12 @@ function updateConfirmBtn(){
   else if(currentPayMethod==='card')ok=(document.getElementById('cardLast4')?.value?.length===4);
   else ok=true;
   const disc=getDisc();
-  if((disc==='pwd'||disc==='senior')&&!document.getElementById('discountName')?.value?.trim())ok=false;
+  if(disc==='pwd'||disc==='senior'){
+    if(!document.getElementById('discountName')?.value?.trim())ok=false;
+    if(!document.getElementById('discountIdNum')?.value?.trim())ok=false;
+    if(!discountIdPhotoData)ok=false;   // require ID photo
+    if(!signatureData)ok=false;          // require signature
+  }
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
 
@@ -3991,6 +4038,14 @@ function openCharge(){
   document.getElementById('cashlessAmt').textContent=fmt(total);
   document.getElementById('receiptModal').dataset.orNum=orNum;
   document.getElementById('discountName').value='';document.getElementById('discountIdNum').value='';document.getElementById('cardLast4').value='';
+  discountIdPhotoData=null;
+  signatureData=null;
+  const idPreview=document.getElementById('discountIdPhotoPreview');
+  if(idPreview){idPreview.style.display='none';idPreview.src='';}
+  const aiStatus=document.getElementById('aiReadingStatus');
+  if(aiStatus)aiStatus.style.display='none';
+  clearSignature();
+  setTimeout(()=>initSignaturePad(),100);
   const showDiscount=disc==='pwd'||disc==='senior';
   document.getElementById('discountIdSection').style.display=showDiscount?'block':'none';
   if(disc==='pwd'){document.getElementById('discountIdLabel').textContent='PWD DETAILS';document.getElementById('discountIdNumLabel').textContent='PWD ID Number';document.getElementById('discountIdNum').placeholder='e.g. PWD-2024-XXXXX';}
@@ -4041,6 +4096,173 @@ function checkLoyaltyPhoneLive(phone){
     }
     renderOrderPanel();
   },500);
+}
+
+// ══════ DISCOUNT VERIFICATION (PWD/Senior) ══════
+let discountIdPhotoData = null;
+let signatureData = null;
+let sigDrawing = false;
+
+// ── Signature Pad ──
+function initSignaturePad(){
+  const canvas=document.getElementById('sigCanvas');
+  if(!canvas||canvas._init)return;
+  canvas._init=true;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a1a1a';
+  ctx.lineWidth=2.5;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+
+  const getPos=(e)=>{
+    const r=canvas.getBoundingClientRect();
+    const src=e.touches?e.touches[0]:e;
+    return{x:(src.clientX-r.left)*(canvas.width/r.width),y:(src.clientY-r.top)*(canvas.height/r.height)};
+  };
+
+  const start=(e)=>{e.preventDefault();sigDrawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);
+    document.getElementById('sigPlaceholder').style.display='none';};
+  const draw=(e)=>{e.preventDefault();if(!sigDrawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();};
+  const end=(e)=>{e.preventDefault();sigDrawing=false;
+    signatureData=canvas.toDataURL('image/png');
+    document.getElementById('sigStatus').textContent='✅ Signature captured';
+    document.getElementById('sigStatus').style.color='var(--green)';
+    updateConfirmBtn();};
+
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',draw);canvas.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',draw,{passive:false});canvas.addEventListener('touchend',end,{passive:false});
+}
+
+function clearSignature(){
+  const canvas=document.getElementById('sigCanvas');
+  if(!canvas)return;
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  signatureData=null;
+  document.getElementById('sigPlaceholder').style.display='block';
+  document.getElementById('sigStatus').textContent='No signature yet';
+  document.getElementById('sigStatus').style.color='var(--muted)';
+  updateConfirmBtn();
+}
+
+// ── Camera + AI ID Reading ──
+function captureDiscountId(){
+  discountIdPhotoData=null;
+  document.getElementById('discountIdPhotoPreview').style.display='none';
+  document.getElementById('aiReadingStatus').style.display='none';
+
+  const video=document.createElement('video');
+  const canvas=document.createElement('canvas');
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
+    .then(stream=>{
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px';
+
+      video.style.cssText='width:100%;max-width:500px;border-radius:12px;border:3px solid var(--gold)';
+      video.srcObject=stream;video.autoplay=true;video.playsInline=true;
+
+      const label=document.createElement('div');
+      label.style.cssText='color:#fff;font-size:13px;font-weight:800;text-align:center;line-height:1.5';
+      label.innerHTML='📷 Position ID card to fill the frame clearly<br/><span style="color:#fbbf24;font-size:11px">Make sure text is readable</span>';
+
+      // Guide frame overlay
+      const guide=document.createElement('div');
+      guide.style.cssText='position:absolute;border:3px dashed #fbbf24;border-radius:8px;pointer-events:none;width:85%;max-width:420px;height:200px';
+
+      const captureBtn=document.createElement('button');
+      captureBtn.innerHTML='📷 Capture ID';
+      captureBtn.style.cssText='padding:14px 36px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer';
+
+      const cancelBtn=document.createElement('button');
+      cancelBtn.textContent='Cancel';
+      cancelBtn.style.cssText='padding:8px 20px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer';
+
+      overlay.appendChild(label);
+      overlay.appendChild(video);
+      overlay.appendChild(guide);
+      overlay.appendChild(captureBtn);
+      overlay.appendChild(cancelBtn);
+      document.body.appendChild(overlay);
+
+      captureBtn.onclick=async()=>{
+        canvas.width=video.videoWidth||1280;
+        canvas.height=video.videoHeight||720;
+        canvas.getContext('2d').drawImage(video,0,0);
+        const photoUrl=canvas.toDataURL('image/jpeg',0.9);
+        discountIdPhotoData=photoUrl;
+
+        stream.getTracks().forEach(t=>t.stop());
+        document.body.removeChild(overlay);
+
+        // Show preview
+        document.getElementById('discountIdPhotoPreview').src=photoUrl;
+        document.getElementById('discountIdPhotoPreview').style.display='block';
+
+        // AI read ID
+        await aiReadIdCard(photoUrl);
+        updateConfirmBtn();
+      };
+
+      cancelBtn.onclick=()=>{stream.getTracks().forEach(t=>t.stop());document.body.removeChild(overlay);};
+    })
+    .catch(()=>{
+      showToast('Camera not available — please type details manually.');
+      discountIdPhotoData='NO_CAMERA';
+      updateConfirmBtn();
+    });
+}
+
+async function aiReadIdCard(photoBase64){
+  const statusEl=document.getElementById('aiReadingStatus');
+  statusEl.style.display='block';
+  statusEl.textContent='🤖 AI reading ID card...';
+  statusEl.style.color='var(--blue)';
+
+  try{
+    const base64Data=photoBase64.split(',')[1];
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:200,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64Data}},
+            {type:'text',text:'This is a Philippine PWD or Senior Citizen ID card. Extract ONLY: 1) Full name of the card holder, 2) ID number. Reply in JSON only: {"name":"","id_number":""}. If you cannot read clearly, put empty string.'}
+          ]
+        }]
+      })
+    });
+
+    if(response.ok){
+      const data=await response.json();
+      const text=data.content?.[0]?.text||'{}';
+      const clean=text.replace(/```json|```/g,'').trim();
+      const parsed=JSON.parse(clean);
+
+      if(parsed.name){
+        document.getElementById('discountName').value=parsed.name;
+        statusEl.textContent='✅ AI read: '+parsed.name;
+        statusEl.style.color='var(--green)';
+      }
+      if(parsed.id_number){
+        document.getElementById('discountIdNum').value=parsed.id_number;
+      }
+      if(!parsed.name&&!parsed.id_number){
+        statusEl.textContent='⚠️ Could not read ID clearly — please type manually';
+        statusEl.style.color='var(--gold)';
+      }
+    } else {
+      statusEl.textContent='⚠️ AI unavailable — please type details manually';
+      statusEl.style.color='var(--gold)';
+    }
+  } catch(e){
+    statusEl.textContent='⚠️ Could not read — please type manually';
+    statusEl.style.color='var(--gold)';
+  }
+  updateConfirmBtn();
 }
 
 function onDiscountChange(){
