@@ -67,6 +67,7 @@ body{font-family:'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100
 .ticket-items{flex:1;padding:10px 14px}
 .ticket-item{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
 .ticket-item:last-child{border-bottom:none}
+.ticket-item:hover{background:rgba(255,255,255,.05);border-radius:6px;padding-left:4px}
 .item-qty{color:#fbbf24;font-weight:900;font-size:15px;min-width:28px}
 .item-name{color:#ddd;font-weight:600;flex:1;line-height:1.3}
 .item-note{font-size:10px;color:#888;display:block;margin-top:2px}
@@ -126,10 +127,11 @@ body{font-family:'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100
 
 <!-- FILTER TABS -->
 <div class="filter-bar">
-  <button class="filter-btn all-btn active" onclick="setFilter('all')" id="f-all">All Orders</button>
+  <button class="filter-btn all-btn active" onclick="setFilter('active')" id="f-active">🔴🟡 Active</button>
   <button class="filter-btn" onclick="setFilter('new')" id="f-new" style="border-color:#c0392b;color:#c0392b">🔴 New</button>
   <button class="filter-btn cooking-btn" onclick="setFilter('cooking')" id="f-cooking">🟡 Cooking</button>
   <button class="filter-btn done-btn" onclick="setFilter('done')" id="f-done">🟢 Done</button>
+  <button class="filter-btn all-btn" onclick="setFilter('all')" id="f-all">All</button>
 </div>
 
 <!-- TICKET GRID -->
@@ -188,7 +190,7 @@ function playAlert(){
 function setFilter(f){
   currentFilter=f;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('f-'+f).classList.add('active');
+  document.getElementById('f-'+f)?.classList.add('active');
   renderGrid();
 }
 
@@ -252,12 +254,15 @@ function getElapsed(ts){
 function renderGrid(){
   const grid=document.getElementById('grid');
   let filtered=allOrders;
-  if(currentFilter==='new') filtered=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new');
+  if(currentFilter==='active') filtered=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new'||o.kitchen_status==='cooking');
+  else if(currentFilter==='new') filtered=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new');
   else if(currentFilter==='cooking') filtered=allOrders.filter(o=>o.kitchen_status==='cooking');
   else if(currentFilter==='done') filtered=allOrders.filter(o=>o.kitchen_status==='done');
 
   if(!filtered.length){
-    grid.innerHTML=`<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-text">${currentFilter==='all'?'No orders today yet':'No '+currentFilter+' orders'}</div></div>`;
+    const msg=currentFilter==='active'?'No active orders — all clear! ✅':
+              currentFilter==='all'?'No orders today yet':'No '+currentFilter+' orders';
+    grid.innerHTML=`<div class="empty"><div class="empty-icon">${currentFilter==='active'?'✅':'🍽️'}</div><div class="empty-text">${msg}</div></div>`;
     return;
   }
 
@@ -295,12 +300,20 @@ function renderGrid(){
           <span class="elapsed ${elapsed.cls}">${elapsed.label}</span>
         </div>
       </div>
-      <div class="ticket-items">
-        ${items.map(i=>`<div class="ticket-item">
+      <div class="ticket-items" id="items-${o.id}">
+        ${items.map((i,idx)=>`
+        <div class="ticket-item" id="item-${o.id}-${idx}" onclick="toggleItem('${o.id}',${idx},${items.length})"
+          style="cursor:pointer;transition:all .2s">
+          <div style="width:24px;height:24px;border-radius:6px;border:2px solid #444;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s" id="check-${o.id}-${idx}">
+            <span style="display:none;color:#1e8449;font-size:14px;font-weight:900">✓</span>
+          </div>
           <span class="item-qty">×${i.qty}</span>
-          <span class="item-name">${i.name}${i.desc?`<span class="item-note">${i.desc}</span>`:''}</span>
+          <span class="item-name" id="name-${o.id}-${idx}">${i.name}${i.desc?`<span class="item-note">${i.desc}</span>`:''}</span>
         </div>`).join('')}
         ${!items.length?'<div style="color:#555;font-size:12px;padding:8px 0">No items</div>':''}
+        <div style="font-size:10px;color:#555;text-align:right;margin-top:6px;font-weight:700" id="progress-${o.id}">
+          0 / ${items.length} done
+        </div>
       </div>
       <div style="padding:0 12px;margin-bottom:4px">
         <span style="font-size:10px;color:#555;font-weight:700">${o.payment_method?.toUpperCase()||'CASH'}</span>
@@ -315,6 +328,52 @@ function renderGrid(){
   autoRefreshTimer=setInterval(()=>renderGrid(),30000);
 }
 
+// ── Per-item tracking ──
+const checkedItems={}; // {orderId: Set of checked indices}
+
+function toggleItem(orderId, idx, total){
+  if(!checkedItems[orderId]) checkedItems[orderId]=new Set();
+  const set=checkedItems[orderId];
+  const checkEl=document.getElementById(`check-${orderId}-${idx}`);
+  const nameEl=document.getElementById(`name-${orderId}-${idx}`);
+  const itemEl=document.getElementById(`item-${orderId}-${idx}`);
+  const progressEl=document.getElementById(`progress-${orderId}`);
+
+  if(set.has(idx)){
+    // Uncheck
+    set.delete(idx);
+    checkEl.style.background='transparent';
+    checkEl.style.borderColor='#444';
+    checkEl.querySelector('span').style.display='none';
+    nameEl.style.textDecoration='none';
+    nameEl.style.color='#ddd';
+    itemEl.style.opacity='1';
+  } else {
+    // Check
+    set.add(idx);
+    checkEl.style.background='#1e8449';
+    checkEl.style.borderColor='#1e8449';
+    checkEl.querySelector('span').style.display='block';
+    nameEl.style.textDecoration='line-through';
+    nameEl.style.color='#555';
+    itemEl.style.opacity='.6';
+  }
+
+  const doneCount=set.size;
+  if(progressEl) progressEl.textContent=`${doneCount} / ${total} done`;
+
+  // If all items checked — auto bump to done!
+  if(doneCount>=total){
+    setTimeout(()=>bumpStatus(orderId,'done'),500);
+  } else if(doneCount>0){
+    // Auto start cooking if not yet started
+    const o=allOrders.find(x=>x.id===orderId);
+    if(o&&(!o.kitchen_status||o.kitchen_status==='new')){
+      bumpStatus(orderId,'cooking');
+    }
+  }
+}
+
 // ── Bump Status ──
 async function bumpStatus(id,newStatus){
   const btn=document.querySelector(`#ticket-${id} .bump-btn`);
@@ -327,7 +386,6 @@ async function bumpStatus(id,newStatus){
   const{error}=await sb.from('transactions').update(updateData).eq('id',id);
 
   if(!error){
-    // Update local state
     const o=allOrders.find(x=>x.id===id);
     if(o){
       o.kitchen_status=newStatus;
@@ -335,7 +393,32 @@ async function bumpStatus(id,newStatus){
       if(newStatus==='done') o.kitchen_done_at=updateData.kitchen_done_at;
     }
     updateStats();
-    renderGrid();
+
+    if(newStatus==='done'&&(currentFilter==='active'||currentFilter==='new'||currentFilter==='cooking')){
+      // Flash green then fade out after 4 seconds
+      const ticket=document.getElementById('ticket-'+id);
+      if(ticket){
+        ticket.style.transition='opacity 1s ease';
+        ticket.style.background='#0a2a0a';
+        ticket.style.borderColor='#1e8449';
+        ticket.querySelector('.ticket-head').style.background='rgba(30,132,73,.4)';
+        ticket.querySelector('.ticket-foot').innerHTML='<div style="width:100%;text-align:center;color:#1e8449;font-weight:800;font-size:13px;padding:8px">✅ DONE — Removing in 4s...</div>';
+        setTimeout(()=>{
+          ticket.style.opacity='0';
+          setTimeout(()=>{
+            // Remove from local array
+            allOrders=allOrders.filter(x=>x.id!==id);
+            // Add to done list silently
+            o&&(o.kitchen_status='done');
+            allOrders.push(o);
+            renderGrid();
+            updateStats();
+          },1000);
+        },4000);
+      }
+    } else {
+      renderGrid();
+    }
   } else {
     if(btn){btn.disabled=false;btn.textContent='Error — Retry';}
     console.error(error);
@@ -358,6 +441,7 @@ try{
 }catch(e){console.log('Realtime not available, using polling');}
 
 // ── Init ──
+setFilter('active');
 loadOrders();
 </script>
 </body>
