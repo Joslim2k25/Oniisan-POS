@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Oniisan Kitchen Display</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100vh;overflow-x:hidden}
+
+/* TOP BAR */
+.topbar{background:#000;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:2px solid #222;position:sticky;top:0;z-index:100}
+.topbar-brand{font-size:16px;font-weight:900;color:#fff;letter-spacing:2px}
+.topbar-brand span{color:#c0392b}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.badge{font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px}
+.badge-new{background:#c0392b;color:#fff}
+.badge-cooking{background:#c8900a;color:#fff}
+.badge-done{background:#1e8449;color:#fff}
+.clock{font-size:13px;font-weight:700;color:#888;font-family:monospace}
+.refresh-btn{background:#222;color:#888;border:1px solid #333;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.refresh-btn:active{background:#333}
+
+/* FILTER TABS */
+.filter-bar{background:#0a0a0a;padding:8px 12px;display:flex;gap:8px;overflow-x:auto;border-bottom:1px solid #222}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-btn{flex-shrink:0;padding:8px 16px;border-radius:20px;border:2px solid #333;background:transparent;color:#666;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s}
+.filter-btn.active{border-color:#c0392b;color:#fff;background:#c0392b}
+.filter-btn.cooking-btn.active{border-color:#c8900a;background:#c8900a}
+.filter-btn.done-btn.active{border-color:#1e8449;background:#1e8449}
+.filter-btn.all-btn.active{border-color:#555;background:#333;color:#fff}
+
+/* SOUND TOGGLE */
+.sound-btn{background:#222;color:#fbbf24;border:1px solid #444;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:12px}
+
+/* TICKET */
+.ticket{border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:180px;transition:all .2s;border:2px solid transparent}
+.ticket.new{background:#1a0a0a;border-color:#c0392b}
+.ticket.cooking{background:#1a1200;border-color:#c8900a}
+.ticket.done{background:#0a1a0a;border-color:#1e8449;opacity:.7}
+
+/* TICKET HEADER */
+.ticket-head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.ticket-head.new{background:rgba(192,57,43,.3)}
+.ticket-head.cooking{background:rgba(200,144,10,.3)}
+.ticket-head.done{background:rgba(30,132,73,.3)}
+.ticket-table{font-size:16px;font-weight:900}
+.ticket-time{font-size:11px;color:#888;font-weight:700}
+.ticket-or{font-size:10px;color:#555;margin-top:1px}
+.status-pill{font-size:9px;font-weight:900;padding:4px 10px;border-radius:20px;letter-spacing:.5px}
+.status-pill.new{background:#c0392b;color:#fff}
+.status-pill.cooking{background:#c8900a;color:#000}
+.status-pill.done{background:#1e8449;color:#fff}
+
+/* ELAPSED TIMER */
+.elapsed{font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px}
+.elapsed.ok{color:#4ade80}
+.elapsed.warn{color:#fbbf24}
+.elapsed.late{color:#f87171;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ITEMS */
+.ticket-items{flex:1;padding:10px 14px}
+.ticket-item{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.ticket-item:last-child{border-bottom:none}
+.item-qty{color:#fbbf24;font-weight:900;font-size:15px;min-width:28px}
+.item-name{color:#ddd;font-weight:600;flex:1;line-height:1.3}
+.item-note{font-size:10px;color:#888;display:block;margin-top:2px}
+
+/* FOOTER BUTTONS */
+.ticket-foot{padding:10px 12px;display:flex;gap:8px}
+.bump-btn{flex:1;padding:12px 8px;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.bump-btn:active{transform:scale(.95)}
+.bump-btn.start{background:#c8900a;color:#000}
+.bump-btn.done{background:#1e8449;color:#fff}
+.bump-btn.recall{background:#333;color:#888;font-size:11px}
+.bump-btn.completed{background:#2a2a2a;color:#555;cursor:default}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:80px 20px;grid-column:1/-1}
+.empty-icon{font-size:56px;margin-bottom:16px;opacity:.3}
+.empty-text{font-size:16px;color:#555;font-weight:700}
+
+/* NEW ORDER FLASH */
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}70%{box-shadow:0 0 0 20px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+.ticket.new.flash-new{animation:flash 1s ease-out}
+
+/* LOADING */
+.loading{text-align:center;padding:60px;grid-column:1/-1;color:#555;font-weight:700;font-size:14px}
+
+/* STATS BAR */
+.stats-bar{background:#0a0a0a;padding:8px 16px;display:flex;gap:16px;border-bottom:1px solid #222;overflow-x:auto}
+.stats-bar::-webkit-scrollbar{display:none}
+.stat-item{flex-shrink:0;text-align:center}
+.stat-num{font-size:20px;font-weight:900}
+.stat-lbl{font-size:9px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.stat-num.red{color:#c0392b}
+.stat-num.gold{color:#c8900a}
+.stat-num.green{color:#1e8449}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand"><span>ONIISAN</span> KITCHEN</div>
+  <div class="topbar-right">
+    <span class="clock" id="clock">00:00:00</span>
+    <button class="sound-btn" onclick="toggleSound()" id="soundBtn">🔔 Sound ON</button>
+    <button class="refresh-btn" onclick="loadOrders()">🔄</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num red" id="statNew">0</div><div class="stat-lbl">New</div></div>
+  <div class="stat-item"><div class="stat-num gold" id="statCooking">0</div><div class="stat-lbl">Cooking</div></div>
+  <div class="stat-item"><div class="stat-num green" id="statDone">0</div><div class="stat-lbl">Done</div></div>
+  <div class="stat-item"><div class="stat-num" id="statTotal" style="color:#888">0</div><div class="stat-lbl">Total Today</div></div>
+  <div class="stat-item" style="margin-left:auto"><div class="stat-num" id="statAvgTime" style="color:#60a5fa">—</div><div class="stat-lbl">Avg Cook Time</div></div>
+</div>
+
+<!-- FILTER TABS -->
+<div class="filter-bar">
+  <button class="filter-btn all-btn active" onclick="setFilter('all')" id="f-all">All Orders</button>
+  <button class="filter-btn" onclick="setFilter('new')" id="f-new" style="border-color:#c0392b;color:#c0392b">🔴 New</button>
+  <button class="filter-btn cooking-btn" onclick="setFilter('cooking')" id="f-cooking">🟡 Cooking</button>
+  <button class="filter-btn done-btn" onclick="setFilter('done')" id="f-done">🟢 Done</button>
+</div>
+
+<!-- TICKET GRID -->
+<div class="grid" id="grid">
+  <div class="loading">Loading orders...</div>
+</div>
+
+<!-- AUDIO for new order alert -->
+<audio id="alertSound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhS0p3o7uwlWpOTm+gs6yXcVFNZJKuq5x5V1BbhKmpn394V1GAp6ahn4R4Wk1+oqahn4R4Wk1+oqahn4R4Wk1+oqah"/>
+</audio>
+
+<script>
+const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
+const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+let allOrders=[];
+let currentFilter='all';
+let soundOn=true;
+let knownIds=new Set();
+let autoRefreshTimer=null;
+
+// ── Clock ──
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+
+    String(now.getMinutes()).padStart(2,'0')+':'+
+    String(now.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock,1000);updateClock();
+
+// ── Sound ──
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById('soundBtn').textContent=soundOn?'🔔 Sound ON':'🔕 Sound OFF';
+}
+function playAlert(){
+  if(!soundOn)return;
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880,ctx.currentTime);
+    osc.frequency.setValueAtTime(660,ctx.currentTime+0.1);
+    osc.frequency.setValueAtTime(880,ctx.currentTime+0.2);
+    gain.gain.setValueAtTime(0.3,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+// ── Filter ──
+function setFilter(f){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('f-'+f).classList.add('active');
+  renderGrid();
+}
+
+// ── Load Orders from Supabase ──
+async function loadOrders(){
+  const today=new Date().toISOString().slice(0,10);
+  const{data,error}=await sb.from('transactions')
+    .select('*')
+    .eq('is_voided',false)
+    .gte('ts',today+'T00:00:00.000Z')
+    .lte('ts',today+'T23:59:59.999Z')
+    .order('ts',{ascending:false});
+
+  if(error){console.error(error);return;}
+
+  const orders=data||[];
+
+  // Detect new orders
+  let hasNew=false;
+  orders.forEach(o=>{
+    if(!knownIds.has(o.id)&&o.kitchen_status==='new'){hasNew=true;}
+    knownIds.add(o.id);
+  });
+  if(hasNew&&allOrders.length>0) playAlert();
+
+  allOrders=orders;
+  updateStats();
+  renderGrid();
+}
+
+// ── Stats ──
+function updateStats(){
+  const newCount=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new').length;
+  const cookCount=allOrders.filter(o=>o.kitchen_status==='cooking').length;
+  const doneCount=allOrders.filter(o=>o.kitchen_status==='done').length;
+  document.getElementById('statNew').textContent=newCount;
+  document.getElementById('statCooking').textContent=cookCount;
+  document.getElementById('statDone').textContent=doneCount;
+  document.getElementById('statTotal').textContent=allOrders.length;
+
+  // Avg cook time (done orders)
+  const done=allOrders.filter(o=>o.kitchen_status==='done'&&o.kitchen_done_at&&o.ts);
+  if(done.length){
+    const avg=done.reduce((s,o)=>{
+      const diff=(new Date(o.kitchen_done_at)-new Date(o.ts))/60000;
+      return s+diff;
+    },0)/done.length;
+    document.getElementById('statAvgTime').textContent=avg.toFixed(0)+'min';
+  }
+}
+
+// ── Elapsed Time ──
+function getElapsed(ts){
+  const mins=Math.round((Date.now()-new Date(ts).getTime())/60000);
+  const cls=mins<5?'ok':mins<10?'warn':'late';
+  const label=mins<60?mins+'m':(Math.floor(mins/60)+'h'+mins%60+'m');
+  return{cls,label,mins};
+}
+
+// ── Render Grid ──
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  let filtered=allOrders;
+  if(currentFilter==='new') filtered=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new');
+  else if(currentFilter==='cooking') filtered=allOrders.filter(o=>o.kitchen_status==='cooking');
+  else if(currentFilter==='done') filtered=allOrders.filter(o=>o.kitchen_status==='done');
+
+  if(!filtered.length){
+    grid.innerHTML=`<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-text">${currentFilter==='all'?'No orders today yet':'No '+currentFilter+' orders'}</div></div>`;
+    return;
+  }
+
+  // Sort: new first, then cooking, then done
+  const order={new:0,cooking:1,done:2};
+  filtered.sort((a,b)=>{
+    const sa=order[a.kitchen_status||'new']??0;
+    const sb2=order[b.kitchen_status||'new']??0;
+    if(sa!==sb2)return sa-sb2;
+    return new Date(a.ts)-new Date(b.ts); // oldest first within same status
+  });
+
+  grid.innerHTML=filtered.map(o=>{
+    const status=o.kitchen_status||'new';
+    const elapsed=getElapsed(o.ts);
+    const items=o.items||[];
+    const timeStr=new Date(o.ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+
+    const footBtn=status==='new'
+      ?`<button class="bump-btn start" onclick="bumpStatus('${o.id}','cooking')">🍳 Start Cooking</button>`
+      :status==='cooking'
+      ?`<button class="bump-btn done" onclick="bumpStatus('${o.id}','done')">✅ Mark Done</button>
+        <button class="bump-btn recall" onclick="bumpStatus('${o.id}','new')" style="flex:0 0 auto;padding:12px 10px">↩️</button>`
+      :`<button class="bump-btn completed" disabled>✅ Completed</button>
+        <button class="bump-btn recall" onclick="bumpStatus('${o.id}','cooking')" style="flex:0 0 auto;padding:12px 10px;font-size:11px">↩️ Recall</button>`;
+
+    return `<div class="ticket ${status}" id="ticket-${o.id}">
+      <div class="ticket-head ${status}">
+        <div>
+          <div class="ticket-table">${o.table_name||'Table ?'}</div>
+          <div class="ticket-or">${o.or_num||''} · ${timeStr}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="status-pill ${status}">${status==='new'?'NEW':status==='cooking'?'COOKING':'DONE'}</span>
+          <span class="elapsed ${elapsed.cls}">${elapsed.label}</span>
+        </div>
+      </div>
+      <div class="ticket-items">
+        ${items.map(i=>`<div class="ticket-item">
+          <span class="item-qty">×${i.qty}</span>
+          <span class="item-name">${i.name}${i.desc?`<span class="item-note">${i.desc}</span>`:''}</span>
+        </div>`).join('')}
+        ${!items.length?'<div style="color:#555;font-size:12px;padding:8px 0">No items</div>':''}
+      </div>
+      <div style="padding:0 12px;margin-bottom:4px">
+        <span style="font-size:10px;color:#555;font-weight:700">${o.payment_method?.toUpperCase()||'CASH'}</span>
+        ${o.cashier_name?`<span style="font-size:10px;color:#555"> · ${o.cashier_name}</span>`:''}
+      </div>
+      <div class="ticket-foot">${footBtn}</div>
+    </div>`;
+  }).join('');
+
+  // Update elapsed timers every minute
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer=setInterval(()=>renderGrid(),30000);
+}
+
+// ── Bump Status ──
+async function bumpStatus(id,newStatus){
+  const btn=document.querySelector(`#ticket-${id} .bump-btn`);
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+
+  const updateData={kitchen_status:newStatus};
+  if(newStatus==='cooking') updateData.kitchen_started_at=new Date().toISOString();
+  if(newStatus==='done') updateData.kitchen_done_at=new Date().toISOString();
+
+  const{error}=await sb.from('transactions').update(updateData).eq('id',id);
+
+  if(!error){
+    // Update local state
+    const o=allOrders.find(x=>x.id===id);
+    if(o){
+      o.kitchen_status=newStatus;
+      if(newStatus==='cooking') o.kitchen_started_at=updateData.kitchen_started_at;
+      if(newStatus==='done') o.kitchen_done_at=updateData.kitchen_done_at;
+    }
+    updateStats();
+    renderGrid();
+  } else {
+    if(btn){btn.disabled=false;btn.textContent='Error — Retry';}
+    console.error(error);
+  }
+}
+
+// ── Auto Refresh every 15 seconds ──
+setInterval(loadOrders, 15000);
+
+// ── Realtime subscription ──
+try{
+  sb.channel('kitchen-orders')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions'},()=>{
+      loadOrders();
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'transactions'},()=>{
+      loadOrders();
+    })
+    .subscribe();
+}catch(e){console.log('Realtime not available, using polling');}
+
+// ── Init ──
+loadOrders();
+</script>
+</body>
+</html>
