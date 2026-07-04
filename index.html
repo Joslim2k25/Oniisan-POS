@@ -566,7 +566,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="pos-brand">Oniisan Tempura · SM Bicutan</div>
     <div class="pos-acts">
       <button class="pos-btn loyalty-nav-btn" onclick="openLoyaltyQR()">🎉 Loyalty QR</button>
-      <button class="pos-btn" onclick="goScreen('kitchenScreen');renderKitchen()">Kitchen</button>
+      <button class="pos-btn" onclick="window.open('kitchen.html','_blank')">Kitchen</button>
       <button class="pos-btn" onclick="goBackFromPOS()">← Back</button>
     </div>
   </div>
@@ -2016,7 +2016,7 @@ document.getElementById('adminTabs').addEventListener('click',e=>{
   const tab=e.target.closest('.tab');if(!tab)return;
   const id=tab.dataset.tab;setActiveTab(id);
   if(id==='pos'){goScreen('posScreen');renderMenu();}
-  else if(id==='kitchen'){goScreen('kitchenScreen');renderKitchen();}
+  else if(id==='kitchen'){window.open('kitchen.html','_blank');}
   else renderTabContent(id);
 });
 function renderTabContent(tab){
