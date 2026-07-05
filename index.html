@@ -420,7 +420,7 @@ button{cursor:pointer;font-family:inherit}
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
-    <button class="back-role-btn" onclick="goScreen('roleScreen')">← Change Role / Logout</button>
+    <button class="back-role-btn" onclick="logoutCashier()">← Change Role / Logout</button>
 
     <!-- SALES SUMMARY FOR SM REPORT -->
     <div class="lcard" style="margin-top:12px;border:2px solid var(--blue);background:var(--blue-light)">
@@ -537,7 +537,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="topbar-right">
       <span class="pill">SM Bicutan</span>
       <span class="role-pill" id="currentRolePill">Admin</span>
-      <button class="btn-sm" onclick="goScreen('roleScreen')">Logout</button>
+      <button class="btn-sm" onclick="logoutAdmin()">Logout</button>
     </div>
   </div>
   <div class="tabs no-print" id="adminTabs">
@@ -1227,6 +1227,73 @@ let loyaltyRebateToUse=0;       // rebate amount to deduct from order
 
 // CATS is declared below as dynamic let
 
+// ══════ SESSION MANAGEMENT ══════
+// Generate unique device ID stored in localStorage
+function getDeviceId(){
+  let did = LS.get('device_id', null);
+  if(!did){
+    did = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    LS.set('device_id', did);
+  }
+  return did;
+}
+
+async function checkSession(empId){
+  // Check if employee already has an active session on another device
+  const deviceId = getDeviceId();
+  const{data:sessions} = await sb.from('employee_sessions')
+    .select('*')
+    .eq('emp_id', empId)
+    .neq('device_id', deviceId)
+    .order('last_active', {ascending: false})
+    .limit(1);
+
+  if(sessions && sessions.length){
+    const s = sessions[0];
+    // Block indefinitely — only logout clears the session
+    return {blocked: true, name: s.emp_name};
+  }
+  return {blocked: false};
+}
+
+async function createSession(empId, empName){
+  const deviceId = getDeviceId();
+  // Delete any existing sessions for this employee on this device
+  await sb.from('employee_sessions').delete()
+    .eq('emp_id', empId).eq('device_id', deviceId);
+  // Create new session
+  await sb.from('employee_sessions').insert([{
+    emp_id: empId,
+    emp_name: empName,
+    device_id: deviceId,
+    branch: 'SM Bicutan'
+  }]);
+  // Store session locally
+  LS.set('active_session_emp', empId);
+  // Start heartbeat to update last_active every 5 minutes
+  startSessionHeartbeat(empId);
+}
+
+let heartbeatTimer = null;
+function startSessionHeartbeat(empId){
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(async()=>{
+    const deviceId = getDeviceId();
+    await sb.from('employee_sessions').update({last_active: new Date().toISOString()})
+      .eq('emp_id', empId).eq('device_id', deviceId);
+  }, 5 * 60 * 1000); // every 5 mins
+}
+
+async function clearSession(empId){
+  clearInterval(heartbeatTimer);
+  const deviceId = getDeviceId();
+  if(empId){
+    await sb.from('employee_sessions').delete()
+      .eq('emp_id', empId).eq('device_id', deviceId);
+  }
+  LS.set('active_session_emp', null);
+}
+
 // ══════ HELPERS ══════
 const fmt=n=>'₱'+Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtn=n=>Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1296,7 +1363,7 @@ function clearEmpSelection(){
   renderRoleEmpList();
 }
 
-function checkUnifiedPin(){
+async function checkUnifiedPin(){
   const pin=document.getElementById('unifiedPinInput').value.trim();
   const errEl=document.getElementById('unifiedPinError');
   if(!selectedLoginEmp){showToast('Select your name first.');return;}
@@ -1318,6 +1385,19 @@ function checkUnifiedPin(){
   if(matched){
     errEl.style.display='none';
     document.getElementById('unifiedPinInput').value='';
+
+    // Check if already logged in on another device
+    const sessionCheck = await checkSession(emp.id);
+    if(sessionCheck.blocked){
+      errEl.textContent = `⛔ ${emp.name} is already logged in on another device. Please log out first before logging in here.`;
+      errEl.style.display='block';
+      errEl.style.color='var(--red)';
+      return;
+    }
+
+    // Create session for this device
+    await createSession(emp.id, emp.name);
+
     currentLoginEmp=emp;
     currentRole=emp.role;
     selectedEmp=emp.id;
@@ -4711,6 +4791,18 @@ async function deductInventoryForOrder(items){
   }catch(e){
     console.error('Inventory deduction error:',e);
   }
+}
+
+function logoutAdmin(){
+  clearSession(currentLoginEmp?.id);
+  currentLoginEmp=null;currentRole='cashier';
+  goScreen('roleScreen');
+}
+
+function logoutCashier(){
+  clearSession(currentLoginEmp?.id);
+  currentLoginEmp=null;currentRole='cashier';
+  goScreen('roleScreen');
 }
 
 // ══════ BOOT ══════
