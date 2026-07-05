@@ -93,6 +93,31 @@ body{font-family:'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100
 /* LOADING */
 .loading{text-align:center;padding:60px;grid-column:1/-1;color:#555;font-weight:700;font-size:14px}
 
+/* CHATBOT */
+.chat-fab{position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#c0392b;color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.chat-fab:active{transform:scale(.9)}
+.chat-fab .badge{position:absolute;top:-4px;right:-4px;background:#fbbf24;color:#000;font-size:10px;font-weight:900;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center}
+.chat-window{position:fixed;bottom:84px;right:20px;width:320px;max-height:480px;background:#1a1a1a;border-radius:16px;border:1px solid #333;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:200;display:none;flex-direction:column;overflow:hidden}
+.chat-window.open{display:flex}
+.chat-head{background:#c0392b;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.chat-head-title{font-size:13px;font-weight:800;color:#fff}
+.chat-head-sub{font-size:10px;color:rgba(255,255,255,.7)}
+.chat-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0;line-height:1}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:340px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.msg{max-width:85%;padding:8px 12px;border-radius:12px;font-size:12px;line-height:1.5}
+.msg.bot{background:#2a2a2a;color:#ddd;align-self:flex-start;border-bottom-left-radius:4px}
+.msg.user{background:#c0392b;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.typing{background:#2a2a2a;color:#888}
+.chat-input-wrap{padding:10px;border-top:1px solid #333;display:flex;gap:8px}
+.chat-input{flex:1;background:#2a2a2a;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-size:12px;font-family:inherit;outline:none}
+.chat-input:focus{border-color:#c0392b}
+.chat-send{background:#c0392b;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer}
+.quick-btns{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px}
+.quick-btn{background:#2a2a2a;color:#aaa;border:1px solid #333;border-radius:20px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+.quick-btn:hover{border-color:#c0392b;color:#fff}
+
 /* STATS BAR */
 .stats-bar{background:#0a0a0a;padding:8px 16px;display:flex;gap:16px;border-bottom:1px solid #222;overflow-x:auto}
 .stats-bar::-webkit-scrollbar{display:none}
@@ -144,6 +169,35 @@ body{font-family:'Segoe UI',sans-serif;background:#111;color:#fff;min-height:100
 <audio id="alertSound" preload="auto">
   <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhS0p3o7uwlWpOTm+gs6yXcVFNZJKuq5x5V1BbhKmpn394V1GAp6ahn4R4Wk1+oqahn4R4Wk1+oqahn4R4Wk1+oqah"/>
 </audio>
+
+<!-- KITCHEN CHATBOT -->
+<button class="chat-fab" onclick="toggleChat()" id="chatFab">
+  🤖
+  <div class="badge" id="chatBadge">1</div>
+</button>
+
+<div class="chat-window" id="chatWindow">
+  <div class="chat-head">
+    <div>
+      <div class="chat-head-title">🤖 Kitchen Assistant</div>
+      <div class="chat-head-sub">Ask me about inventory, orders & recipes</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg bot">👋 Hello! I'm your Kitchen Assistant. Ask me about:<br/>• Inventory stocks<br/>• Pending orders<br/>• Recipe ingredients</div>
+  </div>
+  <div class="quick-btns" id="quickBtns">
+    <button class="quick-btn" onclick="askBot('How many pending orders?')">📋 Pending orders</button>
+    <button class="quick-btn" onclick="askBot('What items are low stock?')">⚠️ Low stock</button>
+    <button class="quick-btn" onclick="askBot('How many orders done today?')">✅ Done today</button>
+  </div>
+  <div class="chat-input-wrap">
+    <input class="chat-input" id="chatInput" placeholder="Ask something..." 
+      onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
 
 <script>
 const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
@@ -252,9 +306,11 @@ function updateStats(){
 // ── Elapsed Time ──
 function getElapsed(ts){
   const mins=Math.round((Date.now()-new Date(ts).getTime())/60000);
-  const cls=mins<5?'ok':mins<10?'warn':'late';
+  const cls=mins<10?'ok':mins<25?'warn':'late';
   const label=mins<60?mins+'m':(Math.floor(mins/60)+'h'+mins%60+'m');
-  return{cls,label,mins};
+  const nearTimeout=mins>=35&&mins<TIMEOUT_MINS;
+  const autoLabel=nearTimeout?label+' ⚠️':mins>=TIMEOUT_MINS?'AUTO✓':label;
+  return{cls,label:autoLabel,mins};
 }
 
 // ── Render Grid ──
@@ -435,6 +491,45 @@ async function bumpStatus(id,newStatus){
 // ── Auto Refresh every 15 seconds ──
 setInterval(loadOrders, 15000);
 
+// ── Auto-complete orders older than 40 minutes ──
+const TIMEOUT_MINS=40;
+
+function showKitchenToast(msg){
+  let t=document.getElementById('kitchenToast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='kitchenToast';
+    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#c0392b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:999;display:none;white-space:nowrap';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',4000);
+}
+
+async function autoCompleteOldOrders(){
+  const now=Date.now();
+  const oldActive=allOrders.filter(o=>{
+    if(o.kitchen_status==='done')return false;
+    const ageMin=(now-new Date(o.ts).getTime())/60000;
+    return ageMin>=TIMEOUT_MINS;
+  });
+  if(!oldActive.length)return;
+  for(const o of oldActive){
+    await sb.from('transactions').update({
+      kitchen_status:'done',
+      kitchen_done_at:new Date().toISOString()
+    }).eq('id',o.id);
+    o.kitchen_status='done';
+    o.kitchen_done_at=new Date().toISOString();
+  }
+  showKitchenToast('⏰ '+oldActive.length+' order(s) auto-completed ('+TIMEOUT_MINS+' min timeout)');
+  updateStats();
+  renderGrid();
+}
+
+// Check every minute for timed-out orders
+setInterval(autoCompleteOldOrders, 60000);
+
 // ── Realtime subscription ──
 try{
   sb.channel('kitchen-orders')
@@ -450,6 +545,129 @@ try{
 // ── Init ──
 setFilter('active');
 loadOrders();
+
+// ══════ KITCHEN CHATBOT ══════
+let chatOpen=false;
+
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chatWindow').classList.toggle('open',chatOpen);
+  document.getElementById('chatFab').textContent=chatOpen?'×':'🤖';
+  document.getElementById('chatBadge').style.display='none';
+  if(chatOpen) document.getElementById('chatInput').focus();
+}
+
+function addMsg(text,type='bot'){
+  const msgs=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='msg '+type;
+  div.innerHTML=text;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+
+function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text)return;
+  addMsg(text,'user');
+  input.value='';
+  askBot(text);
+}
+
+async function askBot(question){
+  const typing=addMsg('🤖 Thinking...','msg bot typing');
+  const q=question.toLowerCase();
+
+  try{
+    // PENDING ORDERS
+    if(q.includes('pending')||q.includes('order')||q.includes('queue')||q.includes('new')){
+      const newOrders=allOrders.filter(o=>!o.kitchen_status||o.kitchen_status==='new');
+      const cooking=allOrders.filter(o=>o.kitchen_status==='cooking');
+      typing.remove();
+      addMsg(`📋 <strong>${newOrders.length} pending</strong> orders, <strong>${cooking.length} cooking</strong> right now.${newOrders.length>0?'<br/>Oldest: '+new Date(newOrders[newOrders.length-1]?.ts).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):''}`)
+      return;
+    }
+
+    // DONE TODAY
+    if(q.includes('done')||q.includes('completed')||q.includes('finish')){
+      const done=allOrders.filter(o=>o.kitchen_status==='done');
+      typing.remove();
+      addMsg(`✅ <strong>${done.length} orders</strong> done today out of ${allOrders.length} total.`);
+      return;
+    }
+
+    // LOW STOCK
+    if(q.includes('low')||q.includes('stock')||q.includes('kulang')||q.includes('maubusan')){
+      const{data:inv}=await sb.from('inventory').select('name,quantity,reorder_level,unit').eq('is_active',true).eq('branch','SM Bicutan');
+      const low=(inv||[]).filter(i=>i.reorder_level>0&&i.quantity<=i.reorder_level);
+      typing.remove();
+      if(low.length===0){
+        addMsg('✅ All stocks are sufficient! No low stock items.');
+      } else {
+        addMsg('⚠️ <strong>Low stock items:</strong><br/>'+low.map(i=>`• ${i.name}: <strong>${i.quantity} ${i.unit||'pcs'}</strong> (reorder at ${i.reorder_level})`).join('<br/>'));
+      }
+      return;
+    }
+
+    // SPECIFIC ITEM STOCK
+    const stockMatch=q.match(/(?:stock|marami|ilang|how much|how many)[^a-z]*(.+)|(.+)(?:\s+stock|\s+left|\s+pa)/i);
+    if(stockMatch||q.includes('inventory')){
+      const searchTerm=(stockMatch?.[1]||stockMatch?.[2]||q.replace(/stock|inventory|left|pa|ilang|marami/gi,'')).trim();
+      if(searchTerm.length>2){
+        const{data:inv}=await sb.from('inventory').select('name,quantity,unit').eq('is_active',true).ilike('name','%'+searchTerm+'%');
+        typing.remove();
+        if(inv&&inv.length){
+          addMsg('📦 <strong>Stock levels:</strong><br/>'+inv.map(i=>`• ${i.name}: <strong>${i.quantity} ${i.unit||'pcs'}</strong>`).join('<br/>'));
+        } else {
+          addMsg(`❓ Could not find "${searchTerm}" in inventory. Try a different keyword.`);
+        }
+        return;
+      }
+    }
+
+    // ALL INVENTORY
+    if(q.includes('lahat')||q.includes('all inventory')||q.includes('all stock')){
+      const{data:inv}=await sb.from('inventory').select('name,quantity,unit').eq('is_active',true).eq('branch','SM Bicutan').order('name');
+      typing.remove();
+      addMsg('📦 <strong>All stocks:</strong><br/>'+(inv||[]).map(i=>`• ${i.name}: ${i.quantity} ${i.unit||'pcs'}`).join('<br/>'));
+      return;
+    }
+
+    // RECIPE/INGREDIENTS
+    if(q.includes('recipe')||q.includes('ingredient')||q.includes('sangkap')||q.includes('gawa')){
+      const searchTerm=q.replace(/recipe|ingredient|sangkap|gaano|gawa|ng|ang/gi,'').trim();
+      const{data:prods}=await sb.from('products').select('id,name').ilike('name','%'+searchTerm+'%').limit(3);
+      if(prods&&prods.length){
+        const prod=prods[0];
+        const{data:ingredients}=await sb.from('product_ingredients').select('inventory_item_name,quantity_used,unit').eq('product_id',prod.id);
+        typing.remove();
+        if(ingredients&&ingredients.length){
+          addMsg(`🍱 <strong>${prod.name}</strong> ingredients:<br/>`+ingredients.map(i=>`• ${i.inventory_item_name}: ${i.quantity_used} ${i.unit||'pcs'}`).join('<br/>'));
+        } else {
+          addMsg(`🍱 <strong>${prod.name}</strong> — no recipe set yet. Ask admin to set it up in Admin → Recipes.`);
+        }
+      } else {
+        typing.remove();
+        addMsg('❓ Product not found. Try: "recipe ng Large Lemonade"');
+      }
+      return;
+    }
+
+    // HELP
+    typing.remove();
+    addMsg(`🤖 I can help you with:<br/>
+• <strong>Orders:</strong> "How many pending orders?"<br/>
+• <strong>Stock:</strong> "Stock ng lemon?" or "Low stock items"<br/>
+• <strong>Recipe:</strong> "Recipe ng Large Lemonade"<br/>
+• <strong>Done:</strong> "How many done today?"`);
+
+  }catch(e){
+    typing.remove();
+    addMsg('❌ Error: '+e.message);
+  }
+}
 </script>
 </body>
 </html>
