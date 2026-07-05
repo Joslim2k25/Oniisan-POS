@@ -1334,8 +1334,12 @@ function checkUnifiedPin(){
       renderTabContent('dashboard');
     } else if(emp.role==='cook'){
       // Cook goes directly to kitchen display
-      showToast('Welcome to Kitchen, '+emp.name+'!');
-      setTimeout(()=>window.location.href='kitchen.html',800);
+      showToast('🍳 Welcome to Kitchen, '+emp.name+'!');
+      clearEmpSelection();
+      setTimeout(()=>{
+        const base=window.location.href.substring(0,window.location.href.lastIndexOf('/')+1);
+        window.location.href=base+'kitchen.html';
+      },800);
       return;
     } else {
       // go to cashier time record
@@ -2710,9 +2714,11 @@ async function renderMonthly(monthKey){
     const cashlessTotal=gcash+maya+gotyme+card+grabfood+foodpanda;
     const otherDed=(rep.other_deductions||0);
     const net=g-dayExps-cashlessTotal-discount-vat-otherDed;
-    // cash declaration
+    // cash declaration — recalculate variance using NET SALES formula
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
-    const variance=cashDecl?cashDecl.variance:null;
+    // Expected = Gross - Cashless - Discount - VAT - Expenses (NET SALES)
+    const expectedCash=g-cashlessTotal-discount-vat-dayExps;
+    const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mNet+=net;mTxns+=dayTxns.length;
     return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,net,cashDecl,variance,dayTxns};
   });
