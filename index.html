@@ -30,6 +30,7 @@ button{cursor:pointer;font-family:inherit}
 .role-pill.owner{background:#fef9e7;color:#c8900a;border:1px solid #f9e29a}
 .role-pill.admin{background:#eaf2fb;color:#1a5fa8;border:1px solid #a9cce3}
 .role-pill.cashier{background:#f0f0f0;color:#888;border:1px solid #ddd}
+.role-pill.cook{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
 .btn-sm{padding:6px 14px;border:1.5px solid var(--red);border-radius:8px;color:var(--red);background:#fff;font-size:12px;font-weight:700}
 .btn-sm:hover{background:var(--red);color:#fff}
 .btn-green{background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700}
@@ -94,6 +95,7 @@ button{cursor:pointer;font-family:inherit}
 .role-badge.owner{background:#fef9e7;color:#c8900a}
 .role-badge.admin{background:#eaf2fb;color:#1a5fa8}
 .role-badge.cashier{background:#f0f0f0;color:#888}
+.role-badge.cook{background:#fff3e0;color:#e65100}
 .emp-elapsed{font-size:12px;font-weight:700;color:var(--green)}
 .time-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .time-btn{flex:1;min-width:80px;padding:12px 8px;border-radius:10px;border:2px solid;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;text-transform:uppercase}
@@ -916,6 +918,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="input-group"><div class="input-label">Role</div>
       <select class="inp" id="empModalRole">
         <option value="cashier">Cashier / Staff</option>
+        <option value="cook">Cook / Kitchen</option>
         <option value="admin">Admin / Manager</option>
         <option value="owner">Owner</option>
       </select>
@@ -1329,6 +1332,11 @@ function checkUnifiedPin(){
       goScreen('adminScreen');
       setActiveTab('dashboard');
       renderTabContent('dashboard');
+    } else if(emp.role==='cook'){
+      // Cook goes directly to kitchen display
+      showToast('Welcome to Kitchen, '+emp.name+'!');
+      setTimeout(()=>window.location.href='kitchen.html',800);
+      return;
     } else {
       // go to cashier time record
       goScreen('loginScreen');
