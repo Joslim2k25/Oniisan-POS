@@ -1264,10 +1264,9 @@ async function createSession(empId, empName){
     .eq('emp_id', empId).eq('device_id', deviceId);
   // Create new session
   const {error} = await sb.from('employee_sessions').insert([{
-    emp_id: empId,
+    emp_id: String(empId),
     emp_name: empName,
-    device_id: deviceId,
-    branch: 'SM Bicutan'
+    device_id: deviceId
   }]);
   if(error) console.error('Session create error:', error);
   else console.log('Session created successfully!');
