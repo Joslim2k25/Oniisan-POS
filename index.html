@@ -2789,7 +2789,7 @@ async function renderMonthly(monthKey){
             </button>
           </div>`;
           const isDeposited=r.cashDecl&&r.cashDecl.bank_deposited;
-          const clickCell=(val,html,filterFn,label)=>val>0?`<span onclick="event.stopPropagation();showPaymentDetail('${r.dk}','${label}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${html}</span>`:html;
+          const clickCell=(val,html,filterFn,label)=>val>0?`<span onclick="event.stopPropagation();showMonthlyPaymentDetail('${r.dk}','${label}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${html}</span>`:html;
           return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
             <td style="padding:10px;color:#fff;font-weight:700;white-space:nowrap">${r.dk} <span style="color:#888;font-size:10px">(${r.txns} orders)</span>${isDeposited?' <span style="color:#4ade80;font-size:10px">✅ DEPOSITED</span>':''}</td>
             <td style="padding:10px;text-align:right;color:#4ade80;font-weight:800">${fmt(r.gross)}</td>
@@ -2831,7 +2831,7 @@ async function renderMonthly(monthKey){
 
 // Click-to-detail: shows every transaction behind a GCash/Maya/GoTyme/FoodPanda/GrabFood/Card/Discount total
 const PAYMENT_LABELS={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',foodpanda:'FoodPanda',grabfood:'GrabFood',card:'Card',discount:'PWD/Senior/Staff Discount'};
-function showPaymentDetail(dk,type){
+function showMonthlyPaymentDetail(dk,type){
   const row=(window.__monthlyRows||[]).find(r=>r.dk===dk);
   if(!row||!row.dayTxns){showToast('No data available.');return;}
   const isDiscount=type==='discount';
