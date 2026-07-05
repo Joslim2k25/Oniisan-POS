@@ -1258,16 +1258,19 @@ async function checkSession(empId){
 
 async function createSession(empId, empName){
   const deviceId = getDeviceId();
+  console.log('Creating session for:', empName, 'device:', deviceId);
   // Delete any existing sessions for this employee on this device
   await sb.from('employee_sessions').delete()
     .eq('emp_id', empId).eq('device_id', deviceId);
   // Create new session
-  await sb.from('employee_sessions').insert([{
+  const {error} = await sb.from('employee_sessions').insert([{
     emp_id: empId,
     emp_name: empName,
     device_id: deviceId,
     branch: 'SM Bicutan'
   }]);
+  if(error) console.error('Session create error:', error);
+  else console.log('Session created successfully!');
   // Store session locally
   LS.set('active_session_emp', empId);
   // Start heartbeat to update last_active every 5 minutes
