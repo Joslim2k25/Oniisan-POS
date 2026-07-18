@@ -2783,7 +2783,8 @@ async function renderMonthly(monthKey){
     const g=dayMap[dk].gross;
     const dayTxns=dayMap[dk].txns;
     const rep=reps.find(r=>r.date_key===dk)||{};
-    const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
+    const dayExpsList=exps.filter(e=>e.date_key===dk);
+    const dayExps=dayExpsList.reduce((s,e)=>s+(e.amount||0),0);
     const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
     const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
     const gotyme=dayTxns.filter(t=>t.payment_method==='gotyme').reduce((s,t)=>s+(t.total||0),0);
@@ -2802,7 +2803,7 @@ async function renderMonthly(monthKey){
     const expectedCash=g-cashlessTotal-discount-vat-dayExps;
     const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mNet+=net;mTxns+=dayTxns.length;
-    return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,net,cashDecl,variance,dayTxns};
+    return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,expensesList:dayExpsList,net,cashDecl,variance,dayTxns};
   });
 
   const months=[];
@@ -2883,7 +2884,7 @@ async function renderMonthly(monthKey){
             <td style="padding:10px;text-align:right">${clickCell(r.card,fmtCell(r.card),null,'card')}</td>
             <td style="padding:10px;text-align:right">${clickCell(r.discount,fmtDisc(r.discount),null,'discount')}</td>
             <td style="padding:10px;text-align:right"><span style="color:#f87171;font-weight:700">${vat>0?'-'+fmt(vat):'—'}</span></td>
-            <td style="padding:10px;text-align:right">${fmtExp(r.expenses)}</td>
+            <td style="padding:10px;text-align:right">${r.expenses>0?`<span onclick="event.stopPropagation();showMonthlyExpenseDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${fmtExp(r.expenses)}</span>`:fmtExp(r.expenses)}</td>
             <td style="padding:10px;text-align:right;color:${isDeposited?'#22c55e':'#fbbf24'};font-weight:900;${isDeposited?'font-size:13px':''}">${fmt(r.net)}${isDeposited?' ✅':''}</td>
             <td style="padding:10px">${cashInput}</td>
             <td style="padding:10px;text-align:center">${varStr}</td>
@@ -2949,6 +2950,38 @@ function showMonthlyPaymentDetail(dk,type){
       </tr></tfoot>
     </table>`
     : '<div style="text-align:center;color:#ccc;padding:30px">No matching transactions found.</div>';
+  document.getElementById('paymentDetailModal').classList.add('open');
+}
+
+// Click-to-detail: shows every logged expense behind a day's Expenses total
+function showMonthlyExpenseDetail(dk){
+  const row=(window.__monthlyRows||[]).find(r=>r.dk===dk);
+  const matching=(row&&row.expensesList)?row.expensesList.slice().sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')):[];
+  const total=matching.reduce((s,e)=>s+(e.amount||0),0);
+
+  document.getElementById('paymentDetailTitle').textContent=`Expenses — ${dk} (${matching.length} ${matching.length===1?'entry':'entries'})`;
+  document.getElementById('paymentDetailContent').innerHTML=matching.length?`
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Time</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Category</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Description</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th>
+      </tr></thead>
+      <tbody>
+        ${matching.map(e=>`<tr style="border-bottom:1px solid #f5f5f5">
+          <td style="padding:6px 8px">${e.created_at?new Date(e.created_at).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+          <td style="padding:6px 8px"><span class="exp-cat">${e.category||'—'}</span></td>
+          <td style="padding:6px 8px">${e.description||'—'}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(e.amount||0)}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot><tr style="border-top:2px solid var(--border);font-weight:800">
+        <td colspan="3" style="padding:8px">TOTAL</td>
+        <td style="padding:8px;text-align:right">${fmt(total)}</td>
+      </tr></tfoot>
+    </table>`
+    : '<div style="text-align:center;color:#ccc;padding:30px">No expenses logged for this day.</div>';
   document.getElementById('paymentDetailModal').classList.add('open');
 }
 
