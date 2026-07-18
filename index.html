@@ -599,7 +599,7 @@ button{cursor:pointer;font-family:inherit}
         <!-- PWD/Senior Warning -->
         <div id="discountWarningBox" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:8px 10px;margin-top:4px">
           <div style="font-size:10px;font-weight:800;color:#856404;margin-bottom:4px">⚠️ DISCOUNT POLICY REMINDER</div>
-          <div style="font-size:10px;color:#856404;line-height:1.5">This discount applies to <strong>1 person only</strong>. Ensure only the qualifying customer's items are included. One (1) discounted transaction per visit.</div>
+          <div style="font-size:10px;color:#856404;line-height:1.5">This discount applies to <strong>1 person, 1 ID, 1 food item only</strong>. Tap "Pick as 1 food" on the ID-holder's single item — the rest of the order stays at regular price.</div>
           <label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer">
             <input type="checkbox" id="discountConfirmCheck" onchange="checkDiscountConfirm()" style="width:14px;height:14px;accent-color:var(--red)"/>
             <span style="font-size:10px;font-weight:800;color:#856404">I confirm this is a valid PWD/Senior discount</span>
@@ -2810,6 +2810,7 @@ async function renderMonthly(monthKey){
   for(let y=2025;y<=2027;y++)for(let m=1;m<=12;m++){const ms=y+'-'+String(m).padStart(2,'0');months.push({val:ms,label:new Date(y,m-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'})});}
 
   window.__monthlyRows=rows; // expose for click-to-detail modal
+  window.__monthlyAllTxns=txns; // expose full month txns for Discount ID Log
 
   const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">—</span>';
   const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
@@ -2824,6 +2825,7 @@ async function renderMonthly(monthKey){
         ${months.map(m=>`<option value="${m.val}"${m.val===mk?'selected':''}>${m.label}</option>`).join('')}
       </select>
       <button onclick="printMonthlyReport()" style="padding:8px 14px;background:#1a5fa8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Print</button>
+      <button onclick="showDiscountIdLog('${mk}')" style="padding:8px 14px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🪪 Discount ID Log</button>
       <button onclick="downloadMonthlyExcel('${mk}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download Excel</button>
     </div>
   </div>
@@ -2982,6 +2984,61 @@ function showMonthlyExpenseDetail(dk){
       </tr></tfoot>
     </table>`
     : '<div style="text-align:center;color:#ccc;padding:30px">No expenses logged for this day.</div>';
+  document.getElementById('paymentDetailModal').classList.add('open');
+}
+
+// Aggregates every PWD/Senior discount transaction in the selected month by
+// ID number, so repeated use of the same ID (possible sharing/abuse) is
+// easy to spot. Staff Meal discount is excluded since it has no ID field.
+function showDiscountIdLog(mk){
+  const txns=(window.__monthlyAllTxns||[]).filter(t=>(t.discount==='pwd'||t.discount==='senior'));
+  const groups={};
+  txns.forEach(t=>{
+    const idKey=(t.discount_id_num||'').trim().toUpperCase()||'(NO ID ENTERED)';
+    if(!groups[idKey])groups[idKey]={idNum:idKey,names:new Set(),types:new Set(),dates:new Set(),count:0,total:0,rows:[]};
+    const g=groups[idKey];
+    g.names.add(t.discount_name||'—');
+    g.types.add((t.discount||'').toUpperCase());
+    g.dates.add(t.ts.slice(0,10));
+    g.count++;
+    g.total+=(t.discount_amount||0);
+    g.rows.push(t);
+  });
+  const list=Object.values(groups).sort((a,b)=>b.count-a.count);
+  const monthLabel=new Date(+mk.split('-')[0],+mk.split('-')[1]-1,1).toLocaleDateString('en-PH',{month:'long',year:'numeric'});
+
+  document.getElementById('paymentDetailTitle').textContent=`Discount ID Log — ${monthLabel} (${list.length} unique ID${list.length===1?'':'s'})`;
+  document.getElementById('paymentDetailContent').innerHTML=list.length?`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">🚩 IDs used more than once in the month are highlighted — worth a manual check.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">ID Number</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Name(s) on file</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Type</th>
+        <th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Times Used</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Dates</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Total Discount</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(g=>{
+          const flagged=g.count>1;
+          return `<tr style="border-bottom:1px solid #f5f5f5;${flagged?'background:#fff3cd':''}">
+          <td style="padding:6px 8px;font-weight:700">${flagged?'🚩 ':''}${g.idNum}</td>
+          <td style="padding:6px 8px">${[...g.names].join(', ')}</td>
+          <td style="padding:6px 8px">${[...g.types].join(', ')}</td>
+          <td style="padding:6px 8px;text-align:center;font-weight:800;${flagged?'color:#c0392b':''}">${g.count}</td>
+          <td style="padding:6px 8px;font-size:10.5px">${[...g.dates].sort().join(', ')}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(g.total)}</td>
+        </tr>`;}).join('')}
+      </tbody>
+      <tfoot><tr style="border-top:2px solid var(--border);font-weight:800">
+        <td colspan="3" style="padding:8px">TOTAL</td>
+        <td style="padding:8px;text-align:center">${txns.length}</td>
+        <td></td>
+        <td style="padding:8px;text-align:right">${fmt(list.reduce((s,g)=>s+g.total,0))}</td>
+      </tr></tfoot>
+    </table>`
+    : '<div style="text-align:center;color:#ccc;padding:30px">No PWD/Senior discounts logged this month.</div>';
   document.getElementById('paymentDetailModal').classList.add('open');
 }
 
@@ -4031,6 +4088,9 @@ function filterCat(c){
 
 // ══════ ORDER ══════
 const NO_DISCOUNT_CATS=['svm','super_value_meal','family_set_meals','teishoku_set_meals','family','teishoku','set_meals','packaging','take_out'];
+// PWD/Senior discount policy: ONE customer, ONE ID, ONE food item (1 pc) only.
+// discItemKey tracks which single order line the discount is applied to.
+let discItemKey=null;
 const getDisc=()=>{
   const disc=document.getElementById('discountSelect')?.value||'none';
   if(disc==='pwd'||disc==='senior'){
@@ -4042,17 +4102,38 @@ const getDisc=()=>{
 function isDiscountEligible(item){const cat=(item.cat||item.category||'').toLowerCase();return !NO_DISCOUNT_CATS.some(nc=>cat.includes(nc)||nc.includes(cat));}
 function calcDisc(items,discType){
   if(discType==='none'||!discType)return 0;
+  if(discType==='pwd'||discType==='senior'){
+    // Policy: 1 customer, 1 ID, 1 food item only — discount covers exactly
+    // one (1) unit of the single item chosen for this ID, never the whole order.
+    const item=items.find(i=>String(i.id)===String(discItemKey));
+    if(!item||!isDiscountEligible(item))return 0;
+    const eligibleSubtotal=item.price; // one (1) piece only, regardless of qty ordered
+    const vatExclusive=eligibleSubtotal/1.12;const discountAmt=vatExclusive*0.20;const vatRemoved=eligibleSubtotal-vatExclusive;return discountAmt+vatRemoved;
+  }
   const eligibleSubtotal=items.filter(i=>isDiscountEligible(i)).reduce((s,i)=>s+(i.price*i.qty),0);
-  if(discType==='pwd'||discType==='senior'){const vatExclusive=eligibleSubtotal/1.12;const discountAmt=vatExclusive*0.20;const vatRemoved=eligibleSubtotal-vatExclusive;return discountAmt+vatRemoved;}
   if(discType==='staff'){return eligibleSubtotal*0.50;}
   return 0;
 }
-function getEligibleItems(items,discType){if(discType==='none'||!discType)return[];return items.filter(i=>isDiscountEligible(i));}
-function getIneligibleItems(items,discType){if(discType==='none'||!discType)return[];return items.filter(i=>!isDiscountEligible(i));}
+function getEligibleItems(items,discType){
+  if(discType==='none'||!discType)return[];
+  if(discType==='pwd'||discType==='senior')return items.filter(i=>String(i.id)===String(discItemKey)&&isDiscountEligible(i));
+  return items.filter(i=>isDiscountEligible(i));
+}
+function getIneligibleItems(items,discType){
+  if(discType==='none'||!discType)return[];
+  if(discType==='pwd'||discType==='senior')return items.filter(i=>!(String(i.id)===String(discItemKey)&&isDiscountEligible(i)));
+  return items.filter(i=>!isDiscountEligible(i));
+}
+// Cashier taps this to mark which single order line the ID-holder's 1 food item is.
+// Only one item can ever be selected for PWD/Senior — selecting another clears the previous one.
+function selectDiscItem(id){
+  discItemKey=(discItemKey!==null&&String(discItemKey)===String(id))?null:id;
+  renderOrderPanel();
+}
 function addItem(id){const item=MENU.find(i=>String(i.id)===String(id));if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
-function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0)delete order[id];}renderOrderPanel();}
-function deleteItem(id){delete order[id];renderOrderPanel();}
-function clearOrder(){order={};renderOrderPanel();}
+function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;}}renderOrderPanel();}
+function deleteItem(id){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;renderOrderPanel();}
+function clearOrder(){order={};discItemKey=null;renderOrderPanel();}
 
 function renderOrderPanel(){
   const items=Object.values(order);
@@ -4064,15 +4145,27 @@ function renderOrderPanel(){
   const eligibleItems=getEligibleItems(items,disc);const ineligibleItems=getIneligibleItems(items,disc);
   const eligibleSub=eligibleItems.reduce((s,i)=>s+i.price*i.qty,0);
   document.getElementById('orderItemsWrap').innerHTML=items.length?items.map(i=>{
-    const eligible=isDiscountEligible(i);const isDiscounted=disc!=='none'&&eligible;
-    const itemDisc=isDiscounted?calcDisc([i],disc):0;const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.50:0;
-    return `<div class="oitem"><div class="oitem-name" style="${!eligible&&disc!=='none'?'color:var(--muted)':''}">${i.name}${!eligible&&disc!=='none'?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${isDiscounted?`<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:1px 4px;border-radius:4px;margin-left:4px">${Math.round(rate*100)}% OFF</span>`:''}</div>
+    const eligibleCat=isDiscountEligible(i);
+    const isPwdSel=disc==='pwd'||disc==='senior';
+    const isChosen=isPwdSel&&String(i.id)===String(discItemKey);
+    const isDiscounted=isPwdSel?isChosen:(disc!=='none'&&eligibleCat);
+    const itemDisc=isDiscounted?(isPwdSel?discAmt:calcDisc([i],disc)):0;
+    const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.50:0;
+    const pickBtn=isPwdSel&&eligibleCat?`<button type="button" onclick="selectDiscItem('${i.id}')" style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:4px;cursor:pointer;border:1px solid ${isChosen?'var(--green)':'#ccc'};background:${isChosen?'var(--green)':'#fff'};color:${isChosen?'#fff':'#888'}">${isChosen?'✓ 1 PC FOR ID':'Pick as 1 food'}</button>`:'';
+    return `<div class="oitem"><div class="oitem-name" style="${isPwdSel&&!eligibleCat?'color:var(--muted)':''}">${i.name}${isPwdSel&&!eligibleCat?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${!isPwdSel&&!eligibleCat&&disc!=='none'?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${isDiscounted?`<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:1px 4px;border-radius:4px;margin-left:4px">${isPwdSel?'20% OFF (1 pc)':Math.round(rate*100)+'% OFF'}</span>`:''}${pickBtn}</div>
     <div class="qty-ctrl"><button class="qbtn" onclick="removeItemQty('${i.id}')">−</button><span style="font-size:11px;font-weight:800;min-width:18px;text-align:center">${i.qty}</span><button class="qbtn" onclick="addItem('${i.id}')">+</button></div>
     <div class="oitem-price">${isDiscounted?`<span style="text-decoration:line-through;color:#ccc;font-size:10px">${fmt(i.price*i.qty)}</span><br/><span style="color:var(--green)">${fmt(i.price*i.qty-itemDisc)}</span>`:fmt(i.price*i.qty)}</div>
     <span class="oitem-del" onclick="deleteItem('${i.id}')">×</span></div>`;
   }).join(''):'<div class="order-empty">No items yet</div>';
   let subtotalHtml='';
-  if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'VAT-Exempt 20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;}
+  if(disc==='pwd'||disc==='senior'){
+    subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>`;
+    if(!discItemKey||discAmt<=0){
+      subtotalHtml+=`<div class="subtotal-row" style="font-size:10.5px;color:var(--gold);font-weight:700">👆 Tap "Pick as 1 food" on the ID-holder's ONE item above</div>`;
+    } else {
+      subtotalHtml+=`<div class="subtotal-row" style="font-size:10px;color:var(--green)">1 item selected for discount (1 pc only)</div><div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} VAT-Exempt 20%, 1 pc)</span><span>-${fmt(discAmt)}</span></div>`;
+    }
+  } else if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} 50%)</span><span>-${fmt(discAmt)}</span></div>`;}
   // Apply loyalty rebate deduction
   let finalTotal=total;
   if(loyaltyRebateToUse>0){
@@ -4152,8 +4245,10 @@ function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String
 
 function openCharge(){
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
+  const disc=getDisc();
+  if((disc==='pwd'||disc==='senior')&&!discItemKey){alert('Policy: 1 customer, 1 ID, 1 food only.\nTap "Pick as 1 food" on the ID-holder\'s single item before charging.');return;}
   const sub=items.reduce((s,i)=>s+i.price*i.qty,0);
-  const disc=getDisc();const discAmt=calcDisc(items,disc);
+  const discAmt=calcDisc(items,disc);
   const afterDisc=sub-discAmt;
   const rebateApplied=loyaltyRebateToUse>0?Math.min(loyaltyRebateToUse,afterDisc):0;
   const total=Math.max(0,afterDisc-rebateApplied);
@@ -4165,8 +4260,9 @@ function openCharge(){
   let receiptSubHtml='';
   if(discAmt>0||rebateApplied>0){
     receiptSubHtml+=`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>`;
-    if(getIneligibleItems(items,disc).length>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`;
-    if(discAmt>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;
+    if(disc==='pwd'||disc==='senior') receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ Discount applies to 1 pc only — rest at regular price</span><span></span></div>`;
+    else if(getIneligibleItems(items,disc).length>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`;
+    if(discAmt>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%, 1pc':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;
     if(rebateApplied>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--blue);font-weight:700"><span>💰 Loyalty Rebate</span><span>-${fmt(rebateApplied)}</span></div>`;
   }
   document.getElementById('receiptSubtotals').innerHTML=receiptSubHtml;
@@ -4366,6 +4462,7 @@ function onDiscountChange(){
   const disc=document.getElementById('discountSelect').value;
   const warningBox=document.getElementById('discountWarningBox');
   const check=document.getElementById('discountConfirmCheck');
+  discItemKey=null; // switching discount type always clears the previous 1-item selection
   if(disc==='pwd'||disc==='senior'){
     warningBox.style.display='block';
     check.checked=false;
