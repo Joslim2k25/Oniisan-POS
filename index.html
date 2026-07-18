@@ -761,7 +761,7 @@ button{cursor:pointer;font-family:inherit}
     <div class="modal-title">🏢 SM Rental Payout</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Date: <span id="smRentalDateLabel" style="font-weight:700;color:#333"></span></div>
     <div class="input-group">
-      <div class="input-label">Amount Due to SM (40% of Gross Sales)</div>
+      <div class="input-label">Amount Given to SM (₱)</div>
       <div id="smRentalAmountLabel" style="font-size:20px;font-weight:900;color:var(--red)">₱0.00</div>
     </div>
     <div class="input-group">
@@ -2818,7 +2818,7 @@ async function renderMonthly(monthKey){
     const dayExpsList=exps.filter(e=>e.date_key===dk);
     const dayExps=dayExpsList.reduce((s,e)=>s+(e.amount||0),0);
     const smRental=smRentals.find(s=>s.date_key===dk)||null;
-    const smRentalAmt=Math.round(g*0.40*100)/100; // fixed 40% of Gross Sales — always deducted, confirmed or not
+    const smRentalAmt=smRental?.amount||0;
     const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
     const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
     const gotyme=dayTxns.filter(t=>t.payment_method==='gotyme').reduce((s,t)=>s+(t.total||0),0);
@@ -2884,7 +2884,7 @@ async function renderMonthly(monthKey){
           <th style="padding:12px 8px;text-align:right;color:#f87171">Discount</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171">VAT</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171">Expenses</th>
-          <th style="padding:12px 8px;text-align:right;color:#f472b6">🏢 SM Rental (40%)</th>
+          <th style="padding:12px 8px;text-align:right;color:#f472b6">🏢 SM Rental</th>
           <th style="padding:12px 8px;text-align:right;color:#fbbf24">NET SALES</th>
           <th style="padding:12px 8px;text-align:center;color:#fff">Cash on Hand</th>
           <th style="padding:12px 8px;text-align:center;color:#fff">Status</th>
@@ -2909,12 +2909,11 @@ async function renderMonthly(monthKey){
             </button>
           </div>`;
           const isDeposited=r.cashDecl&&r.cashDecl.bank_deposited;
-          const smRentalDue=Math.round(r.gross*0.40*100)/100; // 40% of Gross Sales — fixed rate, not manually entered
           const smRentalCell=r.smRental
             ? `<span onclick="event.stopPropagation();showSmRentalDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:${r.smRental.amount>0?'#f472b6':'#666'};font-weight:700">${r.smRental.amount>0?'-'+fmt(r.smRental.amount):'₱0 ✓'}</span>`
             : `<div style="display:flex;align-items:center;gap:4px;justify-content:center" onclick="event.stopPropagation()">
-                <span style="color:#f472b6;font-weight:700;font-size:11px">-${fmt(smRentalDue)}</span>
-                <button onclick="event.stopPropagation();saveSmRental('${r.dk}',${smRentalDue})" style="padding:4px 8px;background:#f472b6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer">Confirm</button>
+                <input type="number" id="smrental_${r.dk}" placeholder="0" style="width:60px;background:rgba(255,255,255,.1);border:1px solid #555;border-radius:4px;color:#fff;padding:4px 6px;font-size:11px;font-weight:700;text-align:right"/>
+                <button onclick="event.stopPropagation();saveSmRental('${r.dk}')" style="padding:4px 8px;background:#f472b6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer">Log</button>
               </div>`;
           const clickCell=(val,html,filterFn,label)=>val>0?`<span onclick="event.stopPropagation();showMonthlyPaymentDetail('${r.dk}','${label}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${html}</span>`:html;
           return `<tr style="background:${idx%2===0?'#16213e':'#0f3460'};cursor:pointer" onclick="setActiveTab('sales');renderSalesLog('${r.dk}')">
@@ -3092,19 +3091,20 @@ async function saveCashOnHand(dk){
   const declared=+input.value||0;
   if(!declared){showToast('Enter cash on hand amount.');return;}
 
-  // Policy: SM Rental (40% of Gross Sales) must be confirmed & signed for BEFORE Cash on Hand for the day.
+  // Policy: SM Rental must be logged (even if ₱0) BEFORE Cash on Hand for the day.
   const{data:smExisting}=navigator.onLine?await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1):{data:null};
   if(navigator.onLine&&(!smExisting||!smExisting.length)){
-    showToast('⚠️ Confirm SM Rental (40% of Gross Sales) first before saving Cash on Hand.');
+    showToast('⚠️ Log SM Rental first (even if ₱0) before saving Cash on Hand.');
     return;
   }
 
   const txns=await sbGetTransactions(dk);
   const exps=await sbGetExpenses(dk);
+  const{data:smRentalRow}=navigator.onLine?await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single():{data:null};
+  const smRentalAmt=smRentalRow?.amount||0;
 
   // Expected = NET SALES (Gross - Cashless - Discount - VAT - Expenses - SM Rental)
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
-  const smRentalAmt=Math.round(gross*0.40*100)/100; // fixed 40% of Gross Sales
   const cashless=txns.filter(t=>['gcash','maya','gotyme','card','grabfood','foodpanda'].includes(t.payment_method)).reduce((s,t)=>s+(t.total||0),0);
   const discount=txns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const vat=discount/1.12*0.12;
@@ -3126,16 +3126,16 @@ async function saveCashOnHand(dk){
 }
 
 // ══════ SM RENTAL ══════
-// Policy: SM Rental is a FIXED 40% of that day's Gross Sales — not a
-// manually typed amount. Cashier just confirms the computed amount and
-// captures the receiver's signature before Cash on Hand can be saved.
-// ₱0 only happens on a zero-sales day and needs no signature.
-let smRentalPendingDk=null,smRentalPendingAmt=0;
-function saveSmRental(dk,amt){
-  amt=+amt||0;
-  if(amt<=0){ persistSmRental(dk,0,'','',()=>{showToast('SM Rental logged as ₱0 (no sales that day).');renderMonthly(dk.slice(0,7));}); return; }
+// Policy: cashier logs what was handed over to SM (mall) BEFORE Cash on
+// Hand can be saved for that day. ₱0 is valid (nothing given that day) and
+// needs no signature. Any amount > ₱0 requires the receiver's signature.
+let smRentalPendingDk=null;
+function saveSmRental(dk){
+  const input=document.getElementById('smrental_'+dk);
+  if(!input)return;
+  const amt=+input.value||0;
+  if(amt<=0){ persistSmRental(dk,0,'','',()=>{showToast('SM Rental logged as ₱0.');renderMonthly(dk.slice(0,7));}); return; }
   smRentalPendingDk=dk;
-  smRentalPendingAmt=amt;
   document.getElementById('smRentalDateLabel').textContent=dk;
   document.getElementById('smRentalAmountLabel').textContent=fmt(amt);
   document.getElementById('smRentalReceiverName').value='';
@@ -3143,16 +3143,17 @@ function saveSmRental(dk,amt){
   document.getElementById('smRentalModal').classList.add('open');
   setTimeout(()=>initSmRentalSigPad(),100);
 }
-function closeSmRentalModal(){document.getElementById('smRentalModal').classList.remove('open');smRentalPendingDk=null;smRentalPendingAmt=0;}
+function closeSmRentalModal(){document.getElementById('smRentalModal').classList.remove('open');smRentalPendingDk=null;}
 function confirmSmRental(){
   const dk=smRentalPendingDk;if(!dk)return;
-  const amt=smRentalPendingAmt;
+  const input=document.getElementById('smrental_'+dk);
+  const amt=+input?.value||0;
   const receiverName=document.getElementById('smRentalReceiverName').value.trim();
   if(!receiverName){showToast('Enter the receiver\'s name.');return;}
   if(!smRentalSigData){showToast('Receiver must sign before confirming.');return;}
   persistSmRental(dk,amt,receiverName,smRentalSigData,()=>{
     closeSmRentalModal();
-    showToast(`SM Rental of ${fmt(amt)} (40% of Gross) confirmed & signed by ${receiverName}.`);
+    showToast(`SM Rental of ${fmt(amt)} logged & signed by ${receiverName}.`);
     renderMonthly(dk.slice(0,7));
   });
 }
