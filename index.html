@@ -1139,7 +1139,7 @@ button{cursor:pointer;font-family:inherit}
     <div style="border-top:1px solid #eee;margin-top:14px;padding-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:11px;color:var(--muted);font-weight:700">RECENT DELIVERIES</div>
-        <button onclick="openDeliveryHistoryModal()" style="border:none;background:none;color:var(--blue);font-weight:700;font-size:11px;cursor:pointer">📜 Buong History →</button>
+        <button id="deliveryHistoryLinkBtn" onclick="openDeliveryHistoryModal()" style="border:none;background:none;color:var(--blue);font-weight:700;font-size:11px;cursor:pointer">📜 Buong History →</button>
       </div>
       <div id="recentDeliveriesList" style="max-height:220px;overflow-y:auto"></div>
     </div>
@@ -4515,6 +4515,8 @@ async function openDeliveryModal(){
   document.getElementById('deliveryModalItemInfo').textContent='';
   document.getElementById('deliveryModalQty').value='';
   document.getElementById('deliveryModalNotes').value='';
+  const canViewHistory=currentLoginEmp&&(currentLoginEmp.role==='owner'||currentLoginEmp.role==='admin');
+  document.getElementById('deliveryHistoryLinkBtn').style.display=canViewHistory?'inline-block':'none';
   document.getElementById('deliveryModal').classList.add('open');
   loadRecentDeliveries();
 }
@@ -4595,6 +4597,10 @@ async function deleteDelivery(id,invId,qty){
 // ══════ DELIVERY HISTORY (date range + search) ══════
 let __delivHistRows=[];
 function openDeliveryHistoryModal(){
+  if(!currentLoginEmp||(currentLoginEmp.role!=='owner'&&currentLoginEmp.role!=='admin')){
+    showToast('Owner/Admin lang ang makakatingin ng Delivery History.');
+    return;
+  }
   const today=getTodayKey();
   document.getElementById('delivHistFrom').value=today;
   document.getElementById('delivHistFrom').max=today;
