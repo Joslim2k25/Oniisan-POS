@@ -2192,7 +2192,7 @@ function renderTabContent(tab){
   else if(tab==='employees')renderEmployeeMgmt();
   else if(tab==='products')renderProductMgmt();
   else if(tab==='categories')renderCategoryMgmt();
-  else if(tab==='inventory')renderInventory();
+  else if(tab==='inventory')renderInventoryHub();
   else if(tab==='payroll')renderPayroll();
   else if(tab==='holidays')renderHolidays();
   else if(tab==='loyalty')renderLoyalty();
@@ -4132,6 +4132,42 @@ async function bulkUploadCSV(input){
 }
 
 // ══════ INVENTORY ══════
+// ══════ INVENTORY HUB (landing cards — mirrors Limjoe's Inventory tab layout) ══════
+function renderInventoryHub(){
+  document.getElementById('adminBody').innerHTML=`
+  <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:14px"><div class="red-bar"></div>Inventory — SM Bicutan</div>
+  <div class="card" style="margin-bottom:14px;background:var(--blue-light);border-color:#a9cce3">
+    <div style="font-size:12px;color:var(--blue)">ℹ️ <strong>Paano gumagana ang inventory</strong><br/>Kapag nag-punch ng order → automatic na babawas ang stock base sa recipe.<br/>Mag-upload ng CSV o mag-add ng item para i-setup ang inventory.</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div onclick="renderInventory()" style="cursor:pointer;border:2px solid var(--red);border-radius:14px;padding:26px 20px;text-align:center;background:#fff;transition:.15s">
+      <div style="font-size:34px;margin-bottom:8px">📦</div>
+      <div style="font-size:14px;font-weight:800;color:var(--red)">View &amp; Adjust Stock</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Add, edit, delete items · manual stock adjustment · low stock alerts</div>
+    </div>
+    <div onclick="renderInventoryUpload()" style="cursor:pointer;border:2px solid var(--blue);border-radius:14px;padding:26px 20px;text-align:center;background:#fff;transition:.15s">
+      <div style="font-size:34px;margin-bottom:8px">📤</div>
+      <div style="font-size:14px;font-weight:800;color:var(--blue)">Upload Materials &amp; Recipes</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">CSV upload para sa maraming raw materials nang sabay-sabay</div>
+    </div>
+  </div>`;
+}
+
+function renderInventoryUpload(){
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button onclick="renderInventoryHub()" style="padding:7px 12px;background:#f0f0f0;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">← Back</button>
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Upload Materials &amp; Recipes</div>
+  </div>
+  <div class="card" style="margin-bottom:14px;background:var(--blue-light);border-color:#a9cce3">
+    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, unit, quantity, reorder_level, cost_per_unit, supplier</div>
+  </div>
+  <div class="card" style="text-align:center;padding:36px 20px">
+    <div style="font-size:38px;margin-bottom:10px">📂</div>
+    <label class="btn-green" style="cursor:pointer;font-size:13px;padding:10px 24px;display:inline-block">📥 Choose CSV File to Upload<input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/></label>
+  </div>`;
+}
+
 async function renderInventory(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading inventory...</div>';
   const{data:items}=await sb.from('inventory').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('category').order('name');
@@ -4139,16 +4175,13 @@ async function renderInventory(){
   const cats={};inv.forEach(i=>{if(!cats[i.category])cats[i.category]=[];cats[i.category].push(i);});
   const lowStock=inv.filter(i=>i.quantity<=i.reorder_level&&i.reorder_level>0);
   document.getElementById('adminBody').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button onclick="renderInventoryHub()" style="padding:7px 12px;background:#f0f0f0;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">← Back</button>
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Inventory — SM Bicutan</div>
-    <label class="btn-green" style="cursor:pointer;font-size:12px;padding:7px 14px">📥 Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/></label>
     <button class="btn-green" onclick="openDeliveryModal()">🚚 Log Delivery</button>
     <button class="btn-green" onclick="openInvModal()">+ Add Item</button>
   </div>
   ${lowStock.length?`<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><div><div style="font-size:13px;font-weight:800;color:#856404">${lowStock.length} item(s) LOW STOCK</div><div style="font-size:11px;color:#856404">${lowStock.map(i=>i.name).join(', ')}</div></div></div>`:''}
-  <div class="card" style="margin-bottom:10px;background:var(--blue-light);border-color:#a9cce3">
-    <div style="font-size:12px;color:var(--blue)"><strong>CSV Format:</strong> name, category, unit, quantity, reorder_level, cost_per_unit, supplier</div>
-  </div>
   ${Object.keys(cats).length?Object.entries(cats).map(([cat,items])=>`
   <div class="card" style="margin-bottom:10px">
     <div class="card-title"><div class="red-bar"></div>${cat} (${items.length} items)</div>
