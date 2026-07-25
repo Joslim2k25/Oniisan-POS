@@ -1103,6 +1103,33 @@ button{cursor:pointer;font-family:inherit}
   </div>
 </div>
 
+<!-- LOG DELIVERY MODAL -->
+<div class="modal-overlay" id="deliveryModal">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">🚚 Log Delivery</div>
+    <div class="input-group"><div class="input-label">Item</div>
+      <select class="inp" id="deliveryModalItemId" onchange="updateDeliveryItemInfo()">
+        <option value="">-- Pumili ng item --</option>
+      </select>
+    </div>
+    <div id="deliveryModalItemInfo" style="font-size:11px;color:var(--muted);margin:-6px 0 10px 2px"></div>
+    <div class="input-group"><div class="input-label">Quantity na dumating</div>
+      <input class="inp" id="deliveryModalQty" type="number" placeholder="0" min="0.01" step="0.01" style="font-size:18px;font-weight:800;text-align:center"/>
+    </div>
+    <div class="input-group"><div class="input-label">Notes (optional — supplier, DR#)</div>
+      <input class="inp" id="deliveryModalNotes" placeholder="e.g. SM Market, DR-00123"/>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="closeDeliveryModal()">Cancel</button>
+      <button class="mbtn primary" style="background:var(--green)" onclick="saveDelivery()">+ I-log ang Delivery</button>
+    </div>
+    <div style="border-top:1px solid #eee;margin-top:14px;padding-top:12px">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:8px">RECENT DELIVERIES</div>
+      <div id="recentDeliveriesList" style="max-height:220px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://edbneihfxiwkvczjecei.supabase.co';
 const SUPA_KEY='sb_publishable_OuSaDAf2MbGYBPjBIkkkjg_TQGByWrZ';
@@ -4107,6 +4134,7 @@ async function renderInventory(){
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Inventory — SM Bicutan</div>
     <label class="btn-green" style="cursor:pointer;font-size:12px;padding:7px 14px">📥 Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadInventory(this)"/></label>
+    <button class="btn-green" onclick="openDeliveryModal()">🚚 Log Delivery</button>
     <button class="btn-green" onclick="openInvModal()">+ Add Item</button>
   </div>
   ${lowStock.length?`<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><div><div style="font-size:13px;font-weight:800;color:#856404">${lowStock.length} item(s) LOW STOCK</div><div style="font-size:11px;color:#856404">${lowStock.map(i=>i.name).join(', ')}</div></div></div>`:''}
@@ -4201,6 +4229,72 @@ async function saveStockAdjustment(){
   await sb.from('inventory_transactions').insert([{inventory_id:id,item_name:item.name,transaction_type:type,quantity:qty,unit:item.unit,notes,performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);
   setLoading(false);closeStockModal();
   showToast(`Stock ${type==='in'?'IN':'OUT'} recorded! New qty: ${newQty} ${item.unit}`);
+  renderInventory();
+}
+
+// ══════ LOG DELIVERY (dedicated flow — separate from +IN/-OUT quick adjust) ══════
+let __deliveryInvItems=[];
+async function openDeliveryModal(){
+  const{data:items}=await sb.from('inventory').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('name');
+  __deliveryInvItems=items||[];
+  document.getElementById('deliveryModalItemId').innerHTML='<option value="">-- Pumili ng item --</option>'+__deliveryInvItems.map(i=>`<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
+  document.getElementById('deliveryModalItemInfo').textContent='';
+  document.getElementById('deliveryModalQty').value='';
+  document.getElementById('deliveryModalNotes').value='';
+  document.getElementById('deliveryModal').classList.add('open');
+  loadRecentDeliveries();
+}
+function closeDeliveryModal(){document.getElementById('deliveryModal').classList.remove('open');}
+function updateDeliveryItemInfo(){
+  const id=document.getElementById('deliveryModalItemId').value;
+  const item=__deliveryInvItems.find(i=>i.id===id);
+  document.getElementById('deliveryModalItemInfo').textContent=item?`Current stock: ${item.quantity} ${item.unit}`:'';
+}
+async function saveDelivery(){
+  const id=document.getElementById('deliveryModalItemId').value;
+  const qty=+document.getElementById('deliveryModalQty').value||0;
+  const notes=document.getElementById('deliveryModalNotes').value.trim();
+  if(!id){showToast('Pumili muna ng item.');return;}
+  if(!qty||qty<=0){showToast('Lagay ng valid na quantity.');return;}
+  setLoading(true);
+  const{data:item}=await sb.from('inventory').select('*').eq('id',id).single();
+  if(!item){showToast('Item not found.');setLoading(false);return;}
+  const newQty=item.quantity+qty;
+  await sb.from('inventory').update({quantity:newQty}).eq('id',id);
+  await sb.from('inventory_transactions').insert([{inventory_id:id,item_name:item.name,transaction_type:'delivery',quantity:qty,unit:item.unit,notes,performed_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan'}]);
+  setLoading(false);
+  document.getElementById('deliveryModalQty').value='';
+  document.getElementById('deliveryModalNotes').value='';
+  showToast(`✅ Delivery logged: +${qty} ${item.unit}`);
+  const idx=__deliveryInvItems.findIndex(i=>i.id===id);if(idx>-1)__deliveryInvItems[idx].quantity=newQty;
+  updateDeliveryItemInfo();
+  loadRecentDeliveries();
+  renderInventory();
+}
+async function loadRecentDeliveries(){
+  const{data}=await sb.from('inventory_transactions').select('*').eq('transaction_type','delivery').eq('branch','SM Bicutan').order('created_at',{ascending:false}).limit(20);
+  const rows=data||[];
+  const canDelete=currentLoginEmp&&(currentLoginEmp.role==='owner'||currentLoginEmp.role==='admin');
+  document.getElementById('recentDeliveriesList').innerHTML=rows.length?rows.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:11px">
+      <div>
+        <div style="font-weight:700">${r.item_name} <span style="color:var(--green)">+${r.quantity} ${r.unit}</span></div>
+        <div style="color:var(--muted);font-size:10px">${r.performed_by||'—'} · ${new Date(r.created_at).toLocaleString('en-PH')}${r.notes?' · '+r.notes:''}</div>
+      </div>
+      ${canDelete?`<button onclick="deleteDelivery('${r.id}','${r.inventory_id||''}',${r.quantity})" style="padding:4px 8px;background:#fef2f2;border:1px solid #dc2626;border-radius:5px;color:#dc2626;font-weight:700;font-size:10px;cursor:pointer;white-space:nowrap">Delete</button>`:''}
+    </div>`).join(''):'<div style="text-align:center;color:#ccc;padding:16px;font-size:12px">Wala pang delivery na naka-log.</div>';
+}
+async function deleteDelivery(id,invId,qty){
+  if(!confirm('Delete this delivery record? Ire-reverse ang dagdag sa stock.'))return;
+  setLoading(true);
+  if(invId){
+    const{data:item}=await sb.from('inventory').select('*').eq('id',invId).single();
+    if(item){await sb.from('inventory').update({quantity:Math.max(0,item.quantity-(+qty))}).eq('id',invId);}
+  }
+  await sb.from('inventory_transactions').delete().eq('id',id);
+  setLoading(false);
+  showToast('Delivery deleted, stock reversed.');
+  loadRecentDeliveries();
   renderInventory();
 }
 
