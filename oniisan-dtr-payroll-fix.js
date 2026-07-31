@@ -152,6 +152,23 @@
           <td style="padding:6px 8px;text-align:center;font-weight:900;color:var(--blue);font-size:13px">${totalHours.toFixed(1)}</td>
         </tr>`;
       }).join('');
+      // ★ FIX: compute grand totals across all employees for the summary row ★
+      let grandTotalDays=0, grandTotalHours=0;
+      employees.forEach(emp=>{
+        const empData=empDayMap[emp.id]||{days:{}};
+        Object.keys(empData.days).forEach(dt=>{
+          const dayRecs=empData.days[dt]||[];
+          const outRec=dayRecs.find(r=>r.action==='out');
+          const inRec=dayRecs.find(r=>r.action==='in');
+          if(outRec&&inRec){
+            const hrs=Math.min(Math.max(0,(new Date(outRec.ts).getTime()-new Date(inRec.ts).getTime())/3600000),16);
+            grandTotalDays++; grandTotalHours+=hrs;
+          } else if(inRec){
+            grandTotalDays++;
+          }
+        });
+      });
+
       document.getElementById('adminBody').innerHTML=`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>DTR — ${cutoffLabel}</div>
@@ -168,6 +185,13 @@
         <span style="background:#fff5f5;padding:0 6px;border-radius:4px;font-weight:700;color:var(--red)">Sunday</span>
         <span><span style="color:var(--green);font-weight:700">↓ Time In</span> · <span style="color:var(--red);font-weight:700">↑ Time Out</span> — click a cell for the full punch log (incl. breaks)</span>
       </div>
+      <div style="background:var(--red);color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.5px">TOTAL — LAHAT NG EMPLEYADO (${cutoffLabel})</div>
+        <div style="display:flex;gap:20px">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalDays}</div><div style="font-size:10px;opacity:.85">Total Days Worked</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalHours.toFixed(1)}</div><div style="font-size:10px;opacity:.85">Total Hours</div></div>
+        </div>
+      </div>
       <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
         <table style="border-collapse:collapse;font-size:12px;width:100%">
           <thead>
@@ -179,6 +203,13 @@
             </tr>
           </thead>
           <tbody>${empRows||'<tr><td colspan="100" style="text-align:center;padding:30px;color:#ccc">No records for this period</td></tr>'}</tbody>
+          <tfoot>
+            <tr style="background:#1a1a2e;color:#fff;font-weight:900">
+              <td style="padding:8px 10px;position:sticky;left:0;background:#1a1a2e" colspan="${dates.length+1}">GRAND TOTAL</td>
+              <td style="padding:8px;text-align:center;border-left:2px solid #333;color:#4ade80">${grandTotalDays}</td>
+              <td style="padding:8px;text-align:center;color:#60a5fa">${grandTotalHours.toFixed(1)}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>`;
     };
