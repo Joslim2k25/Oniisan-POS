@@ -1836,21 +1836,19 @@ async function saveCashDeclaration(){
   };
 
   setLoading(true);
-  // SAVE FIRST
-  let saved=false;
+  // SAVE — attempt online insert, but the RESULT (over/short/matched) must always
+  // be shown to the cashier regardless of save outcome. A failed/blocked insert
+  // (RLS, missing table, offline) should never hide the variance from the cashier.
+  let saveError=null;
   if(navigator.onLine){
     const{error}=await sb.from('cash_declarations').insert([rec]);
-    if(!error) saved=true;
-    else addToQueue('cash_declaration',rec);
+    if(error){saveError=error;addToQueue('cash_declaration',rec);}
   } else {
     addToQueue('cash_declaration',rec);
-    saved=true;
   }
   setLoading(false);
 
-  if(!saved){showToast('Error saving. Please try again.');return;}
-
-  // THEN show result
+  // ALWAYS show result — this is the critical part for the cashier
   const box=document.getElementById('cashVarianceBox');
   box.style.display='block';
   document.getElementById('expectedCashAmt').textContent=fmt(expectedCashSales);
@@ -1891,7 +1889,7 @@ async function saveCashDeclaration(){
   }
   lockTimeButtons();
 
-  showToast(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later');
+  showToast(saveError?'⚠️ Nakita na ang resulta, pero may isyu sa pag-save online — naka-queue na ito, i-sync ulit mamaya.':(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later'));
 }
 
 function lockTimeButtons(){
