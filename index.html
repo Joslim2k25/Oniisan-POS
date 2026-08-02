@@ -801,7 +801,7 @@ button{cursor:pointer;font-family:inherit}
     <img id="photoPreview" class="photo-preview" alt=""/>
     <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center" id="camInstruct">Position yourself then click Capture</div>
     <div class="modal-btns">
-      <button class="mbtn secondary" onclick="closeCam()">Cancel</button>
+      <button class="mbtn secondary" onclick="cancelCam()">Cancel</button>
       <button class="mbtn primary" id="camActionBtn" onclick="capturePhoto()">Capture</button>
     </div>
   </div>
@@ -2205,6 +2205,19 @@ function finishCam(url){
   }
 }
 function closeCam(){document.getElementById('camModal').classList.remove('open');if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}}
+// FIX: "Cancel" on the punch camera used to silently drop the punch entirely — an
+// employee could Time In/Out, get interrupted, hit Cancel, and nothing would ever be
+// logged (a frequent source of "wala akong record" disputes). Now, if this modal was
+// opened for a time punch, Cancel still logs it (without a photo) instead of losing it.
+function cancelCam(){
+  const action=pendingTimeAction, empId=pendingPhotoEmpId;
+  closeCam();
+  if(action&&empId){
+    doTimeAction(action,empId,null);
+    pendingTimeAction=null;pendingPhotoEmpId=null;
+    showToast('⚠️ Naitala nang walang litrato (kinansela ang camera).',3500);
+  }
+}
 
 // ══════ ADMIN TABS ══════
 function setActiveTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));}
