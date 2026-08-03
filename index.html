@@ -961,6 +961,7 @@ button{cursor:pointer;font-family:inherit}
       </select>
     </div>
     <div class="input-group"><div class="input-label">4-digit PIN</div><input class="inp" id="empModalPin" type="password" placeholder="e.g. 1234" maxlength="4"/></div>
+    <div class="input-group"><div class="input-label">Shift Start Time (para sa Late tracking)</div><input class="inp" id="empModalShiftStart" type="time" value="09:00"/></div>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeEmpModal()">Cancel</button>
       <button class="mbtn primary" onclick="saveEmployee()">Save</button>
@@ -3907,7 +3908,9 @@ async function renderDTR(dateKey){
   const fmtPunchTime=ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}).replace(' ','').toLowerCase();
   const empRows=employees.map(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
-    let totalHours=0;let daysWorked=0;
+    let totalHours=0;let daysWorked=0;let totalLateMins=0;
+    const shiftStart=emp.shift_start||'09:00';
+    const[shiftH,shiftM]=shiftStart.split(':').map(Number);
     const dayCells=dates.map(dt=>{
       const dayRecs=empData.days[dt]||[];
       const outRec=dayRecs.find(r=>r.action==='out');
@@ -3917,6 +3920,15 @@ async function renderDTR(dateKey){
       const isManual=outRec&&outRec.photo_url==='MANUAL_ENTRY';
       const clickAttr=dayRecs.length?` onclick="showDtrDayDetail('${emp.id}','${dt}')"`:'';
       const clickStyle=dayRecs.length?'cursor:pointer;':'';
+      // Late = actual Time In minus employee's scheduled shift start, floored at 0 (never negative/early credit)
+      let lateMins=0;
+      if(inRec){
+        const inD=new Date(inRec.ts);
+        const scheduled=new Date(inD);scheduled.setHours(shiftH,shiftM,0,0);
+        lateMins=Math.max(0,Math.round((inD.getTime()-scheduled.getTime())/60000));
+        totalLateMins+=lateMins;
+      }
+      const lateBadge=lateMins>0?`<div style="font-size:8px;font-weight:800;color:var(--red)">+${lateMins}m late</div>`:'';
       if(outRec&&inRec){
         // Compute from actual timestamps — prevents cross-day carryover
         const inTime=new Date(inRec.ts).getTime();
@@ -3929,12 +3941,14 @@ async function renderDTR(dateKey){
           <div style="font-size:11px;font-weight:700;color:${color}">${hrs.toFixed(1)}h${manualMark}</div>
           <div style="font-size:8.5px;font-weight:700;color:var(--green);line-height:1.3">↓${fmtPunchTime(inRec.ts)}</div>
           <div style="font-size:8.5px;font-weight:700;color:var(--red);line-height:1.3">↑${fmtPunchTime(outRec.ts)}</div>
+          ${lateBadge}
         </td>`;
       } else if(inRec){
         daysWorked++; // FIX: count as present even without an OUT punch
         return `<td${clickAttr} style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;${clickStyle}">
           <div style="font-size:11px;font-weight:800;color:var(--blue)">IN</div>
           <div style="font-size:8.5px;font-weight:700;color:var(--green);line-height:1.3">↓${fmtPunchTime(inRec.ts)}</div>
+          ${lateBadge}
         </td>`;
       } else {
         return `<td style="padding:4px 2px;text-align:center;background:${bg};border-right:1px solid #f0f0f0;font-size:11px;color:#ddd">—</td>`;
@@ -3951,16 +3965,24 @@ async function renderDTR(dateKey){
       ${dayCells}
       <td style="padding:6px 8px;text-align:center;border-left:2px solid var(--border);font-weight:800;color:var(--green);font-size:13px">${daysWorked}</td>
       <td style="padding:6px 8px;text-align:center;font-weight:900;color:var(--blue);font-size:13px">${totalHours.toFixed(1)}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:800;color:${totalLateMins>0?'var(--red)':'#ccc'};font-size:13px">${totalLateMins}</td>
     </tr>`;
   }).join('');
   // FIX: compute grand totals (Days Worked + Total Hours) across all employees for the summary bar
-  let grandTotalDays=0, grandTotalHours=0;
+  let grandTotalDays=0, grandTotalHours=0, grandTotalLateMins=0;
   employees.forEach(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
+    const shiftStart=emp.shift_start||'09:00';
+    const[shiftH,shiftM]=shiftStart.split(':').map(Number);
     Object.keys(empData.days).forEach(dt=>{
       const dayRecs=empData.days[dt]||[];
       const outRec=dayRecs.find(r=>r.action==='out');
       const inRec=dayRecs.find(r=>r.action==='in');
+      if(inRec){
+        const inD=new Date(inRec.ts);
+        const scheduled=new Date(inD);scheduled.setHours(shiftH,shiftM,0,0);
+        grandTotalLateMins+=Math.max(0,Math.round((inD.getTime()-scheduled.getTime())/60000));
+      }
       if(outRec&&inRec){
         const hrs=Math.min(Math.max(0,(new Date(outRec.ts).getTime()-new Date(inRec.ts).getTime())/3600000),16);
         grandTotalDays++; grandTotalHours+=hrs;
@@ -3990,6 +4012,7 @@ async function renderDTR(dateKey){
     <div style="display:flex;gap:20px">
       <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalDays}</div><div style="font-size:10px;opacity:.85">Total Days Worked</div></div>
       <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalHours.toFixed(1)}</div><div style="font-size:10px;opacity:.85">Total Hours</div></div>
+      <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalLateMins}</div><div style="font-size:10px;opacity:.85">Total Late (mins)</div></div>
     </div>
   </div>
   <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
@@ -4000,6 +4023,7 @@ async function renderDTR(dateKey){
           ${dayHeaders}
           <th style="padding:6px 8px;text-align:center;border-left:2px solid var(--border);background:#eafaf1;color:var(--green);font-size:11px;min-width:45px">Days</th>
           <th style="padding:6px 8px;text-align:center;background:#eaf2fb;color:var(--blue);font-size:11px;min-width:50px">Total Hrs</th>
+          <th style="padding:6px 8px;text-align:center;background:#fdf2f2;color:var(--red);font-size:11px;min-width:55px">Late Mins</th>
         </tr>
       </thead>
       <tbody>${empRows||'<tr><td colspan="100" style="text-align:center;padding:30px;color:#ccc">No records for this period</td></tr>'}</tbody>
@@ -4008,6 +4032,7 @@ async function renderDTR(dateKey){
           <td style="padding:8px 10px;position:sticky;left:0;background:#1a1a2e" colspan="${dates.length+1}">GRAND TOTAL</td>
           <td style="padding:8px;text-align:center;border-left:2px solid #333;color:#4ade80">${grandTotalDays}</td>
           <td style="padding:8px;text-align:center;color:#60a5fa">${grandTotalHours.toFixed(1)}</td>
+          <td style="padding:8px;text-align:center;color:#f87171">${grandTotalLateMins}</td>
         </tr>
       </tfoot>
     </table>
@@ -4068,7 +4093,7 @@ async function renderEmployeeMgmt(){
       return `<div class="emp-mgmt-row">${avatarHtml}
         <div class="emp-mgmt-info">
           <div class="emp-mgmt-name">${e.name} <span class="role-badge ${e.role}">${e.role}</span></div>
-          <div class="emp-mgmt-meta">PIN: ${'●'.repeat(e.pin?.length||4)} · Initials: ${initials}</div>
+          <div class="emp-mgmt-meta">PIN: ${'●'.repeat(e.pin?.length||4)} · Initials: ${initials} · Shift: ${e.shift_start||'09:00'}</div>
         </div>
         <div class="emp-mgmt-actions">
           <button class="act-btn edit" onclick="openEmpModal('${e.id}')">Edit</button>
@@ -4087,6 +4112,7 @@ function openEmpModal(empId){
   document.getElementById('empModalInitials').value=emp?.initials||'';
   document.getElementById('empModalRole').value=emp?.role||'cashier';
   document.getElementById('empModalPin').value=emp?.pin||'';
+  document.getElementById('empModalShiftStart').value=emp?.shift_start||'09:00';
   document.getElementById('empModal').classList.add('open');
 }
 function closeEmpModal(){document.getElementById('empModal').classList.remove('open');}
@@ -4097,10 +4123,11 @@ async function saveEmployee(){
   const initials=document.getElementById('empModalInitials').value.trim().toUpperCase();
   const role=document.getElementById('empModalRole').value;
   const pin=document.getElementById('empModalPin').value.trim();
+  const shiftStart=document.getElementById('empModalShiftStart').value||'09:00';
   if(!name){showToast('Name is required.');return;}
   if(pin&&(pin.length!==4||isNaN(pin))){showToast('PIN must be 4 digits.');return;}
   setLoading(true);
-  const record={name,initials,role,pin:pin||'0000',branch:'SM Bicutan',is_active:true};
+  const record={name,initials,role,pin:pin||'0000',shift_start:shiftStart,branch:'SM Bicutan',is_active:true};
   let error;
   if(id){({error}=await sb.from('employees').update(record).eq('id',id));}
   else{({error}=await sb.from('employees').insert([record]));}
