@@ -1535,6 +1535,7 @@ async function checkUnifiedPin(){
       refreshCashierSales();
       renderCashierInventoryView();
       clearCashDeclaration();
+      startCashierHomePoll();
       document.getElementById('cashDeclStatus').innerHTML='';
       document.getElementById('openPosBtn').textContent='OPEN POS';
       document.getElementById('loginDate').textContent=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -1620,6 +1621,7 @@ function selectRole(role){
 }
 
 function openPosOrAdmin(){
+  stopCashierHomePoll();
   if(currentRole==='cashier'){
     // Check if day is already closed
     if(LS.get('day_closed_'+getTodayKey(),false)){
@@ -1639,12 +1641,28 @@ function goBackFromPOS(){
     loadExpectedCash();
     refreshCashierSales();
     clearCashDeclaration();
+    startCashierHomePoll();
     document.getElementById('cashDeclStatus').innerHTML='';
   } else {
     goScreen('adminScreen');
     setActiveTab('dashboard');
     renderTabContent('dashboard');
   }
+}
+// FIX: 'Today's Sales Summary' and 'Recent Orders' on the cashier home screen only ever
+// fetched once when the screen was shown — orders punched moments later (or on another
+// tablet) never updated the Gross Sales total until the manual Refresh button was clicked.
+// Now it silently re-fetches every 15s while this screen is visible.
+let cashierHomePollTimer=null;
+function startCashierHomePoll(){
+  stopCashierHomePoll();
+  cashierHomePollTimer=setInterval(()=>{
+    refreshCashierSales();
+    renderRecentOrders();
+  },15000);
+}
+function stopCashierHomePoll(){
+  if(cashierHomePollTimer){clearInterval(cashierHomePollTimer);cashierHomePollTimer=null;}
 }
 
 // ══════ LOAD DATA ══════
@@ -5667,6 +5685,7 @@ function logoutAdmin(){
 }
 
 function logoutCashier(){
+  stopCashierHomePoll();
   clearSession(currentLoginEmp?.id);
   currentLoginEmp=null;currentRole='cashier';
   goScreen('roleScreen');
