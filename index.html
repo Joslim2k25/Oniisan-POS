@@ -2686,7 +2686,7 @@ async function renderSalesLog(dateKey,silent){
   <div class="metric-grid" style="margin-bottom:14px">
     <div class="metric"><div class="metric-val gr">${fmtn(gross)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
     <div class="metric"><div class="metric-val re">${fmtn(expTotal)}</div><div class="metric-lbl">Total Expenses (₱)</div></div>
-    <div class="metric"><div class="metric-val go">${fmtn(gross-expTotal)}</div><div class="metric-lbl">Net Sales (₱)</div></div>
+    <div class="metric"><div class="metric-val go">${fmtn(gross-expTotal-pwdDiscAmt-seniorDiscAmt-(pwdVAT+seniorVAT))}</div><div class="metric-lbl">Net Sales (₱)</div></div>
     <div class="metric"><div class="metric-val bl">${txns.length}</div><div class="metric-lbl">Transactions</div></div>
   </div>
 
@@ -3788,8 +3788,8 @@ function buildReadingContent(txns,now,type,exps){
   const vatableSales=gross/1.12;
   const vatAmount=gross-vatableSales;
   const lessVAT=totalDisc/1.12*0.12;
-  const netSales=gross-totalDisc-lessVAT;
   const expTotal=exps?exps.reduce((s,e)=>s+(e.amount||0),0):0;
+  const netSales=gross-totalDisc-lessVAT-expTotal;
   const line=(label,val,bold=false)=>`
     <div style="display:flex;justify-content:space-between;padding:2px 0;${bold?'font-weight:900;font-size:13px;':'font-size:12px;'}border-bottom:1px dotted #eee">
       <span>${label}</span><span>${val}</span>
