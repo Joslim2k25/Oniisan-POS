@@ -2284,6 +2284,7 @@ async function sbSaveTxn(txn){
     discount_amount:txn.discountAmount,
     discount_name:txn.discountName||null,
     discount_id_num:txn.discountIdNum||null,
+    discount_id_photo:txn.discountIdPhoto||null,
     total:txn.total,
     payment_method:txn.paymentMethod,
     card_last4:txn.cardLast4||null,
@@ -2755,7 +2756,7 @@ async function renderSalesLog(dateKey){
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><div class="red-bar"></div>Discounts & VAT</div>
     <table class="tbl">
-      <thead><tr><th>OR#</th><th>Type</th><th>Name</th><th>ID Number</th><th class="num">Discount</th><th class="num">VAT</th></tr></thead>
+      <thead><tr><th>OR#</th><th>Type</th><th>Name</th><th>ID Number</th><th style="text-align:center">ID Photo</th><th class="num">Discount</th><th class="num">VAT</th></tr></thead>
       <tbody>
         ${[...pwdTxns,...seniorTxns,...staffTxns].length?[...pwdTxns,...seniorTxns,...staffTxns].map(t=>{
           const vat=(t.discount_amount||0)/1.12*0.12;
@@ -2764,11 +2765,12 @@ async function renderSalesLog(dateKey){
             <td><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--gold-light);color:var(--gold)">${(t.discount||'').toUpperCase()}</span></td>
             <td style="font-size:11px">${t.discount_name||'—'}</td>
             <td style="font-size:11px">${t.discount_id_num||'—'}</td>
+            <td style="text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>
             <td class="num re">${fmt(t.discount_amount||0)}</td>
             <td class="num re">${fmt(vat)}</td>
           </tr>`;}).join('')
-        :'<tr><td colspan="6" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>'}
-        ${[...pwdTxns,...seniorTxns,...staffTxns].length?`<tr style="background:#f0f0f0;font-weight:800"><td colspan="4">TOTAL</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
+        :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>'}
+        ${[...pwdTxns,...seniorTxns,...staffTxns].length?`<tr style="background:#f0f0f0;font-weight:800"><td colspan="5">TOTAL</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
       </tbody>
     </table>
   </div>
@@ -3074,6 +3076,7 @@ function showMonthlyPaymentDetail(dk,type){
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Table</th>
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Cashier</th>
         ${isDiscount?'<th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Type</th>':''}
+        ${isDiscount?'<th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">ID Photo</th>':''}
         <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">${isDiscount?'Discount':'Amount'}</th>
       </tr></thead>
       <tbody>
@@ -3083,11 +3086,12 @@ function showMonthlyPaymentDetail(dk,type){
           <td style="padding:6px 8px">${t.table_name||'—'}</td>
           <td style="padding:6px 8px">${t.cashier_name||'—'}</td>
           ${isDiscount?`<td style="padding:6px 8px;text-transform:uppercase;font-size:11px">${t.discount||'—'}</td>`:''}
+          ${isDiscount?`<td style="padding:6px 8px;text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="window.open(this.src,'_blank')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>`:''}
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(isDiscount?(t.discount_amount||0):(t.total||0))}</td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="border-top:2px solid var(--border);font-weight:800">
-        <td colspan="${isDiscount?5:4}" style="padding:8px">TOTAL</td>
+        <td colspan="${isDiscount?6:4}" style="padding:8px">TOTAL</td>
         <td style="padding:8px;text-align:right">${fmt(total)}</td>
       </tr></tfoot>
     </table>`
@@ -5237,7 +5241,7 @@ async function confirmCharge(){
   const cardType=currentPayMethod==='card'?document.getElementById('cardType').value:'';
   const discountName=document.getElementById('discountName').value.trim();
   const discountIdNum=document.getElementById('discountIdNum').value.trim();
-  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum};
+  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum,discountIdPhoto:(discountIdPhotoData&&discountIdPhotoData!=='NO_CAMERA')?discountIdPhotoData:null};
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
