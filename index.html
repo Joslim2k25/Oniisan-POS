@@ -2223,13 +2223,14 @@ function setActiveTab(id){document.querySelectorAll('.tab').forEach(t=>t.classLi
 document.getElementById('adminTabs').addEventListener('click',e=>{
   const tab=e.target.closest('.tab');if(!tab)return;
   const id=tab.dataset.tab;setActiveTab(id);
+  stopSalesLogAutoRefresh();
   if(id==='pos'){goScreen('posScreen');renderMenu();}
   else if(id==='kitchen'){window.open('kitchen.html','_blank');}
   else renderTabContent(id);
 });
 function renderTabContent(tab){
   if(tab==='dashboard')renderDashboard();
-  else if(tab==='sales')renderSalesLog();
+  else if(tab==='sales'){renderSalesLog();startSalesLogAutoRefresh();}
   else if(tab==='daily')renderDailyReportForm();
   else if(tab==='expenses')renderExpenses();
   else if(tab==='monthly')renderMonthly();
@@ -2244,6 +2245,21 @@ function renderTabContent(tab){
   else if(tab==='holidays')renderHolidays();
   else if(tab==='loyalty')renderLoyalty();
   else if(tab==='recipes')renderRecipes();
+}
+// FIX: Sales Log only ever fetched once when the tab was opened — new orders punched on
+// another device/tablet never appeared until you manually reloaded the whole page. Now it
+// silently re-fetches every 15s while the tab is open (no loading flash), and stops as soon
+// as you navigate to a different tab so it doesn't keep hitting the DB in the background.
+let salesLogPollTimer=null;
+let salesLogCurrentDate=null;
+function startSalesLogAutoRefresh(){
+  stopSalesLogAutoRefresh();
+  salesLogPollTimer=setInterval(()=>{
+    renderSalesLog(salesLogCurrentDate,true);
+  },15000);
+}
+function stopSalesLogAutoRefresh(){
+  if(salesLogPollTimer){clearInterval(salesLogPollTimer);salesLogPollTimer=null;}
 }
 
 // ══════ SUPABASE QUERIES ══════
@@ -2600,9 +2616,10 @@ async function renderDashboard(){
 }
 
 // ══════ SALES LOG ══════
-async function renderSalesLog(dateKey){
+async function renderSalesLog(dateKey,silent){
   const key=dateKey||getTodayKey();
-  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  salesLogCurrentDate=key;
+  if(!silent)document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   // Fetch ALL txns for display (including voided), filter for totals
   let allTxnsDisplay=[];
   if(navigator.onLine){
@@ -2643,6 +2660,7 @@ async function renderSalesLog(dateKey){
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px" class="no-print">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Daily Sales Report — ${dateStr(key+'T12:00:00')}</div>
     <input type="date" value="${key}" class="inp" style="width:160px" onchange="renderSalesLog(this.value)"/>
+    <button class="btn-green" onclick="renderSalesLog('${key}')" style="padding:8px 14px;background:#2563eb" title="I-refresh ngayon">🔄</button>
     <button class="btn-green" onclick="window.print()" style="padding:8px 14px">Print / Save PDF</button>
   </div>
 
