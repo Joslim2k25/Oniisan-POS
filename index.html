@@ -2333,10 +2333,20 @@ async function sbSaveTxn(txn){
   const cache=LS.get('txn_'+dk,[]);
   cache.push({...row,id:Date.now()});
   LS.set('txn_'+dk,cache);
-  if(navigator.onLine){const{error}=await sb.from('transactions').insert([row]);if(error)addToQueue('txn',row);}
-  else addToQueue('txn',row);
+  // FIX: navigator.onLine is an unreliable browser signal — it can report "offline" even
+  // when there IS a working connection (or vice versa), which was silently routing real
+  // orders into the local-only queue, never reaching the database, with no visible error.
+  // Now we always ATTEMPT the real online save first; only fall back to the queue if that
+  // attempt genuinely fails (network error / Supabase error), not based on the browser's guess.
+  let saved=false;
+  try{
+    const{error}=await sb.from('transactions').insert([row]);
+    if(error){addToQueue('txn',row);} else {saved=true;}
+  }catch(e){
+    addToQueue('txn',row);
+  }
   setLoading(false);
-  showToast(navigator.onLine?'Order saved!':'Saved offline — will sync later');
+  showToast(saved?'Order saved!':'⚠️ Hindi na-save online — naka-queue, i-click ang "Sync Now" sa itaas kapag may internet na.');
 }
 
 async function sbGetDailyReport(dk){
