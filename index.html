@@ -600,7 +600,7 @@ button{cursor:pointer;font-family:inherit}
             <option value="none">None</option>
             <option value="pwd">PWD (20%)</option>
             <option value="senior">Senior (20%)</option>
-            <option value="staff">Staff Meal (50%)</option>
+            <option value="staff">Staff Meal (15%)</option>
           </select>
         </div>
         <!-- PWD/Senior Warning -->
@@ -3838,7 +3838,7 @@ function buildReadingContent(txns,now,type,exps){
   <div style="font-size:11px;margin-bottom:6px">
     ${line(`${seniorTxns.length} Senior (20%)`,fmtn(seniorDisc))}
     ${line(`${pwdTxns.length} PWD (20%)`,fmtn(pwdDisc))}
-    ${line(`${staffTxns.length} Staff Meal (50%)`,fmtn(staffDisc))}
+    ${line(`${staffTxns.length} Staff Meal (15%)`,fmtn(staffDisc))}
     ${divider()}
     ${line('TOTAL',fmtn(totalDisc),true)}
     ${line('Less VAT:','')}
@@ -4873,7 +4873,7 @@ function calcDisc(items,discType){
     const vatExclusive=eligibleSubtotal/1.12;const discountAmt=vatExclusive*0.20;const vatRemoved=eligibleSubtotal-vatExclusive;return discountAmt+vatRemoved;
   }
   const eligibleSubtotal=items.filter(i=>isDiscountEligible(i)).reduce((s,i)=>s+(i.price*i.qty),0);
-  if(discType==='staff'){return eligibleSubtotal*0.50;}
+  if(discType==='staff'){return eligibleSubtotal*0.15;}
   return 0;
 }
 function getEligibleItems(items,discType){
@@ -4912,7 +4912,7 @@ function renderOrderPanel(){
     const isChosen=isPwdSel&&String(i.id)===String(discItemKey);
     const isDiscounted=isPwdSel?isChosen:(disc!=='none'&&eligibleCat);
     const itemDisc=isDiscounted?(isPwdSel?discAmt:calcDisc([i],disc)):0;
-    const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.50:0;
+    const rate=disc==='pwd'||disc==='senior'?0.20:disc==='staff'?0.15:0;
     const pickBtn=isPwdSel&&eligibleCat?`<button type="button" onclick="selectDiscItem('${i.id}')" style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:4px;cursor:pointer;border:1px solid ${isChosen?'var(--green)':'#ccc'};background:${isChosen?'var(--green)':'#fff'};color:${isChosen?'#fff':'#888'}">${isChosen?'✓ 1 PC FOR ID':'Pick as 1 food'}</button>`:'';
     return `<div class="oitem"><div class="oitem-name" style="${isPwdSel&&!eligibleCat?'color:var(--muted)':''}">${i.name}${isPwdSel&&!eligibleCat?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${!isPwdSel&&!eligibleCat&&disc!=='none'?'<span style="font-size:9px;background:#fef9e7;color:var(--gold);padding:1px 4px;border-radius:4px;margin-left:4px">NO DISC</span>':''}${isDiscounted?`<span style="font-size:9px;background:var(--green-light);color:var(--green);padding:1px 4px;border-radius:4px;margin-left:4px">${isPwdSel?'20% OFF (1 pc)':Math.round(rate*100)+'% OFF'}</span>`:''}${pickBtn}</div>
     <div class="qty-ctrl"><button class="qbtn" onclick="removeItemQty('${i.id}')">−</button><span style="font-size:11px;font-weight:800;min-width:18px;text-align:center">${i.qty}</span><button class="qbtn" onclick="addItem('${i.id}')">+</button></div>
@@ -4927,7 +4927,7 @@ function renderOrderPanel(){
     } else {
       subtotalHtml+=`<div class="subtotal-row" style="font-size:10px;color:var(--green)">1 item selected for discount (1 pc only)</div><div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} VAT-Exempt 20%, 1 pc)</span><span>-${fmt(discAmt)}</span></div>`;
     }
-  } else if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} 50%)</span><span>-${fmt(discAmt)}</span></div>`;}
+  } else if(disc!=='none'&&discAmt>0){subtotalHtml=`<div class="subtotal-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>${eligibleSub>0?`<div class="subtotal-row" style="font-size:10px;color:var(--green)">Eligible for discount: ${fmt(eligibleSub)}</div>`:''}${ineligibleItems.length>0?`<div class="subtotal-row" style="font-size:10px;color:var(--gold)">⚠️ SVM/Set Meals excluded from discount</div>`:''}<div class="subtotal-row disc"><span>Discount (${disc.toUpperCase()} 15%)</span><span>-${fmt(discAmt)}</span></div>`;}
   // Apply loyalty rebate deduction
   let finalTotal=total;
   if(loyaltyRebateToUse>0){
@@ -5024,7 +5024,7 @@ function openCharge(){
     receiptSubHtml+=`<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span>Subtotal</span><span>${fmt(sub)}</span></div>`;
     if(disc==='pwd'||disc==='senior') receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ Discount applies to 1 pc only — rest at regular price</span><span></span></div>`;
     else if(getIneligibleItems(items,disc).length>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:2px"><span>⚠️ SVM/Set Meals at regular price</span><span></span></div>`;
-    if(discAmt>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%, 1pc':'50%'})</span><span>-${fmt(discAmt)}</span></div>`;
+    if(discAmt>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--red)"><span>Discount (${disc.toUpperCase()} ${disc==='pwd'||disc==='senior'?'20%, 1pc':'15%'})</span><span>-${fmt(discAmt)}</span></div>`;
     if(rebateApplied>0) receiptSubHtml+=`<div style="display:flex;justify-content:space-between;color:var(--blue);font-weight:700"><span>💰 Loyalty Rebate</span><span>-${fmt(rebateApplied)}</span></div>`;
   }
   document.getElementById('receiptSubtotals').innerHTML=receiptSubHtml;
