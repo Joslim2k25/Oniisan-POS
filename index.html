@@ -555,6 +555,8 @@ button{cursor:pointer;font-family:inherit}
     <div class="tab" data-tab="daily">Daily Report</div>
     <div class="tab" data-tab="expenses">Expenses</div>
     <div class="tab" data-tab="monthly">Monthly</div>
+    <div class="tab" data-tab="itemsreport">Items Report</div>
+    <div class="tab" data-tab="shortages">Cashier Shortages</div>
     <div class="tab" data-tab="xread">X Reading</div>
     <div class="tab" data-tab="zread">Z Reading</div>
     <div class="tab" data-tab="dtr">DTR</div>
@@ -2264,6 +2266,8 @@ function renderTabContent(tab){
   else if(tab==='daily')renderDailyReportForm();
   else if(tab==='expenses')renderExpenses();
   else if(tab==='monthly')renderMonthly();
+  else if(tab==='itemsreport')renderItemsReport();
+  else if(tab==='shortages')renderShortagesReport();
   else if(tab==='xread')renderXReading();
   else if(tab==='zread')renderZReading();
   else if(tab==='dtr')renderDTR();
@@ -2952,6 +2956,233 @@ async function saveDailyReportForm(key){
 }
 
 // ══════ MONTHLY ══════
+// ══════ ITEMS REPORT — items sold summary across a custom date range ══════
+let __itemsReportFrom=null,__itemsReportTo=null;
+function renderItemsReport(){
+  const today=getTodayKey();
+  if(!__itemsReportFrom)__itemsReportFrom=today;
+  if(!__itemsReportTo)__itemsReportTo=today;
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Items Report</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Select date range</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <div class="input-label">Mula</div>
+        <input type="date" class="inp" id="itemsReportFrom" value="${__itemsReportFrom}" max="${today}"/>
+      </div>
+      <div>
+        <div class="input-label">Hanggang</div>
+        <input type="date" class="inp" id="itemsReportTo" value="${__itemsReportTo}" max="${today}"/>
+      </div>
+      <button class="btn-green" onclick="generateItemsReport()" style="padding:9px 18px">🔄 Generate Report</button>
+      <button onclick="downloadItemsReportCSV()" style="padding:9px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download CSV</button>
+    </div>
+  </div>
+  <div id="itemsReportResult"><div style="text-align:center;padding:30px;color:#ccc">Piliin ang date range, tapos i-click ang Generate Report.</div></div>`;
+}
+
+let __itemsReportRows=[];
+async function generateItemsReport(){
+  const from=document.getElementById('itemsReportFrom').value;
+  const to=document.getElementById('itemsReportTo').value;
+  if(!from||!to){showToast('Piliin muna ang mula at hanggang na petsa.');return;}
+  if(from>to){showToast('Mali ang date range — dapat una ang "Mula" bago ang "Hanggang".');return;}
+  __itemsReportFrom=from;__itemsReportTo=to;
+  document.getElementById('itemsReportResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
+  setLoading(true);
+  const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').range(f,t));
+  setLoading(false);
+
+  const itemMap={};
+  let grossTotal=0;
+  txns.forEach(t=>{
+    grossTotal+=(t.total||0);
+    (t.items||[]).forEach(i=>{
+      if(!itemMap[i.name]){itemMap[i.name]={name:i.name,qty:0,amt:0,orders:0};}
+      itemMap[i.name].qty+=i.qty;
+      itemMap[i.name].amt+=i.price*i.qty;
+      itemMap[i.name].orders++;
+    });
+  });
+  const rows=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
+  __itemsReportRows=rows;
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+  const totalAmt=rows.reduce((s,r)=>s+r.amt,0);
+  const dayCount=(new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000+1;
+
+  document.getElementById('itemsReportResult').innerHTML=`
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val bl">${dayCount}</div><div class="metric-lbl">Days Covered</div></div>
+    <div class="metric"><div class="metric-val go">${txns.length}</div><div class="metric-lbl">Orders</div></div>
+    <div class="metric"><div class="metric-val gr">${totalQty}</div><div class="metric-lbl">Total Items Sold</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(grossTotal)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Items Sold — ${dateStr(from+'T12:00:00')} to ${dateStr(to+'T12:00:00')}</div>
+    ${rows.length?`<table class="tbl">
+      <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty Sold</th><th class="num"># Orders</th><th class="num">Total Amount</th><th class="num">% of Sales</th></tr></thead>
+      <tbody>
+        ${rows.map((r,idx)=>`<tr>
+          <td style="color:var(--muted);font-size:11px">${idx+1}</td>
+          <td style="font-weight:700">${r.name}</td>
+          <td class="num" style="font-weight:800">${r.qty}</td>
+          <td class="num" style="color:var(--muted)">${r.orders}</td>
+          <td class="num gr">${fmt(r.amt)}</td>
+          <td class="num" style="color:var(--muted)">${totalAmt>0?(r.amt/totalAmt*100).toFixed(1):'0'}%</td>
+        </tr>`).join('')}
+        <tr style="background:#f0f0f0;font-weight:900"><td colspan="2">TOTAL</td><td class="num">${totalQty}</td><td class="num">—</td><td class="num gr">${fmt(totalAmt)}</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>`:'<div style="text-align:center;padding:30px;color:#ccc">Walang benta sa napiling date range.</div>'}
+  </div>`;
+}
+
+function downloadItemsReportCSV(){
+  if(!__itemsReportRows.length){showToast('Mag-Generate Report muna bago mag-download.');return;}
+  const headers=['#','Item Name','Qty Sold','# Orders','Total Amount'];
+  const csvRows=[headers.join(',')];
+  __itemsReportRows.forEach((r,idx)=>{csvRows.push([idx+1,`"${r.name.replace(/"/g,'""')}"`,r.qty,r.orders,r.amt.toFixed(2)].join(','));});
+  const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`items-report-${__itemsReportFrom}-to-${__itemsReportTo}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  showToast('Items report downloaded!');
+}
+
+// ══════ CASHIER SHORTAGES REPORT — per-cashier variance summary across a date range ══════
+let __shortagesFrom=null,__shortagesTo=null;
+function renderShortagesReport(){
+  const today=getTodayKey();
+  if(!__shortagesFrom)__shortagesFrom=today;
+  if(!__shortagesTo)__shortagesTo=today;
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Cashier Shortages Report</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Select date range</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <div class="input-label">Mula</div>
+        <input type="date" class="inp" id="shortagesFrom" value="${__shortagesFrom}" max="${today}"/>
+      </div>
+      <div>
+        <div class="input-label">Hanggang</div>
+        <input type="date" class="inp" id="shortagesTo" value="${__shortagesTo}" max="${today}"/>
+      </div>
+      <button class="btn-green" onclick="generateShortagesReport()" style="padding:9px 18px">🔄 Generate Report</button>
+      <button onclick="downloadShortagesCSV()" style="padding:9px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download CSV</button>
+    </div>
+  </div>
+  <div id="shortagesResult"><div style="text-align:center;padding:30px;color:#ccc">Piliin ang date range, tapos i-click ang Generate Report.</div></div>`;
+}
+
+let __shortagesRows=[];
+let __shortagesByCashier=[];
+async function generateShortagesReport(){
+  const from=document.getElementById('shortagesFrom').value;
+  const to=document.getElementById('shortagesTo').value;
+  if(!from||!to){showToast('Piliin muna ang mula at hanggang na petsa.');return;}
+  if(from>to){showToast('Mali ang date range — dapat una ang "Mula" bago ang "Hanggang".');return;}
+  __shortagesFrom=from;__shortagesTo=to;
+  document.getElementById('shortagesResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
+  setLoading(true);
+  const{data}=await sb.from('cash_declarations').select('*').eq('branch','SM Bicutan').gte('date_key',from).lte('date_key',to).order('date_key');
+  setLoading(false);
+  const decls=data||[];
+  __shortagesRows=decls;
+
+  const byCashier={};
+  decls.forEach(d=>{
+    const name=d.declared_by||'Unknown';
+    if(!byCashier[name])byCashier[name]={name,days:0,totalShort:0,totalOver:0,shortCount:0,overCount:0,exactCount:0};
+    byCashier[name].days++;
+    const v=d.variance||0;
+    if(v<0){byCashier[name].totalShort+=Math.abs(v);byCashier[name].shortCount++;}
+    else if(v>0){byCashier[name].totalOver+=v;byCashier[name].overCount++;}
+    else byCashier[name].exactCount++;
+  });
+  const cashierRows=Object.values(byCashier).sort((a,b)=>b.totalShort-a.totalShort);
+  __shortagesByCashier=cashierRows;
+
+  const grandShort=decls.filter(d=>(d.variance||0)<0).reduce((s,d)=>s+Math.abs(d.variance),0);
+  const grandOver=decls.filter(d=>(d.variance||0)>0).reduce((s,d)=>s+d.variance,0);
+  const shortDays=decls.filter(d=>(d.variance||0)<0).length;
+
+  document.getElementById('shortagesResult').innerHTML=`
+  <div class="metric-grid" style="margin-bottom:14px">
+    <div class="metric"><div class="metric-val bl">${decls.length}</div><div class="metric-lbl">Cash Declarations</div></div>
+    <div class="metric"><div class="metric-val re">${shortDays}</div><div class="metric-lbl">Days with Shortage</div></div>
+    <div class="metric"><div class="metric-val re">${fmtn(grandShort)}</div><div class="metric-lbl">Total Shortage (₱)</div></div>
+    <div class="metric"><div class="metric-val bl">${fmtn(grandOver)}</div><div class="metric-lbl">Total Over (₱)</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Summary per Cashier</div>
+    ${cashierRows.length?`<table class="tbl">
+      <thead><tr><th>Cashier</th><th class="num">Days Declared</th><th class="num">Times Short</th><th class="num">Times Over</th><th class="num">Times Exact</th><th class="num">Total Shortage</th><th class="num">Total Over</th></tr></thead>
+      <tbody>
+        ${cashierRows.map(c=>`<tr>
+          <td style="font-weight:700">${c.name}</td>
+          <td class="num">${c.days}</td>
+          <td class="num" style="color:${c.shortCount>0?'var(--red)':'var(--muted)'};font-weight:${c.shortCount>0?'800':'400'}">${c.shortCount}</td>
+          <td class="num" style="color:${c.overCount>0?'var(--blue)':'var(--muted)'}">${c.overCount}</td>
+          <td class="num" style="color:var(--green)">${c.exactCount}</td>
+          <td class="num re" style="font-weight:800">${c.totalShort>0?fmt(c.totalShort):'—'}</td>
+          <td class="num" style="color:var(--blue);font-weight:700">${c.totalOver>0?fmt(c.totalOver):'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`:'<div style="text-align:center;padding:20px;color:#ccc">Walang cash declaration sa napiling date range.</div>'}
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Daily Detail</div>
+    ${decls.length?`<table class="tbl">
+      <thead><tr><th>Date</th><th>Cashier</th><th class="num">Expected</th><th class="num">Declared</th><th class="num">Variance</th><th style="text-align:center">Status</th></tr></thead>
+      <tbody>
+        ${decls.map(d=>{
+          const v=d.variance||0;
+          const status=v===0?'<span style="color:var(--green);font-weight:800">✅ EXACT</span>':v>0?`<span style="color:var(--blue);font-weight:800">⬆️ OVER</span>`:`<span style="color:var(--red);font-weight:800">⬇️ SHORT</span>`;
+          return `<tr style="${v<0?'background:#fff8f8':''}">
+            <td style="font-weight:700">${d.date_key}</td>
+            <td>${d.declared_by||'—'}</td>
+            <td class="num">${fmt(d.expected_amount||0)}</td>
+            <td class="num">${fmt(d.declared_amount||0)}</td>
+            <td class="num" style="font-weight:800;color:${v<0?'var(--red)':v>0?'var(--blue)':'var(--green)'}">${v===0?'—':(v>0?'+':'')+fmt(v)}</td>
+            <td style="text-align:center">${status}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`:''}
+  </div>`;
+}
+
+function downloadShortagesCSV(){
+  if(!__shortagesRows.length){showToast('Mag-Generate Report muna bago mag-download.');return;}
+  const headers=['Date','Cashier','Expected','Declared','Variance','Status'];
+  const csvRows=[headers.join(',')];
+  __shortagesRows.forEach(d=>{
+    const v=d.variance||0;
+    const status=v===0?'EXACT':v>0?'OVER':'SHORT';
+    csvRows.push([d.date_key,`"${(d.declared_by||'').replace(/"/g,'""')}"`,(d.expected_amount||0).toFixed(2),(d.declared_amount||0).toFixed(2),v.toFixed(2),status].join(','));
+  });
+  csvRows.push('');
+  csvRows.push('SUMMARY PER CASHIER');
+  csvRows.push(['Cashier','Days Declared','Times Short','Times Over','Times Exact','Total Shortage','Total Over'].join(','));
+  __shortagesByCashier.forEach(c=>{
+    csvRows.push([`"${c.name.replace(/"/g,'""')}"`,c.days,c.shortCount,c.overCount,c.exactCount,c.totalShort.toFixed(2),c.totalOver.toFixed(2)].join(','));
+  });
+  const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`cashier-shortages-${__shortagesFrom}-to-${__shortagesTo}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  showToast('Shortages report downloaded!');
+}
+
 async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
