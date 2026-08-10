@@ -886,6 +886,18 @@ button{cursor:pointer;font-family:inherit}
         <div style="font-size:11px;color:var(--muted)">Exact amount — no change needed</div>
         <div style="font-size:28px;font-weight:900;color:var(--blue);margin-top:8px" id="cashlessAmt"></div>
       </div>
+
+      <!-- CASHLESS PAYMENT PROOF — screenshot/photo of the payment confirmation -->
+      <div id="cashlessProofSection" style="margin-top:10px;background:var(--gold-light);border:2px solid #f9e29a;border-radius:12px;padding:12px">
+        <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px">PAYMENT PROOF (SCREENSHOT)</div>
+        <button type="button" onclick="captureCashlessProof()" id="captureCashlessProofBtn"
+          style="width:100%;padding:10px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">
+          📷 Capture Payment Screenshot
+        </button>
+        <img id="cashlessProofPreview" src="" alt=""
+          style="display:none;width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid var(--gold)"/>
+        <div id="cashlessProofStatus" style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">No screenshot captured yet</div>
+      </div>
     </div>
 
     <!-- DISCOUNT ID SECTION — PWD/Senior full verification flow -->
@@ -2319,6 +2331,7 @@ async function sbSaveTxn(txn){
     discount_name:txn.discountName||null,
     discount_id_num:txn.discountIdNum||null,
     discount_id_photo:txn.discountIdPhoto||null,
+    cashless_proof_photo:txn.cashlessProofPhoto||null,
     total:txn.total,
     payment_method:txn.paymentMethod,
     card_last4:txn.cardLast4||null,
@@ -3108,6 +3121,7 @@ function showMonthlyPaymentDetail(dk,type){
   const row=(window.__monthlyRows||[]).find(r=>r.dk===dk);
   if(!row||!row.dayTxns){showToast('No data available.');return;}
   const isDiscount=type==='discount';
+  const isCashless=['gcash','maya','gotyme','card'].includes(type);
   const matching=isDiscount
     ? row.dayTxns.filter(t=>t.discount&&t.discount!=='none'&&(t.discount_amount||0)>0)
     : row.dayTxns.filter(t=>t.payment_method===type);
@@ -3123,6 +3137,7 @@ function showMonthlyPaymentDetail(dk,type){
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Cashier</th>
         ${isDiscount?'<th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Type</th>':''}
         ${isDiscount?'<th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">ID Photo</th>':''}
+        ${isCashless?'<th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Proof</th>':''}
         <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">${isDiscount?'Discount':'Amount'}</th>
       </tr></thead>
       <tbody>
@@ -3133,11 +3148,12 @@ function showMonthlyPaymentDetail(dk,type){
           <td style="padding:6px 8px">${t.cashier_name||'—'}</td>
           ${isDiscount?`<td style="padding:6px 8px;text-transform:uppercase;font-size:11px">${t.discount||'—'}</td>`:''}
           ${isDiscount?`<td style="padding:6px 8px;text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="window.open(this.src,'_blank')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>`:''}
+          ${isCashless?`<td style="padding:6px 8px;text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="window.open(this.src,'_blank')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No screenshot</span>'}</td>`:''}
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(isDiscount?(t.discount_amount||0):(t.total||0))}</td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="border-top:2px solid var(--border);font-weight:800">
-        <td colspan="${isDiscount?6:4}" style="padding:8px">TOTAL</td>
+        <td colspan="${isDiscount?6:(isCashless?5:4)}" style="padding:8px">TOTAL</td>
         <td style="padding:8px;text-align:right">${fmt(total)}</td>
       </tr></tfoot>
     </table>`
@@ -4956,7 +4972,18 @@ function selectPayMethod(pm){
   if(isCard)document.getElementById('cardLast4').value='';
   const labels={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',card:'Credit/Debit Card',grabfood:'GrabFood',foodpanda:'FoodPanda'};
   if(!isCash){document.getElementById('cashlessLabel').textContent=(labels[pm]||pm)+' Payment';document.getElementById('cashlessAmt').textContent=fmt(currentOrderTotal);}
+  const needsProof=['gcash','maya','gotyme','card'].includes(pm);
+  const proofSection=document.getElementById('cashlessProofSection');
+  if(proofSection)proofSection.style.display=needsProof?'block':'none';
+  if(!needsProof){cashlessProofPhotoData=null;resetCashlessProofUI();}
   updateConfirmBtn();
+}
+
+function resetCashlessProofUI(){
+  const preview=document.getElementById('cashlessProofPreview');
+  const status=document.getElementById('cashlessProofStatus');
+  if(preview){preview.style.display='none';preview.src='';}
+  if(status){status.textContent='No screenshot captured yet';status.style.color='var(--muted)';status.style.background='';}
 }
 
 function updateConfirmBtn(){
@@ -4965,6 +4992,9 @@ function updateConfirmBtn(){
   if(currentPayMethod==='cash')ok=cashTendered>=currentOrderTotal;
   else if(currentPayMethod==='card')ok=(document.getElementById('cardLast4')?.value?.length===4);
   else ok=true;
+  if(['gcash','maya','gotyme','card'].includes(currentPayMethod)){
+    if(!cashlessProofPhotoData)ok=false;   // require payment screenshot proof
+  }
   const disc=getDisc();
   if(disc==='pwd'||disc==='senior'){
     if(!document.getElementById('discountName')?.value?.trim())ok=false;
@@ -5033,6 +5063,8 @@ function openCharge(){
   document.getElementById('receiptModal').dataset.orNum=orNum;
   document.getElementById('discountName').value='';document.getElementById('discountIdNum').value='';document.getElementById('cardLast4').value='';
   discountIdPhotoData=null;
+  cashlessProofPhotoData=null;
+  resetCashlessProofUI();
   signatureData=null;
   const idPreview=document.getElementById('discountIdPhotoPreview');
   if(idPreview){idPreview.style.display='none';idPreview.src='';}
@@ -5094,6 +5126,7 @@ function checkLoyaltyPhoneLive(phone){
 
 // ══════ DISCOUNT VERIFICATION (PWD/Senior) ══════
 let discountIdPhotoData = null;
+let cashlessProofPhotoData = null;
 let signatureData = null;
 let sigDrawing = false;
 
@@ -5220,6 +5253,78 @@ function aiReadIdCard(photoBase64){
   updateConfirmBtn();
 }
 
+// Captures a photo of the customer's phone screen (or the payment terminal)
+// showing the successful GCash/Maya/GoTyme/Card payment confirmation.
+function captureCashlessProof(){
+  cashlessProofPhotoData=null;
+  const preview=document.getElementById('cashlessProofPreview');
+  const status=document.getElementById('cashlessProofStatus');
+  if(preview)preview.style.display='none';
+
+  const video=document.createElement('video');
+  const canvas=document.createElement('canvas');
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
+    .then(stream=>{
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px';
+
+      video.style.cssText='width:100%;max-width:500px;border-radius:12px;border:3px solid var(--gold)';
+      video.srcObject=stream;video.autoplay=true;video.playsInline=true;
+
+      const label=document.createElement('div');
+      label.style.cssText='color:#fff;font-size:13px;font-weight:800;text-align:center;line-height:1.5';
+      label.innerHTML='📷 Position the payment confirmation screen clearly<br/><span style="color:#fbbf24;font-size:11px">Make sure the amount and status are readable</span>';
+
+      const guide=document.createElement('div');
+      guide.style.cssText='position:absolute;border:3px dashed #fbbf24;border-radius:8px;pointer-events:none;width:85%;max-width:420px;height:280px';
+
+      const captureBtn=document.createElement('button');
+      captureBtn.innerHTML='📷 Capture Screenshot';
+      captureBtn.style.cssText='padding:14px 36px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer';
+
+      const cancelBtn=document.createElement('button');
+      cancelBtn.textContent='Cancel';
+      cancelBtn.style.cssText='padding:8px 20px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer';
+
+      overlay.appendChild(label);
+      overlay.appendChild(video);
+      overlay.appendChild(guide);
+      overlay.appendChild(captureBtn);
+      overlay.appendChild(cancelBtn);
+      document.body.appendChild(overlay);
+
+      captureBtn.onclick=()=>{
+        canvas.width=video.videoWidth||1280;
+        canvas.height=video.videoHeight||720;
+        canvas.getContext('2d').drawImage(video,0,0);
+        const photoUrl=canvas.toDataURL('image/jpeg',0.85);
+        cashlessProofPhotoData=photoUrl;
+
+        stream.getTracks().forEach(t=>t.stop());
+        document.body.removeChild(overlay);
+
+        if(preview){preview.src=photoUrl;preview.style.display='block';}
+        if(status){
+          status.innerHTML='✅ <strong>Screenshot captured!</strong>';
+          status.style.color='var(--green)';
+          status.style.background='#eafaf1';
+          status.style.borderRadius='8px';
+          status.style.padding='6px 8px';
+        }
+        updateConfirmBtn();
+      };
+
+      cancelBtn.onclick=()=>{stream.getTracks().forEach(t=>t.stop());document.body.removeChild(overlay);};
+    })
+    .catch(()=>{
+      showToast('Camera not available — payment will be saved without a screenshot.');
+      cashlessProofPhotoData='NO_CAMERA';
+      if(status){status.textContent='⚠️ No camera available — proceeding without screenshot';status.style.color='var(--gold)';}
+      updateConfirmBtn();
+    });
+}
+
 function onDiscountChange(){
   const disc=document.getElementById('discountSelect').value;
   const warningBox=document.getElementById('discountWarningBox');
@@ -5287,7 +5392,7 @@ async function confirmCharge(){
   const cardType=currentPayMethod==='card'?document.getElementById('cardType').value:'';
   const discountName=document.getElementById('discountName').value.trim();
   const discountIdNum=document.getElementById('discountIdNum').value.trim();
-  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum,discountIdPhoto:(discountIdPhotoData&&discountIdPhotoData!=='NO_CAMERA')?discountIdPhotoData:null};
+  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum,discountIdPhoto:(discountIdPhotoData&&discountIdPhotoData!=='NO_CAMERA')?discountIdPhotoData:null,cashlessProofPhoto:(cashlessProofPhotoData&&cashlessProofPhotoData!=='NO_CAMERA')?cashlessProofPhotoData:null};
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
@@ -5394,15 +5499,16 @@ async function showPaymentDetail(pm,dateKey){
   const total=filtered.reduce((s,t)=>s+(t.total||0),0);
   if(!filtered.length){document.getElementById('paymentDetailContent').innerHTML=`<div style="text-align:center;padding:30px;color:#ccc">No ${pm} transactions for this date</div>`;return;}
   const isCard=pm==='card';
+  const isCashless=['gcash','maya','gotyme','card'].includes(pm);
   document.getElementById('paymentDetailContent').innerHTML=`
   <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
     <div><div style="font-size:11px;color:var(--muted);font-weight:700">${filtered.length} TRANSACTIONS</div><div style="font-size:22px;font-weight:900;color:var(--blue)">${fmt(total)}</div></div>
     ${isCard?`<div style="text-align:right"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px">BY CARD TYPE</div>${Object.entries(filtered.reduce((acc,t)=>{const k=t.card_type||'Unknown';acc[k]=(acc[k]||0)+(t.total||0);return acc;},{})).map(([type,amt])=>`<div style="font-size:11px;font-weight:700">${type}: ${fmt(amt)}</div>`).join('')}</div>`:''}
   </div>
   <div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th>Time</th><th>OR#</th><th>Table</th><th>Items</th>${isCard?'<th>Card Details</th>':''}<th>Cashier</th><th class="num">Amount</th></tr></thead>
-    <tbody>${filtered.map(t=>`<tr><td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:11px">${t.table_name||'—'}</td><td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}<td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td><td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr style="background:#f0f0f0;font-weight:900"><td colspan="${isCard?5:4}">TOTAL</td><td class="num gr">${fmt(total)}</td></tr></tfoot>
+    <thead><tr><th>Time</th><th>OR#</th><th>Table</th><th>Items</th>${isCard?'<th>Card Details</th>':''}<th>Cashier</th>${isCashless?'<th style="text-align:center">Proof</th>':''}<th class="num">Amount</th></tr></thead>
+    <tbody>${filtered.map(t=>`<tr><td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:11px">${t.table_name||'—'}</td><td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}<td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td>${isCashless?`<td style="text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>`:''}<td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr style="background:#f0f0f0;font-weight:900"><td colspan="${isCard?5:(isCashless?5:4)}">TOTAL</td><td class="num gr">${fmt(total)}</td></tr></tfoot>
   </table></div>`;
 }
 
