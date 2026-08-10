@@ -488,27 +488,46 @@ button{cursor:pointer;font-family:inherit}
         <input class="inp" id="cashierExpDesc" placeholder="e.g. Vegetables from supplier"/>
       </div>
 
-      <!-- Gross amount input -->
-      <div class="input-group" style="margin-bottom:6px">
-        <div class="input-label">Gross Amount (₱)</div>
-        <input class="inp" id="cashierExpGross" type="number" placeholder="0.00" min="0" step="0.01"
-          oninput="computeExpVAT()"/>
+      <!-- Amount + VAT (manual — not every expense has VAT) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+        <div class="input-group" style="margin-bottom:0">
+          <div class="input-label">Amount (₱)</div>
+          <input class="inp" id="cashierExpAmount" type="number" placeholder="0.00" min="0" step="0.01"
+            oninput="computeExpVAT()"/>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <div class="input-label">VAT (₱, optional)</div>
+          <input class="inp" id="cashierExpVAT" type="number" placeholder="0.00" min="0" step="0.01" value="0"
+            oninput="computeExpVAT()"/>
+        </div>
       </div>
 
-      <!-- VAT breakdown -->
-      <div id="expVATBreakdown" style="display:none;background:#f8f8f8;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
+      <!-- Total display -->
+      <div id="expVATBreakdown" style="background:#f8f8f8;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="color:var(--muted)">Gross Amount</span>
+          <span style="color:var(--muted)">Amount</span>
           <span style="font-weight:700" id="expGrossDisplay">₱0.00</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="color:var(--muted)">VAT (12%)</span>
+          <span style="color:var(--muted)">VAT</span>
           <span style="font-weight:700;color:var(--red)" id="expVATDisplay">₱0.00</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:6px">
-          <span style="font-weight:800;color:var(--green)">Net Amount</span>
+          <span style="font-weight:800;color:var(--green)">Total</span>
           <span style="font-weight:900;color:var(--green);font-size:14px" id="expNetDisplay">₱0.00</span>
         </div>
+      </div>
+
+      <!-- Receipt photo -->
+      <div style="margin-bottom:10px;background:var(--gold-light);border:1.5px solid #f9e29a;border-radius:10px;padding:10px">
+        <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px">OFFICIAL RECEIPT (OR)</div>
+        <button type="button" onclick="captureExpenseReceipt('cashier')" id="captureExpReceiptBtn"
+          style="width:100%;padding:9px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">
+          📷 Capture Receipt Photo
+        </button>
+        <img id="expReceiptPreview" src="" alt=""
+          style="display:none;width:100%;max-height:130px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid var(--gold)"/>
+        <div id="expReceiptStatus" style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">No receipt photo yet</div>
       </div>
 
       <button onclick="saveCashierExpense()" style="width:100%;padding:10px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">Save Expense</button>
@@ -1046,6 +1065,16 @@ button{cursor:pointer;font-family:inherit}
     </div>
     <div class="input-group"><div class="input-label">Description</div><input class="inp" id="expModalDesc" placeholder="e.g. Vegetables from supplier"/></div>
     <div class="input-group"><div class="input-label">Amount (₱)</div><input class="inp" id="expModalAmt" type="number" placeholder="0" min="0"/></div>
+    <div style="margin-bottom:10px;background:var(--gold-light);border:1.5px solid #f9e29a;border-radius:10px;padding:10px">
+      <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;margin-bottom:8px">OFFICIAL RECEIPT (OR)</div>
+      <button type="button" onclick="captureExpenseReceipt('admin')" id="captureExpReceiptBtnAdmin"
+        style="width:100%;padding:9px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">
+        📷 Capture Receipt Photo
+      </button>
+      <img id="expReceiptPreviewAdmin" src="" alt=""
+        style="display:none;width:100%;max-height:130px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid var(--gold)"/>
+      <div id="expReceiptStatusAdmin" style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">No receipt photo yet</div>
+    </div>
     <input type="hidden" id="expModalDate"/>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeExpModal()">Cancel</button>
@@ -1985,30 +2014,28 @@ function selectExpCat(btn){
 }
 
 function computeExpVAT(){
-  const gross = +document.getElementById('cashierExpGross').value||0;
-  const breakdown = document.getElementById('expVATBreakdown');
-  if(gross<=0){breakdown.style.display='none';return;}
-  const vat = gross/1.12*0.12;
-  const net = gross - vat;
-  breakdown.style.display='block';
-  document.getElementById('expGrossDisplay').textContent = fmt(gross);
+  const amt = +document.getElementById('cashierExpAmount').value||0;
+  const vat = +document.getElementById('cashierExpVAT').value||0;
+  const total = amt + vat;
+  document.getElementById('expGrossDisplay').textContent = fmt(amt);
   document.getElementById('expVATDisplay').textContent = fmt(vat);
-  document.getElementById('expNetDisplay').textContent = fmt(net);
+  document.getElementById('expNetDisplay').textContent = fmt(total);
 }
 
 async function saveCashierExpense(){
-  const gross = +document.getElementById('cashierExpGross').value||0;
+  const amt = +document.getElementById('cashierExpAmount').value||0;
+  const vat = +document.getElementById('cashierExpVAT').value||0;
   const desc = document.getElementById('cashierExpDesc').value.trim();
-  if(!gross){showToast('Enter an amount.');return;}
-  const vat = gross/1.12*0.12;
-  const net = gross - vat;
+  if(!amt){showToast('Enter an amount.');return;}
+  const total = amt + vat;
   const rec={
     date_key: getTodayKey(),
     category: selectedExpCat,
     description: desc,
-    amount: gross,
+    amount: total,
     vat_amount: vat,
-    net_amount: net,
+    net_amount: amt,
+    receipt_photo: (expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,
     branch: 'SM Bicutan'
   };
   setLoading(true);
@@ -2021,9 +2048,12 @@ async function saveCashierExpense(){
   cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});
   LS.set('exp_'+getTodayKey(),cache);
   setLoading(false);
-  document.getElementById('cashierExpGross').value='';
+  document.getElementById('cashierExpAmount').value='';
+  document.getElementById('cashierExpVAT').value='0';
   document.getElementById('cashierExpDesc').value='';
-  document.getElementById('expVATBreakdown').style.display='none';
+  computeExpVAT();
+  expenseReceiptPhotoData=null;
+  resetExpenseReceiptUI('cashier');
   showToast('Expense saved!');
   renderCashierExpList();
 }
@@ -2046,6 +2076,7 @@ async function renderCashierExpList(){
       const net=e.net_amount||(e.amount-vat);
       return `<div class="cashier-exp-item">
         <span style="font-size:9px;font-weight:800;background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:8px;white-space:nowrap">${e.category}</span>
+        ${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:24px;height:24px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;flex-shrink:0" title="Click to view receipt"/>`:''}
         <div style="flex:1;padding:0 6px">
           <div style="font-size:11px;color:var(--text)">${e.description||'—'}</div>
           <div style="font-size:10px;color:var(--muted)">VAT: ${fmt(vat)} · Net: ${fmt(net)}</div>
@@ -2410,11 +2441,12 @@ async function renderExpenses(dateKey){
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Expense Log</div>
     ${exps.length?`<table class="tbl">
-      <thead><tr><th>Time</th><th>Category</th><th>Description</th><th class="num">Amount</th><th></th></tr></thead>
+      <thead><tr><th>Time</th><th>Category</th><th>Description</th><th style="text-align:center">Receipt</th><th class="num">Amount</th><th></th></tr></thead>
       <tbody>${exps.map(e=>`<tr>
         <td style="font-size:11px;color:var(--muted)">${timeStr(e.created_at)}</td>
         <td><span class="exp-cat">${e.category}</span></td>
         <td>${e.description||'—'}</td>
+        <td style="text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
         <td class="num re">${fmt(e.amount)}</td>
         <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
       </tr>`).join('')}</tbody>
@@ -2426,6 +2458,8 @@ function openExpModal(dateKey){
   document.getElementById('expModalDate').value=dateKey||getTodayKey();
   document.getElementById('expModalAmt').value='';
   document.getElementById('expModalDesc').value='';
+  expenseReceiptPhotoData=null;
+  resetExpenseReceiptUI('admin');
   document.getElementById('expModal').classList.add('open');
 }
 function closeExpModal(){document.getElementById('expModal').classList.remove('open');}
@@ -2436,13 +2470,14 @@ async function saveExpense(){
   const amt=+document.getElementById('expModalAmt').value||0;
   const dateKey=document.getElementById('expModalDate').value;
   if(!amt){showToast('Enter an amount.');return;}
-  const rec={date_key:dateKey,category:cat,description:desc,amount:amt,branch:'SM Bicutan'};
+  const rec={date_key:dateKey,category:cat,description:desc,amount:amt,receipt_photo:(expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,branch:'SM Bicutan'};
   setLoading(true);
   if(navigator.onLine){const{error}=await sb.from('expenses').insert([rec]);if(error){addToQueue('expense',rec);showToast('Saved offline');}else showToast('Expense saved!');}
   else{addToQueue('expense',rec);showToast('Saved offline');}
   // update local cache
   const cache=LS.get('exp_'+dateKey,[]);cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});LS.set('exp_'+dateKey,cache);
   setLoading(false);
+  expenseReceiptPhotoData=null;
   closeExpModal();
   renderExpenses(dateKey);
 }
@@ -2985,12 +3020,16 @@ function renderItemsReport(){
 }
 
 let __itemsReportRows=[];
+let __itemsReportMeta={dayCount:0,orderCount:0,grossTotal:0,from:'',to:''};
+let __itemsReportSearch='';
+
 async function generateItemsReport(){
   const from=document.getElementById('itemsReportFrom').value;
   const to=document.getElementById('itemsReportTo').value;
   if(!from||!to){showToast('Piliin muna ang mula at hanggang na petsa.');return;}
   if(from>to){showToast('Mali ang date range — dapat una ang "Mula" bago ang "Hanggang".');return;}
   __itemsReportFrom=from;__itemsReportTo=to;
+  __itemsReportSearch='';
   document.getElementById('itemsReportResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
   setLoading(true);
   const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').range(f,t));
@@ -3009,41 +3048,63 @@ async function generateItemsReport(){
   });
   const rows=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
   __itemsReportRows=rows;
-  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
-  const totalAmt=rows.reduce((s,r)=>s+r.amt,0);
   const dayCount=(new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000+1;
+  __itemsReportMeta={dayCount,orderCount:txns.length,grossTotal,from,to};
 
   document.getElementById('itemsReportResult').innerHTML=`
   <div class="metric-grid" style="margin-bottom:14px">
     <div class="metric"><div class="metric-val bl">${dayCount}</div><div class="metric-lbl">Days Covered</div></div>
     <div class="metric"><div class="metric-val go">${txns.length}</div><div class="metric-lbl">Orders</div></div>
-    <div class="metric"><div class="metric-val gr">${totalQty}</div><div class="metric-lbl">Total Items Sold</div></div>
+    <div class="metric"><div class="metric-val gr">${rows.reduce((s,r)=>s+r.qty,0)}</div><div class="metric-lbl">Total Items Sold</div></div>
     <div class="metric"><div class="metric-val re">${fmtn(grossTotal)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
   </div>
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Items Sold — ${dateStr(from+'T12:00:00')} to ${dateStr(to+'T12:00:00')}</div>
-    ${rows.length?`<table class="tbl">
-      <thead><tr><th>#</th><th>Item Name</th><th class="num">Qty Sold</th><th class="num"># Orders</th><th class="num">Total Amount</th><th class="num">% of Sales</th></tr></thead>
+    <input class="inp" id="itemsReportSearchInput" placeholder="🔍 Hanapin ang item..." value="" style="margin-bottom:12px" oninput="filterItemsReportTable(this.value)"/>
+    <div id="itemsReportTableWrap"></div>
+  </div>`;
+  renderItemsReportTable(rows);
+}
+
+function filterItemsReportTable(term){
+  __itemsReportSearch=term;
+  const filtered=term.trim()
+    ? __itemsReportRows.filter(r=>r.name.toLowerCase().includes(term.trim().toLowerCase()))
+    : __itemsReportRows;
+  renderItemsReportTable(filtered);
+  const el=document.getElementById('itemsReportSearchInput');
+  if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}
+}
+
+function renderItemsReportTable(rows){
+  const wrap=document.getElementById('itemsReportTableWrap');
+  if(!wrap)return;
+  const totalAmt=__itemsReportRows.reduce((s,r)=>s+r.amt,0); // % of Sales always vs full range total
+  const shownQty=rows.reduce((s,r)=>s+r.qty,0);
+  const shownAmt=rows.reduce((s,r)=>s+r.amt,0);
+  wrap.innerHTML=rows.length?`<table class="tbl">
+      <thead><tr><th>#</th><th>Item Name</th><th class="num">Unit Price</th><th class="num">Qty Sold</th><th class="num"># Orders</th><th class="num">Total Amount</th><th class="num">% of Sales</th></tr></thead>
       <tbody>
         ${rows.map((r,idx)=>`<tr>
           <td style="color:var(--muted);font-size:11px">${idx+1}</td>
           <td style="font-weight:700">${r.name}</td>
+          <td class="num" style="color:var(--muted)">${r.qty>0?fmt(r.amt/r.qty):'—'}</td>
           <td class="num" style="font-weight:800">${r.qty}</td>
           <td class="num" style="color:var(--muted)">${r.orders}</td>
           <td class="num gr">${fmt(r.amt)}</td>
           <td class="num" style="color:var(--muted)">${totalAmt>0?(r.amt/totalAmt*100).toFixed(1):'0'}%</td>
         </tr>`).join('')}
-        <tr style="background:#f0f0f0;font-weight:900"><td colspan="2">TOTAL</td><td class="num">${totalQty}</td><td class="num">—</td><td class="num gr">${fmt(totalAmt)}</td><td class="num">100%</td></tr>
+        <tr style="background:#f0f0f0;font-weight:900"><td colspan="3">${rows.length<__itemsReportRows.length?'SHOWN TOTAL':'TOTAL'}</td><td class="num">${shownQty}</td><td class="num">—</td><td class="num gr">${fmt(shownAmt)}</td><td class="num">${totalAmt>0?(shownAmt/totalAmt*100).toFixed(1):'0'}%</td></tr>
       </tbody>
-    </table>`:'<div style="text-align:center;padding:30px;color:#ccc">Walang benta sa napiling date range.</div>'}
-  </div>`;
+    </table>`
+    : `<div style="text-align:center;padding:30px;color:#ccc">${__itemsReportSearch?'Walang item na tumugma sa "'+__itemsReportSearch+'".':'Walang benta sa napiling date range.'}</div>`;
 }
 
 function downloadItemsReportCSV(){
   if(!__itemsReportRows.length){showToast('Mag-Generate Report muna bago mag-download.');return;}
-  const headers=['#','Item Name','Qty Sold','# Orders','Total Amount'];
+  const headers=['#','Item Name','Unit Price','Qty Sold','# Orders','Total Amount'];
   const csvRows=[headers.join(',')];
-  __itemsReportRows.forEach((r,idx)=>{csvRows.push([idx+1,`"${r.name.replace(/"/g,'""')}"`,r.qty,r.orders,r.amt.toFixed(2)].join(','));});
+  __itemsReportRows.forEach((r,idx)=>{csvRows.push([idx+1,`"${r.name.replace(/"/g,'""')}"`,(r.qty>0?r.amt/r.qty:0).toFixed(2),r.qty,r.orders,r.amt.toFixed(2)].join(','));});
   const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -3405,6 +3466,7 @@ function showMonthlyExpenseDetail(dk){
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Time</th>
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Category</th>
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Description</th>
+        <th style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Receipt</th>
         <th style="text-align:right;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th>
       </tr></thead>
       <tbody>
@@ -3412,11 +3474,12 @@ function showMonthlyExpenseDetail(dk){
           <td style="padding:6px 8px">${e.created_at?new Date(e.created_at).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
           <td style="padding:6px 8px"><span class="exp-cat">${e.category||'—'}</span></td>
           <td style="padding:6px 8px">${e.description||'—'}</td>
+          <td style="padding:6px 8px;text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(e.amount||0)}</td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="border-top:2px solid var(--border);font-weight:800">
-        <td colspan="3" style="padding:8px">TOTAL</td>
+        <td colspan="4" style="padding:8px">TOTAL</td>
         <td style="padding:8px;text-align:right">${fmt(total)}</td>
       </tr></tfoot>
     </table>`
@@ -5358,6 +5421,86 @@ function checkLoyaltyPhoneLive(phone){
 // ══════ DISCOUNT VERIFICATION (PWD/Senior) ══════
 let discountIdPhotoData = null;
 let cashlessProofPhotoData = null;
+let expenseReceiptPhotoData = null;
+
+function resetExpenseReceiptUI(context){
+  const suffix = context==='admin' ? 'Admin' : '';
+  const preview=document.getElementById('expReceiptPreview'+suffix);
+  const status=document.getElementById('expReceiptStatus'+suffix);
+  if(preview){preview.style.display='none';preview.src='';}
+  if(status){status.textContent='No receipt photo yet';status.style.color='var(--muted)';status.style.background='';}
+}
+
+// Captures a photo of the official receipt (OR) for an expense.
+// context is 'cashier' or 'admin' — selects which form's preview/status elements to update.
+function captureExpenseReceipt(context){
+  expenseReceiptPhotoData=null;
+  const suffix = context==='admin' ? 'Admin' : '';
+  const preview=document.getElementById('expReceiptPreview'+suffix);
+  const status=document.getElementById('expReceiptStatus'+suffix);
+  if(preview)preview.style.display='none';
+
+  const video=document.createElement('video');
+  const canvas=document.createElement('canvas');
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
+    .then(stream=>{
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px';
+
+      video.style.cssText='width:100%;max-width:500px;border-radius:12px;border:3px solid var(--gold)';
+      video.srcObject=stream;video.autoplay=true;video.playsInline=true;
+
+      const label=document.createElement('div');
+      label.style.cssText='color:#fff;font-size:13px;font-weight:800;text-align:center;line-height:1.5';
+      label.innerHTML='📷 Position the official receipt to fill the frame clearly<br/><span style="color:#fbbf24;font-size:11px">Make sure the amount and store name are readable</span>';
+
+      const guide=document.createElement('div');
+      guide.style.cssText='position:absolute;border:3px dashed #fbbf24;border-radius:8px;pointer-events:none;width:75%;max-width:360px;height:320px';
+
+      const captureBtn=document.createElement('button');
+      captureBtn.innerHTML='📷 Capture Receipt';
+      captureBtn.style.cssText='padding:14px 36px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer';
+
+      const cancelBtn=document.createElement('button');
+      cancelBtn.textContent='Cancel';
+      cancelBtn.style.cssText='padding:8px 20px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer';
+
+      overlay.appendChild(label);
+      overlay.appendChild(video);
+      overlay.appendChild(guide);
+      overlay.appendChild(captureBtn);
+      overlay.appendChild(cancelBtn);
+      document.body.appendChild(overlay);
+
+      captureBtn.onclick=()=>{
+        canvas.width=video.videoWidth||1280;
+        canvas.height=video.videoHeight||720;
+        canvas.getContext('2d').drawImage(video,0,0);
+        const photoUrl=canvas.toDataURL('image/jpeg',0.85);
+        expenseReceiptPhotoData=photoUrl;
+
+        stream.getTracks().forEach(t=>t.stop());
+        document.body.removeChild(overlay);
+
+        if(preview){preview.src=photoUrl;preview.style.display='block';}
+        if(status){
+          status.innerHTML='✅ <strong>Receipt photo captured!</strong>';
+          status.style.color='var(--green)';
+          status.style.background='#eafaf1';
+          status.style.borderRadius='8px';
+          status.style.padding='6px 8px';
+        }
+      };
+
+      cancelBtn.onclick=()=>{stream.getTracks().forEach(t=>t.stop());document.body.removeChild(overlay);};
+    })
+    .catch(()=>{
+      showToast('Camera not available — expense will be saved without a receipt photo.');
+      expenseReceiptPhotoData='NO_CAMERA';
+      if(status){status.textContent='⚠️ No camera available — proceeding without photo';status.style.color='var(--gold)';}
+    });
+}
 let signatureData = null;
 let sigDrawing = false;
 
