@@ -3036,6 +3036,7 @@ async function generateItemsReport(){
   setLoading(false);
 
   const itemMap={};
+  const catMap={};
   let grossTotal=0;
   txns.forEach(t=>{
     grossTotal+=(t.total||0);
@@ -3044,12 +3045,49 @@ async function generateItemsReport(){
       itemMap[i.name].qty+=i.qty;
       itemMap[i.name].amt+=i.price*i.qty;
       itemMap[i.name].orders++;
+
+      const catKey=i.cat||'others';
+      if(!catMap[catKey])catMap[catKey]={};
+      if(!catMap[catKey][i.name])catMap[catKey][i.name]={name:i.name,qty:0,amt:0};
+      catMap[catKey][i.name].qty+=i.qty;
+      catMap[catKey][i.name].amt+=i.price*i.qty;
     });
   });
   const rows=Object.values(itemMap).sort((a,b)=>b.qty-a.qty);
   __itemsReportRows=rows;
   const dayCount=(new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000+1;
   __itemsReportMeta={dayCount,orderCount:txns.length,grossTotal,from,to};
+
+  // Build Top 5 per category, using known category order from CATS (falls back to raw key)
+  const catKeysPresent=Object.keys(catMap);
+  const orderedCatIds=CATS.filter(c=>c.id!=='all'&&catKeysPresent.includes(c.id)).map(c=>c.id);
+  const leftoverCatIds=catKeysPresent.filter(k=>!orderedCatIds.includes(k));
+  const allCatIds=[...orderedCatIds,...leftoverCatIds];
+  const categoryCards=allCatIds.map(catId=>{
+    const label=CATS.find(c=>c.id===catId)?.label||catId;
+    const top5=Object.values(catMap[catId]).sort((a,b)=>b.qty-a.qty).slice(0,5);
+    const maxQty=top5[0]?.qty||1;
+    const rankEmojis=['🥇','🥈','🥉','4️⃣','5️⃣'];
+    return `<div class="card" style="margin-bottom:10px">
+      <div class="card-title"><div class="red-bar"></div>${label}</div>
+      ${top5.map((item,idx)=>`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:13px">${rankEmojis[idx]}</span>
+              <span style="font-size:12px;font-weight:700">${item.name}</span>
+            </div>
+            <div style="text-align:right">
+              <span style="font-size:12px;font-weight:800;color:var(--red)">${item.qty} sold</span>
+              <span style="font-size:10px;color:var(--muted);margin-left:6px">${fmt(item.amt)}</span>
+            </div>
+          </div>
+          <div style="height:6px;background:#f0f0f0;border-radius:3px">
+            <div style="height:6px;background:var(--red);border-radius:3px;width:${Math.round(item.qty/maxQty*100)}%"></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
 
   document.getElementById('itemsReportResult').innerHTML=`
   <div class="metric-grid" style="margin-bottom:14px">
@@ -3058,12 +3096,40 @@ async function generateItemsReport(){
     <div class="metric"><div class="metric-val gr">${rows.reduce((s,r)=>s+r.qty,0)}</div><div class="metric-lbl">Total Items Sold</div></div>
     <div class="metric"><div class="metric-val re">${fmtn(grossTotal)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
   </div>
-  <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Items Sold — ${dateStr(from+'T12:00:00')} to ${dateStr(to+'T12:00:00')}</div>
-    <input class="inp" id="itemsReportSearchInput" placeholder="🔍 Hanapin ang item..." value="" style="margin-bottom:12px" oninput="filterItemsReportTable(this.value)"/>
-    <div id="itemsReportTableWrap"></div>
+
+  <div class="section-toggle" style="display:flex;gap:8px;margin-bottom:14px">
+    <button onclick="showItemsReportView('all')" id="itemsReportViewAllBtn" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:800;cursor:pointer">All Items</button>
+    <button onclick="showItemsReportView('cat')" id="itemsReportViewCatBtn" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer">Top 5 per Category</button>
+  </div>
+
+  <div id="itemsReportAllView">
+    <div class="card">
+      <div class="card-title"><div class="red-bar"></div>Items Sold — ${dateStr(from+'T12:00:00')} to ${dateStr(to+'T12:00:00')}</div>
+      <input class="inp" id="itemsReportSearchInput" placeholder="🔍 Hanapin ang item..." value="" style="margin-bottom:12px" oninput="filterItemsReportTable(this.value)"/>
+      <div id="itemsReportTableWrap"></div>
+    </div>
+  </div>
+  <div id="itemsReportCatView" style="display:none">
+    ${categoryCards||'<div class="card" style="text-align:center;padding:30px;color:#ccc">Walang benta sa napiling date range.</div>'}
   </div>`;
   renderItemsReportTable(rows);
+}
+
+function showItemsReportView(view){
+  const allBtn=document.getElementById('itemsReportViewAllBtn');
+  const catBtn=document.getElementById('itemsReportViewCatBtn');
+  const allView=document.getElementById('itemsReportAllView');
+  const catView=document.getElementById('itemsReportCatView');
+  if(!allBtn||!catBtn||!allView||!catView)return;
+  const isAll=view==='all';
+  allView.style.display=isAll?'block':'none';
+  catView.style.display=isAll?'none':'block';
+  allBtn.style.background=isAll?'var(--red)':'#fff';
+  allBtn.style.color=isAll?'#fff':'var(--muted)';
+  allBtn.style.borderColor=isAll?'var(--red)':'var(--border)';
+  catBtn.style.background=isAll?'#fff':'var(--red)';
+  catBtn.style.color=isAll?'var(--muted)':'#fff';
+  catBtn.style.borderColor=isAll?'var(--border)':'var(--red)';
 }
 
 function filterItemsReportTable(term){
