@@ -930,7 +930,7 @@ button{cursor:pointer;font-family:inherit}
 
       <!-- STEP 1: Capture ID -->
       <div style="margin-bottom:12px">
-        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 1 — Capture ID Card 📷</div>
+        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 1 — Capture ID Card 📷 <span style="color:var(--red)">(required)</span></div>
         <button type="button" onclick="captureDiscountId()" id="captureIdBtn"
           style="width:100%;padding:10px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">
           📷 Take Photo of ID Card
@@ -942,7 +942,7 @@ button{cursor:pointer;font-family:inherit}
 
       <!-- STEP 2: Type Details from ID -->
       <div style="margin-bottom:12px">
-        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 2 — Type Details from ID ✍️</div>
+        <div style="font-size:10px;font-weight:800;color:#555;margin-bottom:6px">STEP 2 — Type Details from ID ✍️ <span style="color:var(--red)">(required)</span></div>
         <div class="input-group" style="margin-bottom:8px">
           <div class="input-label">Full Name</div>
           <input class="inp" id="discountName" placeholder="Auto-filled from ID"
@@ -958,7 +958,7 @@ button{cursor:pointer;font-family:inherit}
       <!-- STEP 3: Customer Signature -->
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:10px;font-weight:800;color:#555">STEP 3 — Customer Signature ✍️</div>
+          <div style="font-size:10px;font-weight:800;color:#555">STEP 3 — Customer Signature ✍️ <span style="color:var(--muted);font-weight:600">(optional)</span></div>
           <button type="button" onclick="clearSignature()" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:700">Clear</button>
         </div>
         <div style="background:#fff;border:2px solid #f9e29a;border-radius:10px;position:relative">
@@ -5357,10 +5357,10 @@ function updateConfirmBtn(){
   }
   const disc=getDisc();
   if(disc==='pwd'||disc==='senior'){
-    if(!document.getElementById('discountName')?.value?.trim())ok=false;
-    if(!document.getElementById('discountIdNum')?.value?.trim())ok=false;
-    if(!discountIdPhotoData)ok=false;   // require ID photo
-    if(!signatureData)ok=false;          // require signature
+    if(!discountIdPhotoData)ok=false;   // ID photo required
+    if(!document.getElementById('discountName')?.value?.trim())ok=false;   // name required
+    if(!document.getElementById('discountIdNum')?.value?.trim())ok=false;  // ID number required
+    // Signature stays optional — no longer blocks charging, to keep checkout fast.
   }
   btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';
 }
