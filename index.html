@@ -998,7 +998,18 @@ button{cursor:pointer;font-family:inherit}
       </select>
     </div>
     <div class="input-group"><div class="input-label">4-digit PIN</div><input class="inp" id="empModalPin" type="password" placeholder="e.g. 1234" maxlength="4"/></div>
-    <div class="input-group"><div class="input-label">Shift Start Time (para sa Late tracking)</div><input class="inp" id="empModalShiftStart" type="time" value="09:00"/></div>
+    <div class="input-group"><div class="input-label">Shift Start Time (default — gagamitin kung walang schedule sa araw na iyon)</div><input class="inp" id="empModalShiftStart" type="time" value="09:00"/></div>
+    <div class="input-group">
+      <div class="input-label">Weekly Schedule (opsyonal — i-override ang shift time bawat araw)</div>
+      <div id="empModalScheduleGrid" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:#fafafa">
+        ${[0,1,2,3,4,5,6].map(dow=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+            <div style="width:40px;font-size:11px;font-weight:700">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow]}</div>
+            <input class="inp" type="time" id="empSched_${dow}_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+            <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_${dow}_off" onchange="document.getElementById('empSched_${dow}_time').disabled=this.checked"/> Day off</label>
+          </div>`).join('')}
+      </div>
+    </div>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeEmpModal()">Cancel</button>
       <button class="mbtn primary" onclick="saveEmployee()">Save</button>
@@ -4366,9 +4377,14 @@ async function renderDTR(dateKey){
   while(cur<=endDate){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
   const{data:records}=await sb.from('time_records').select('*').gte('ts',cutoffStart+'T00:00:00.000Z').lte('ts',cutoffEnd+'T23:59:59.999Z').order('ts');
   const{data:holidays}=await sb.from('holidays').select('*');
+  const{data:schedules}=await sb.from('employee_schedules').select('*');
   const recs=records||[];
   const holidayMap={};
   (holidays||[]).forEach(h=>{holidayMap[h.date_key]=h;});
+  // scheduleMap[empId][dayOfWeek] = {shift_start, is_day_off} — falls back to the employee's
+  // single shift_start (or 09:00) for any day that has no specific weekly schedule row.
+  const scheduleMap={};
+  (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
   const empDayMap={};
   recs.forEach(r=>{
     const empId=r.emp_id;const dayKey=r.ts.slice(0,10);
@@ -4399,20 +4415,23 @@ async function renderDTR(dateKey){
   const empRows=employees.map(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
     let totalHours=0;let daysWorked=0;let totalLateMins=0;
-    const shiftStart=emp.shift_start||'09:00';
-    const[shiftH,shiftM]=shiftStart.split(':').map(Number);
+    const empSchedule=scheduleMap[emp.id]||{};
     const dayCells=dates.map(dt=>{
       const dayRecs=empData.days[dt]||[];
       const outRec=dayRecs.find(r=>r.action==='out');
       const inRec=dayRecs.find(r=>r.action==='in');
-      const isHoliday=!!holidayMap[dt];const isSunday=new Date(dt+'T12:00:00').getDay()===0;
+      const isHoliday=!!holidayMap[dt];const dow=new Date(dt+'T12:00:00').getDay();const isSunday=dow===0;
+      const daySched=empSchedule[dow];
+      const shiftStart=daySched&&daySched.shift_start?daySched.shift_start:(emp.shift_start||'09:00');
+      const[shiftH,shiftM]=shiftStart.split(':').map(Number);
       const bg=isHoliday?'#fef9e7':isSunday?'#fff5f5':'transparent';
       const isManual=outRec&&outRec.photo_url==='MANUAL_ENTRY';
       const clickAttr=dayRecs.length?` onclick="showDtrDayDetail('${emp.id}','${dt}')"`:'';
       const clickStyle=dayRecs.length?'cursor:pointer;':'';
-      // Late = actual Time In minus employee's scheduled shift start, floored at 0 (never negative/early credit)
+      // Late = actual Time In minus this specific day's scheduled shift start (per weekly
+      // schedule if set, else the employee's default shift_start), floored at 0.
       let lateMins=0;
-      if(inRec){
+      if(inRec&&!(daySched&&daySched.is_day_off)){
         const inD=new Date(inRec.ts);
         const scheduled=new Date(inD);scheduled.setHours(shiftH,shiftM,0,0);
         lateMins=Math.max(0,Math.round((inD.getTime()-scheduled.getTime())/60000));
@@ -4462,13 +4481,16 @@ async function renderDTR(dateKey){
   let grandTotalDays=0, grandTotalHours=0, grandTotalLateMins=0;
   employees.forEach(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
-    const shiftStart=emp.shift_start||'09:00';
-    const[shiftH,shiftM]=shiftStart.split(':').map(Number);
+    const empSchedule=scheduleMap[emp.id]||{};
     Object.keys(empData.days).forEach(dt=>{
       const dayRecs=empData.days[dt]||[];
       const outRec=dayRecs.find(r=>r.action==='out');
       const inRec=dayRecs.find(r=>r.action==='in');
-      if(inRec){
+      const dow=new Date(dt+'T12:00:00').getDay();
+      const daySched=empSchedule[dow];
+      const shiftStart=daySched&&daySched.shift_start?daySched.shift_start:(emp.shift_start||'09:00');
+      const[shiftH,shiftM]=shiftStart.split(':').map(Number);
+      if(inRec&&!(daySched&&daySched.is_day_off)){
         const inD=new Date(inRec.ts);
         const scheduled=new Date(inD);scheduled.setHours(shiftH,shiftM,0,0);
         grandTotalLateMins+=Math.max(0,Math.round((inD.getTime()-scheduled.getTime())/60000));
@@ -4603,7 +4625,24 @@ function openEmpModal(empId){
   document.getElementById('empModalRole').value=emp?.role||'cashier';
   document.getElementById('empModalPin').value=emp?.pin||'';
   document.getElementById('empModalShiftStart').value=emp?.shift_start||'09:00';
+  // Reset grid to defaults first
+  for(let dow=0;dow<7;dow++){
+    document.getElementById(`empSched_${dow}_time`).value=emp?.shift_start||'09:00';
+    document.getElementById(`empSched_${dow}_off`).checked=false;
+    document.getElementById(`empSched_${dow}_time`).disabled=false;
+  }
   document.getElementById('empModal').classList.add('open');
+  if(emp){
+    sb.from('employee_schedules').select('*').eq('emp_id',emp.id).then(({data})=>{
+      (data||[]).forEach(s=>{
+        const timeInput=document.getElementById(`empSched_${s.day_of_week}_time`);
+        const offInput=document.getElementById(`empSched_${s.day_of_week}_off`);
+        if(!timeInput)return;
+        if(s.is_day_off){offInput.checked=true;timeInput.disabled=true;}
+        else if(s.shift_start){timeInput.value=s.shift_start.slice(0,5);}
+      });
+    });
+  }
 }
 function closeEmpModal(){document.getElementById('empModal').classList.remove('open');}
 
@@ -4618,9 +4657,20 @@ async function saveEmployee(){
   if(pin&&(pin.length!==4||isNaN(pin))){showToast('PIN must be 4 digits.');return;}
   setLoading(true);
   const record={name,initials,role,pin:pin||'0000',shift_start:shiftStart,branch:'SM Bicutan',is_active:true};
-  let error;
+  let error,empId=id;
   if(id){({error}=await sb.from('employees').update(record).eq('id',id));}
-  else{({error}=await sb.from('employees').insert([record]));}
+  else{const{data,error:insErr}=await sb.from('employees').insert([record]).select('id').single();error=insErr;empId=data?.id;}
+  if(!error&&empId){
+    // Save weekly schedule — one row per day of week, upserted on (emp_id, day_of_week)
+    for(let dow=0;dow<7;dow++){
+      const isOff=document.getElementById(`empSched_${dow}_off`).checked;
+      const timeVal=document.getElementById(`empSched_${dow}_time`).value||shiftStart;
+      await sb.from('employee_schedules').upsert(
+        {emp_id:empId,emp_name:name,day_of_week:dow,shift_start:isOff?null:timeVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
+        {onConflict:'emp_id,day_of_week'}
+      );
+    }
+  }
   setLoading(false);
   if(error){showToast('Error saving.');return;}
   closeEmpModal();showToast(id?'Employee updated!':'Employee added!');
