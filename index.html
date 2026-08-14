@@ -3802,7 +3802,7 @@ async function renderPayroll(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
       <div style="flex:1;min-width:140px">
         <div class="input-label">Employee</div>
-        <select class="inp" id="manualPayrollEmpSel">${employees.filter(e=>e.is_active!==false).map(e=>`<option value="${e.name}">${e.name} (${e.role})</option>`).join('')}</select>
+        <select class="inp" id="manualPayrollEmpSel">${employees.map(e=>`<option value="${e.name}">${e.name} (${e.role}${e.is_active===false?' — inactive':''})</option>`).join('')}</select>
       </div>
       <div style="width:100px">
         <div class="input-label">Days Worked</div>
@@ -3826,7 +3826,7 @@ async function renderPayroll(){
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px">+ REQUEST / LOG OT</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <select class="inp" style="flex:1;min-width:120px" id="otEmpSel">${employees.filter(e=>e.is_active!==false).map(e=>`<option value="${e.id}">${e.name} (${e.role})</option>`).join('')}</select>
+        <select class="inp" style="flex:1;min-width:120px" id="otEmpSel">${employees.map(e=>`<option value="${e.id}">${e.name} (${e.role}${e.is_active===false?' — inactive':''})</option>`).join('')}</select>
         <input class="inp" type="date" id="otDate" value="${getTodayKey()}" style="width:150px"/>
         <input class="inp" type="number" id="otHours" placeholder="OT hrs" step="0.5" min="0.5" max="8" style="width:90px"/>
         <input class="inp" id="otReason" placeholder="Reason for OT" style="flex:1;min-width:150px"/>
