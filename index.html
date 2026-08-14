@@ -4654,6 +4654,7 @@ async function renderEmployeeMgmt(){
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Employee Management</div>
+    <button class="btn-green" style="background:var(--blue)" onclick="renderWeeklyScheduleAll()">📅 Weekly Schedule (Lahat)</button>
     <button class="btn-green" onclick="openEmpModal()">+ Add Employee</button>
   </div>
   <div class="card">
@@ -4674,6 +4675,78 @@ async function renderEmployeeMgmt(){
       </div>`;
     }).join('')}
   </div>`;
+}
+
+// Bulk weekly-schedule editor — all employees x all 7 days in one grid, one Save button.
+// Faster than editing each employee's schedule one at a time via the Employee modal.
+async function renderWeeklyScheduleAll(){
+  document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
+  await loadEmployees();
+  const{data:schedules}=await sb.from('employee_schedules').select('*');
+  const scheduleMap={};
+  (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>📅 Weekly Schedule — Lahat ng Empleyado</div>
+    <button onclick="renderEmployeeMgmt()" style="padding:8px 14px;background:#eee;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">← Balik</button>
+    <button id="saveAllSchedBtn" onclick="saveAllWeeklySchedules()" class="btn-green">💾 I-save Lahat</button>
+  </div>
+  <div style="overflow-x:auto;background:#fff;border-radius:12px;border:1px solid var(--border)">
+    <table class="tbl" style="min-width:900px">
+      <thead><tr>
+        <th style="position:sticky;left:0;background:#1a1a1a;z-index:2;min-width:150px">Employee</th>
+        ${dayNames.map(d=>`<th style="text-align:center;min-width:100px">${d}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${employees.map(e=>{
+          const empSched=scheduleMap[e.id]||{};
+          return `<tr>
+            <td style="position:sticky;left:0;background:#fff;font-weight:700;z-index:1;border-right:2px solid var(--border)">${e.name}<div style="font-size:9px;color:var(--muted);text-transform:uppercase">${e.role}</div></td>
+            ${[0,1,2,3,4,5,6].map(dow=>{
+              const s=empSched[dow];
+              const isOff=s&&s.is_day_off;
+              const timeVal=s&&s.shift_start?s.shift_start.slice(0,5):(e.shift_start||'09:00');
+              return `<td style="text-align:center;padding:6px 4px">
+                <input class="inp" type="time" id="wsched_${e.id}_${dow}" value="${timeVal}" ${isOff?'disabled':''} style="width:100%;padding:5px;font-size:11px;margin-bottom:3px"/>
+                <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px"><input type="checkbox" id="wsched_${e.id}_${dow}_off" ${isOff?'checked':''} onchange="document.getElementById('wsched_${e.id}_${dow}').disabled=this.checked"/> Off</label>
+              </td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:10px">💡 Punan ang oras bawat araw bawat empleyado, o i-check ang "Off" kung walang trabaho. I-click ang "I-save Lahat" pagkatapos.</div>`;
+}
+
+async function saveAllWeeklySchedules(){
+  const btn=document.getElementById('saveAllSchedBtn');
+  if(btn){btn.disabled=true;btn.textContent='Sinasave...';}
+  let okCount=0,failCount=0;
+  for(const e of employees){
+    for(let dow=0;dow<7;dow++){
+      const timeInput=document.getElementById(`wsched_${e.id}_${dow}`);
+      const offInput=document.getElementById(`wsched_${e.id}_${dow}_off`);
+      if(!timeInput)continue;
+      const isOff=offInput.checked;
+      const timeVal=timeInput.value||e.shift_start||'09:00';
+      try{
+        const{error}=await sb.from('employee_schedules').upsert(
+          {emp_id:e.id,emp_name:e.name,day_of_week:dow,shift_start:isOff?null:timeVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
+          {onConflict:'emp_id,day_of_week'}
+        );
+        if(error)throw error;
+        okCount++;
+      }catch(err){
+        failCount++;
+        console.error('Schedule save failed for',e.name,'day',dow,err);
+      }
+    }
+  }
+  if(btn){btn.disabled=false;btn.textContent='💾 I-save Lahat';}
+  if(failCount===0)showToast(`✅ Na-save ang schedule ng ${employees.length} empleyado!`);
+  else showToast(`⚠️ ${okCount} na-save, ${failCount} nabigo — tingnan ang console.`);
 }
 
 function openEmpModal(empId){
