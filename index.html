@@ -2225,16 +2225,19 @@ async function doTimeAction(action,empId,photoDataUrl){
   cache.push(rec);
   LS.set('dtr_'+empId+'_'+dk,cache);
 
-  // Save to Supabase
-  if(navigator.onLine){
+  // Save to Supabase — FIX: navigator.onLine is unreliable (same bug found in checkout
+  // save), so always ATTEMPT the real save first regardless of what it reports; only queue
+  // locally if the attempt genuinely fails.
+  let dtrSaved=false;
+  try{
     const{error}=await sb.from('time_records').insert([rec]);
-    if(error) addToQueue('dtr',rec);
-  } else {
+    if(error){addToQueue('dtr',rec);} else {dtrSaved=true;}
+  }catch(e){
     addToQueue('dtr',rec);
   }
 
   renderEmpList();
-  showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded!`);
+  showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded!${dtrSaved?'':' (naka-queue — i-Sync Now kapag may internet)'}`);
 }
 
 // ══════ CAMERA ══════
