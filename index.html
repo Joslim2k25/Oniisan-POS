@@ -1002,40 +1002,54 @@ button{cursor:pointer;font-family:inherit}
     <div class="input-group">
       <div class="input-label">Weekly Schedule (opsyonal — i-override ang shift time bawat araw)</div>
       <div id="empModalScheduleGrid" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:#fafafa">
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Sun</div>
-          <input class="inp" type="time" id="empSched_0_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_0_off" onchange="document.getElementById('empSched_0_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_0_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_0_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_0_off" onchange="document.getElementById('empSched_0_time').disabled=this.checked;document.getElementById('empSched_0_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Mon</div>
-          <input class="inp" type="time" id="empSched_1_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_1_off" onchange="document.getElementById('empSched_1_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_1_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_1_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_1_off" onchange="document.getElementById('empSched_1_time').disabled=this.checked;document.getElementById('empSched_1_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Tue</div>
-          <input class="inp" type="time" id="empSched_2_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_2_off" onchange="document.getElementById('empSched_2_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_2_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_2_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_2_off" onchange="document.getElementById('empSched_2_time').disabled=this.checked;document.getElementById('empSched_2_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Wed</div>
-          <input class="inp" type="time" id="empSched_3_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_3_off" onchange="document.getElementById('empSched_3_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_3_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_3_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_3_off" onchange="document.getElementById('empSched_3_time').disabled=this.checked;document.getElementById('empSched_3_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Thu</div>
-          <input class="inp" type="time" id="empSched_4_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_4_off" onchange="document.getElementById('empSched_4_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_4_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_4_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_4_off" onchange="document.getElementById('empSched_4_time').disabled=this.checked;document.getElementById('empSched_4_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #eee">
           <div style="width:40px;font-size:11px;font-weight:700">Fri</div>
-          <input class="inp" type="time" id="empSched_5_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_5_off" onchange="document.getElementById('empSched_5_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_5_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_5_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_5_off" onchange="document.getElementById('empSched_5_time').disabled=this.checked;document.getElementById('empSched_5_end').disabled=this.checked"/> Off</label>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0">
           <div style="width:40px;font-size:11px;font-weight:700">Sat</div>
-          <input class="inp" type="time" id="empSched_6_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_6_off" onchange="document.getElementById('empSched_6_time').disabled=this.checked"/> Day off</label>
+          <input class="inp" type="time" id="empSched_6_time" value="09:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <span style="font-size:10px;color:var(--muted)">to</span>
+          <input class="inp" type="time" id="empSched_6_end" value="19:00" style="flex:1;padding:5px 6px;font-size:11px"/>
+          <label style="display:flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap"><input type="checkbox" id="empSched_6_off" onchange="document.getElementById('empSched_6_time').disabled=this.checked;document.getElementById('empSched_6_end').disabled=this.checked"/> Off</label>
         </div>
       </div>
     </div>
@@ -1858,10 +1872,12 @@ async function viewMySchedule(empId,empName){
   const rows=[0,1,2,3,4,5,6].map(dow=>{
     const s=schedMap[dow];
     const isOff=s&&s.is_day_off;
-    const timeStr=s&&s.shift_start?new Date('2000-01-01T'+s.shift_start).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'—';
+    const inStr=s&&s.shift_start?new Date('2000-01-01T'+s.shift_start).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'—';
+    const outStr=s&&s.shift_end?new Date('2000-01-01T'+s.shift_end).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
+    const timeStr=outStr?`${inStr} - ${outStr}`:inStr;
     return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
       <span style="font-weight:700;font-size:13px">${dayNames[dow]}</span>
-      <span style="font-size:13px;font-weight:700;color:${isOff?'#999':'var(--blue)'}">${isOff?'Day Off':timeStr}</span>
+      <span style="font-size:12px;font-weight:700;color:${isOff?'#999':'var(--blue)'}">${isOff?'Day Off':timeStr}</span>
     </div>`;
   }).join('');
   const w=document.createElement('div');
@@ -4706,10 +4722,14 @@ async function renderWeeklyScheduleAll(){
             ${[0,1,2,3,4,5,6].map(dow=>{
               const s=empSched[dow];
               const isOff=s&&s.is_day_off;
-              const timeVal=s&&s.shift_start?s.shift_start.slice(0,5):(e.shift_start||'09:00');
+              const timeInVal=s&&s.shift_start?s.shift_start.slice(0,5):(e.shift_start||'09:00');
+              const timeOutVal=s&&s.shift_end?s.shift_end.slice(0,5):'19:00';
               return `<td style="text-align:center;padding:6px 4px">
-                <input class="inp" type="time" id="wsched_${e.id}_${dow}" value="${timeVal}" ${isOff?'disabled':''} style="width:100%;padding:5px;font-size:11px;margin-bottom:3px"/>
-                <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px"><input type="checkbox" id="wsched_${e.id}_${dow}_off" ${isOff?'checked':''} onchange="document.getElementById('wsched_${e.id}_${dow}').disabled=this.checked"/> Off</label>
+                <div style="font-size:8px;color:var(--muted);text-align:left;padding-left:2px">In</div>
+                <input class="inp" type="time" id="wsched_${e.id}_${dow}" value="${timeInVal}" ${isOff?'disabled':''} style="width:100%;padding:5px;font-size:11px;margin-bottom:3px"/>
+                <div style="font-size:8px;color:var(--muted);text-align:left;padding-left:2px">Out</div>
+                <input class="inp" type="time" id="wschedOut_${e.id}_${dow}" value="${timeOutVal}" ${isOff?'disabled':''} style="width:100%;padding:5px;font-size:11px;margin-bottom:3px"/>
+                <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px"><input type="checkbox" id="wsched_${e.id}_${dow}_off" ${isOff?'checked':''} onchange="document.getElementById('wsched_${e.id}_${dow}').disabled=this.checked;document.getElementById('wschedOut_${e.id}_${dow}').disabled=this.checked"/> Off</label>
               </td>`;
             }).join('')}
           </tr>`;
@@ -4727,13 +4747,15 @@ async function saveAllWeeklySchedules(){
   for(const e of employees){
     for(let dow=0;dow<7;dow++){
       const timeInput=document.getElementById(`wsched_${e.id}_${dow}`);
+      const timeOutInput=document.getElementById(`wschedOut_${e.id}_${dow}`);
       const offInput=document.getElementById(`wsched_${e.id}_${dow}_off`);
       if(!timeInput)continue;
       const isOff=offInput.checked;
       const timeVal=timeInput.value||e.shift_start||'09:00';
+      const timeOutVal=timeOutInput?.value||'19:00';
       try{
         const{error}=await sb.from('employee_schedules').upsert(
-          {emp_id:e.id,emp_name:e.name,day_of_week:dow,shift_start:isOff?null:timeVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
+          {emp_id:e.id,emp_name:e.name,day_of_week:dow,shift_start:isOff?null:timeVal,shift_end:isOff?null:timeOutVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
           {onConflict:'emp_id,day_of_week'}
         );
         if(error)throw error;
@@ -4761,18 +4783,24 @@ function openEmpModal(empId){
   // Reset grid to defaults first
   for(let dow=0;dow<7;dow++){
     document.getElementById(`empSched_${dow}_time`).value=emp?.shift_start||'09:00';
+    document.getElementById(`empSched_${dow}_end`).value='19:00';
     document.getElementById(`empSched_${dow}_off`).checked=false;
     document.getElementById(`empSched_${dow}_time`).disabled=false;
+    document.getElementById(`empSched_${dow}_end`).disabled=false;
   }
   document.getElementById('empModal').classList.add('open');
   if(emp){
     sb.from('employee_schedules').select('*').eq('emp_id',emp.id).then(({data})=>{
       (data||[]).forEach(s=>{
         const timeInput=document.getElementById(`empSched_${s.day_of_week}_time`);
+        const endInput=document.getElementById(`empSched_${s.day_of_week}_end`);
         const offInput=document.getElementById(`empSched_${s.day_of_week}_off`);
         if(!timeInput)return;
-        if(s.is_day_off){offInput.checked=true;timeInput.disabled=true;}
-        else if(s.shift_start){timeInput.value=s.shift_start.slice(0,5);}
+        if(s.is_day_off){offInput.checked=true;timeInput.disabled=true;endInput.disabled=true;}
+        else{
+          if(s.shift_start)timeInput.value=s.shift_start.slice(0,5);
+          if(s.shift_end)endInput.value=s.shift_end.slice(0,5);
+        }
       });
     });
   }
@@ -4798,8 +4826,9 @@ async function saveEmployee(){
     for(let dow=0;dow<7;dow++){
       const isOff=document.getElementById(`empSched_${dow}_off`).checked;
       const timeVal=document.getElementById(`empSched_${dow}_time`).value||shiftStart;
+      const endVal=document.getElementById(`empSched_${dow}_end`).value||'19:00';
       await sb.from('employee_schedules').upsert(
-        {emp_id:empId,emp_name:name,day_of_week:dow,shift_start:isOff?null:timeVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
+        {emp_id:empId,emp_name:name,day_of_week:dow,shift_start:isOff?null:timeVal,shift_end:isOff?null:endVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
         {onConflict:'emp_id,day_of_week'}
       );
     }
