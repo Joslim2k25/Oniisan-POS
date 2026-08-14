@@ -3905,7 +3905,7 @@ async function computePayroll(start,end){
           <td class="num gr" style="font-weight:800">${fmt(r.grossPay)}</td>
           <td class="num re">${r.totalDed>0?'-'+fmt(r.totalDed):'—'}</td>
           <td class="num" style="font-weight:900;color:var(--green);font-size:14px">${fmt(r.netPay)}</td>
-          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
+          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.totalDed},${r.netPay},'${start}','${end}',null,0,'auto')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="background:#f0f0f0;font-weight:900">
@@ -3946,11 +3946,26 @@ function computeManualPayslip(start,end){
   const totalDed=statutoryDed+customDedAmt;
   const netPay=grossPay-totalDed;
   const totalHours=(daysWorked*8).toFixed(1);
-  showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt);
+  showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt,'manual');
 }
 
-function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt){
+function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt,source){
+  // Open the window synchronously first (browsers block popups opened after an await).
   const w=window.open('','_blank','width=420,height=650');
+  // Save this payslip permanently — this is what 13th month pay computation will read from
+  // later, so it must not depend only on the payslip window staying open.
+  (async()=>{
+    const{error}=await sb.from('payroll_records').insert([{
+      emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,
+      total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,
+      holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,
+      custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,
+      total_deduction:totalDed,net_pay:netPay,source:source||'manual',
+      generated_by:currentLoginEmp?.name||'Admin'
+    }]);
+    if(!error)showToast('✅ Na-save ang payslip para sa 13th month pay records');
+    else showToast('⚠️ Hindi na-save ang payslip record: '+error.message);
+  })();
   w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${name}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:24px;max-width:380px}
   .c{text-align:center}.b{font-weight:900}.r{color:#c0392b}
