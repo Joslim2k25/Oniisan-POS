@@ -1906,11 +1906,12 @@ async function saveCashDeclaration(){
   // be shown to the cashier regardless of save outcome. A failed/blocked insert
   // (RLS, missing table, offline) should never hide the variance from the cashier.
   let saveError=null;
-  if(navigator.onLine){
+  let savedOnline=false;
+  try{
     const{error}=await sb.from('cash_declarations').insert([rec]);
-    if(error){saveError=error;addToQueue('cash_declaration',rec);}
-  } else {
-    addToQueue('cash_declaration',rec);
+    if(error){saveError=error;addToQueue('cash_declaration',rec);} else {savedOnline=true;}
+  }catch(e){
+    saveError=e;addToQueue('cash_declaration',rec);
   }
   setLoading(false);
 
@@ -1955,7 +1956,7 @@ async function saveCashDeclaration(){
   }
   lockTimeButtons();
 
-  showToast(saveError?'⚠️ Nakita na ang resulta, pero may isyu sa pag-save online — naka-queue na ito, i-sync ulit mamaya.':(navigator.onLine?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later'));
+  showToast(saveError?'⚠️ Nakita na ang resulta, pero may isyu sa pag-save online — naka-queue na ito, i-sync ulit mamaya.':(savedOnline?'Cash declaration saved! Day is now closed.':'Saved offline — will sync later'));
 }
 
 function lockTimeButtons(){
@@ -2479,8 +2480,13 @@ async function saveExpense(){
   if(!amt){showToast('Enter an amount.');return;}
   const rec={date_key:dateKey,category:cat,description:desc,amount:amt,receipt_photo:(expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,branch:'SM Bicutan'};
   setLoading(true);
-  if(navigator.onLine){const{error}=await sb.from('expenses').insert([rec]);if(error){addToQueue('expense',rec);showToast('Saved offline');}else showToast('Expense saved!');}
-  else{addToQueue('expense',rec);showToast('Saved offline');}
+  try{
+    const{error}=await sb.from('expenses').insert([rec]);
+    if(error){addToQueue('expense',rec);showToast('⚠️ Naka-queue lang — i-Sync Now kapag may internet.');}
+    else showToast('Expense saved!');
+  }catch(e){
+    addToQueue('expense',rec);showToast('⚠️ Naka-queue lang — i-Sync Now kapag may internet.');
+  }
   // update local cache
   const cache=LS.get('exp_'+dateKey,[]);cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});LS.set('exp_'+dateKey,cache);
   setLoading(false);
@@ -2491,7 +2497,7 @@ async function saveExpense(){
 
 async function deleteExpense(id,dateKey){
   if(!confirm('Delete this expense?'))return;
-  if(navigator.onLine){await sb.from('expenses').delete().eq('id',id);}
+  try{ await sb.from('expenses').delete().eq('id',id); }catch(e){ showToast('⚠️ Hindi na-delete online, subukan ulit kapag may internet.'); }
   const cache=LS.get('exp_'+dateKey,[]).filter(e=>String(e.id)!==String(id));LS.set('exp_'+dateKey,cache);
   renderExpenses(dateKey);
 }
