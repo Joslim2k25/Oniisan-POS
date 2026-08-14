@@ -3889,7 +3889,10 @@ async function computePayroll(start,end){
   const totalNet=payrollRows.reduce((s,r)=>s+r.netPay,0);
   document.getElementById('payrollTable').innerHTML=`
   <div class="card">
-    <div class="card-title"><div class="red-bar"></div>Payroll — ${start} to ${end}</div>
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span><div class="red-bar"></div>Payroll — ${start} to ${end}</span>
+      <button id="savePayrollBtn" onclick="savePayrollRecords('${start}','${end}')" style="padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 I-save ang Payroll Records</button>
+    </div>
     <div style="overflow-x:auto">
     <table class="tbl">
       <thead><tr><th>Employee</th><th class="num">Days</th><th class="num">Hrs</th><th class="num">OT Hrs</th><th class="num">Basic</th><th class="num">OT Pay</th><th class="num">Holiday</th><th class="num">Gross</th><th class="num">Deductions</th><th class="num">NET PAY</th><th>Payslip</th></tr></thead>
@@ -3917,14 +3920,35 @@ async function computePayroll(start,end){
       </tr></tfoot>
     </table></div>
   </div>`;
-  // Save to Supabase
-  for(const r of payrollRows){
-    const{data:ex}=await sb.from('payroll').select('id').eq('emp_id',r.empId).eq('cutoff_start',start).eq('cutoff_end',end).limit(1);
-    const rec={emp_id:r.empId,emp_name:r.name,cutoff_start:start,cutoff_end:end,days_worked:r.daysWorked,total_hours:+r.totalHours,ot_hours:+r.otHours,ot_pay:r.otPay,holiday_pay:r.holidayPay,basic_pay:r.basicPay,gross_pay:r.grossPay,sss:r.totalDed>0?450:0,philhealth:r.totalDed>0?200:0,pagibig:r.totalDed>0?200:0,total_deductions:r.totalDed,net_pay:r.netPay,branch:'SM Bicutan'};
-    if(ex&&ex.length){await sb.from('payroll').update(rec).eq('id',ex[0].id);}
-    else{await sb.from('payroll').insert([rec]);}
+  // Kept in memory so the explicit Save button (clicked separately, on demand) has the
+  // exact rows to persist — no more silent background save with swallowed errors.
+  window.__lastPayrollRows=payrollRows;
+}
+
+async function savePayrollRecords(start,end){
+  const rows=window.__lastPayrollRows;
+  if(!rows||!rows.length){showToast('Wala pang na-compute na payroll. I-click muna ang Compute.');return;}
+  const btn=document.getElementById('savePayrollBtn');
+  if(btn){btn.disabled=true;btn.textContent='Sinasave...';}
+  let okCount=0,failCount=0;
+  for(const r of rows){
+    try{
+      const{data:ex,error:selErr}=await sb.from('payroll').select('id').eq('emp_id',r.empId).eq('cutoff_start',start).eq('cutoff_end',end).limit(1);
+      if(selErr)throw selErr;
+      const rec={emp_id:r.empId,emp_name:r.name,cutoff_start:start,cutoff_end:end,days_worked:r.daysWorked,total_hours:+r.totalHours,ot_hours:+r.otHours,ot_pay:r.otPay,holiday_pay:r.holidayPay,basic_pay:r.basicPay,gross_pay:r.grossPay,sss:r.totalDed>0?450:0,philhealth:r.totalDed>0?200:0,pagibig:r.totalDed>0?200:0,total_deductions:r.totalDed,net_pay:r.netPay,branch:'SM Bicutan'};
+      let err;
+      if(ex&&ex.length){({error:err}=await sb.from('payroll').update(rec).eq('id',ex[0].id));}
+      else{({error:err}=await sb.from('payroll').insert([rec]));}
+      if(err)throw err;
+      okCount++;
+    }catch(e){
+      failCount++;
+      console.error('Payroll save failed for',r.name,e);
+    }
   }
-  showToast('Payroll computed and saved!');
+  if(btn){btn.disabled=false;btn.textContent='💾 I-save ang Payroll Records';}
+  if(failCount===0)showToast(`✅ Na-save ang payroll ng ${okCount} empleyado!`);
+  else showToast(`⚠️ ${okCount} na-save, ${failCount} nabigo — tingnan ang console para sa detalye.`);
 }
 
 // Manual payslip generation when no Time Records exist for the period.
