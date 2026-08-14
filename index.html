@@ -1002,12 +1002,41 @@ button{cursor:pointer;font-family:inherit}
     <div class="input-group">
       <div class="input-label">Weekly Schedule (opsyonal — i-override ang shift time bawat araw)</div>
       <div id="empModalScheduleGrid" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:#fafafa">
-        ${[0,1,2,3,4,5,6].map(dow=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-            <div style="width:40px;font-size:11px;font-weight:700">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow]}</div>
-            <input class="inp" type="time" id="empSched_${dow}_time" style="flex:1;padding:5px 8px;font-size:12px"/>
-            <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_${dow}_off" onchange="document.getElementById('empSched_${dow}_time').disabled=this.checked"/> Day off</label>
-          </div>`).join('')}
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Sun</div>
+          <input class="inp" type="time" id="empSched_0_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_0_off" onchange="document.getElementById('empSched_0_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Mon</div>
+          <input class="inp" type="time" id="empSched_1_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_1_off" onchange="document.getElementById('empSched_1_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Tue</div>
+          <input class="inp" type="time" id="empSched_2_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_2_off" onchange="document.getElementById('empSched_2_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Wed</div>
+          <input class="inp" type="time" id="empSched_3_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_3_off" onchange="document.getElementById('empSched_3_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Thu</div>
+          <input class="inp" type="time" id="empSched_4_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_4_off" onchange="document.getElementById('empSched_4_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Fri</div>
+          <input class="inp" type="time" id="empSched_5_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_5_off" onchange="document.getElementById('empSched_5_time').disabled=this.checked"/> Day off</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <div style="width:40px;font-size:11px;font-weight:700">Sat</div>
+          <input class="inp" type="time" id="empSched_6_time" style="flex:1;padding:5px 8px;font-size:12px"/>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap"><input type="checkbox" id="empSched_6_off" onchange="document.getElementById('empSched_6_time').disabled=this.checked"/> Day off</label>
+        </div>
       </div>
     </div>
     <div class="modal-btns">
