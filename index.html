@@ -3816,6 +3816,14 @@ async function renderPayroll(){
         <div class="input-label">Holiday Pay (₱)</div>
         <input class="inp" type="number" id="manualPayrollHoliday" min="0" placeholder="0"/>
       </div>
+      <div style="flex:1;min-width:140px">
+        <div class="input-label">Custom Deduction Label</div>
+        <input class="inp" id="manualPayrollCustomDedLabel" placeholder="hal. Shortage, Overpayment"/>
+      </div>
+      <div style="width:120px">
+        <div class="input-label">Custom Deduction (₱)</div>
+        <input class="inp" type="number" id="manualPayrollCustomDedAmt" min="0" placeholder="0"/>
+      </div>
       <button onclick="computeManualPayslip('${selStart}','${selEnd}')" class="btn-green" style="padding:9px 16px">📄 Generate Payslip</button>
     </div>
   </div>
@@ -3897,7 +3905,7 @@ async function computePayroll(start,end){
           <td class="num gr" style="font-weight:800">${fmt(r.grossPay)}</td>
           <td class="num re">${r.totalDed>0?'-'+fmt(r.totalDed):'—'}</td>
           <td class="num" style="font-weight:900;color:var(--green);font-size:14px">${fmt(r.netPay)}</td>
-          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
+          <td><button onclick="showPayslip('${r.name}',${r.daysWorked},${r.totalHours},${r.otHours},${r.basicPay},${r.otPay},${r.holidayPay},${r.grossPay},${r.totalDed},${r.totalDed},${r.netPay},'${start}','${end}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:1px solid #a9cce3;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📄 Payslip</button></td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr style="background:#f0f0f0;font-weight:900">
@@ -3926,19 +3934,22 @@ function computeManualPayslip(start,end){
   const daysWorked=+document.getElementById('manualPayrollDays').value||0;
   const otHours=+document.getElementById('manualPayrollOT').value||0;
   const holidayPay=+document.getElementById('manualPayrollHoliday').value||0;
+  const customDedLabel=document.getElementById('manualPayrollCustomDedLabel').value.trim();
+  const customDedAmt=+document.getElementById('manualPayrollCustomDedAmt').value||0;
   if(!name){showToast('Select an employee.');return;}
   if(daysWorked<=0){showToast('Enter days worked.');return;}
   const basicPay=daysWorked*DAILY_RATE;
   const otPay=otHours*OT_RATE;
   const grossPay=basicPay+otPay+holidayPay;
   const isDeductionPeriod=new Date(end).getDate()>=25;
-  const totalDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
+  const statutoryDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
+  const totalDed=statutoryDed+customDedAmt;
   const netPay=grossPay-totalDed;
   const totalHours=(daysWorked*8).toFixed(1);
-  showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,totalDed,netPay,start,end);
+  showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt);
 }
 
-function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,totalDed,netPay,start,end){
+function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt){
   const w=window.open('','_blank','width=420,height=650');
   w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${name}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:24px;max-width:380px}
@@ -3961,10 +3972,11 @@ function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPa
   <div class="row b"><span>GROSS PAY</span><span>₱${grossPay.toFixed(2)}</span></div>
   <div class="divider"></div>
   ${totalDed>0?`<div class="b" style="margin:6px 0 4px">DEDUCTIONS</div>
-  <div class="row"><span>SSS Contribution</span><span>₱450.00</span></div>
+  ${statutoryDed>0?`<div class="row"><span>SSS Contribution</span><span>₱450.00</span></div>
   <div class="row"><span>PhilHealth</span><span>₱200.00</span></div>
-  <div class="row"><span>Pag-IBIG Fund</span><span>₱200.00</span></div>
-  <div class="row b"><span>TOTAL DEDUCTIONS</span><span>₱850.00</span></div>
+  <div class="row"><span>Pag-IBIG Fund</span><span>₱200.00</span></div>`:''}
+  ${customDedAmt>0?`<div class="row"><span>${customDedLabel||'Other Deduction'}</span><span>₱${customDedAmt.toFixed(2)}</span></div>`:''}
+  <div class="row b"><span>TOTAL DEDUCTIONS</span><span>₱${totalDed.toFixed(2)}</span></div>
   <div class="divider"></div>`:''}
   <div class="row b r" style="font-size:16px"><span>NET PAY</span><span>₱${netPay.toFixed(2)}</span></div>
   <div class="divider"></div>
