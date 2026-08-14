@@ -566,27 +566,31 @@ button{cursor:pointer;font-family:inherit}
       <button class="btn-sm" onclick="logoutAdmin()">Logout</button>
     </div>
   </div>
-  <div class="tabs no-print" id="adminTabs">
-    <div class="tab active" data-tab="dashboard">Dashboard</div>
-    <div class="tab" data-tab="pos">POS</div>
-    <div class="tab" data-tab="kitchen">Kitchen</div>
-    <div class="tab" data-tab="sales">Sales Log</div>
-    <div class="tab" data-tab="daily">Daily Report</div>
-    <div class="tab" data-tab="expenses">Expenses</div>
-    <div class="tab" data-tab="monthly">Monthly</div>
-    <div class="tab" data-tab="itemsreport">Items Report</div>
-    <div class="tab" data-tab="shortages">Cashier Shortages</div>
-    <div class="tab" data-tab="xread">X Reading</div>
-    <div class="tab" data-tab="zread">Z Reading</div>
-    <div class="tab" data-tab="dtr">DTR</div>
-    <div class="tab" data-tab="employees">Employees</div>
-    <div class="tab" data-tab="products">Products</div>
-    <div class="tab" data-tab="categories">Categories</div>
-    <div class="tab" data-tab="inventory">Inventory</div>
-    <div class="tab" data-tab="recipes">Recipes</div>
-    <div class="tab" data-tab="payroll">Payroll</div>
-    <div class="tab" data-tab="holidays">Holidays</div>
-    <div class="tab" data-tab="loyalty">Loyalty</div>
+  <div style="display:flex;align-items:stretch;background:#fff;border-bottom:2px solid var(--border)">
+    <button onclick="document.getElementById('adminTabs').scrollBy({left:-220,behavior:'smooth'})" style="flex-shrink:0;width:28px;border:none;border-right:1px solid var(--border);background:#f5f5f5;color:var(--red);font-weight:900;font-size:14px;cursor:pointer" title="I-scroll pakaliwa">◀</button>
+    <div class="tabs no-print" id="adminTabs" style="border-bottom:none;flex:1">
+      <div class="tab active" data-tab="dashboard">Dashboard</div>
+      <div class="tab" data-tab="pos">POS</div>
+      <div class="tab" data-tab="kitchen">Kitchen</div>
+      <div class="tab" data-tab="sales">Sales Log</div>
+      <div class="tab" data-tab="daily">Daily Report</div>
+      <div class="tab" data-tab="expenses">Expenses</div>
+      <div class="tab" data-tab="monthly">Monthly</div>
+      <div class="tab" data-tab="itemsreport">Items Report</div>
+      <div class="tab" data-tab="shortages">Cashier Shortages</div>
+      <div class="tab" data-tab="xread">X Reading</div>
+      <div class="tab" data-tab="zread">Z Reading</div>
+      <div class="tab" data-tab="dtr">DTR</div>
+      <div class="tab" data-tab="employees">Employees</div>
+      <div class="tab" data-tab="products">Products</div>
+      <div class="tab" data-tab="categories">Categories</div>
+      <div class="tab" data-tab="inventory">Inventory</div>
+      <div class="tab" data-tab="recipes">Recipes</div>
+      <div class="tab" data-tab="payroll" style="color:var(--gold);font-weight:900">💰 Payroll</div>
+      <div class="tab" data-tab="holidays">Holidays</div>
+      <div class="tab" data-tab="loyalty">Loyalty</div>
+    </div>
+    <button onclick="document.getElementById('adminTabs').scrollBy({left:220,behavior:'smooth'})" style="flex-shrink:0;width:28px;border:none;border-left:1px solid var(--border);background:#f5f5f5;color:var(--red);font-weight:900;font-size:14px;cursor:pointer" title="I-scroll pakanan (may Payroll, Holidays, Loyalty pa)">▶</button>
   </div>
   <div class="body" id="adminBody"></div>
 </div>
