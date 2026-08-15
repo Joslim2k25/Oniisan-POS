@@ -419,6 +419,10 @@ button{cursor:pointer;font-family:inherit}
       </div>
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
     </div>
+    <div class="lcard">
+      <div class="lcard-label">📅 SCHEDULE THIS WEEK</div>
+      <div id="storeScheduleView"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Loading schedule...</div></div>
+    </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
     <button class="back-role-btn" onclick="logoutCashier()">← Change Role / Logout</button>
 
@@ -1632,6 +1636,7 @@ async function checkUnifiedPin(){
       renderEmpList();
       loadProducts();
       renderRecentOrders();
+      renderStoreSchedule();
       renderCashierExpList();
       loadExpectedCash();
       refreshCashierSales();
@@ -1739,6 +1744,7 @@ function goBackFromPOS(){
   if(currentRole==='cashier'){
     goScreen('loginScreen');
     renderRecentOrders();
+    renderStoreSchedule();
     renderCashierExpList();
     loadExpectedCash();
     refreshCashierSales();
@@ -2237,6 +2243,43 @@ async function renderRecentOrders(){
 }
 
 // ══════ TIME ACTION ══════
+// Store-wide schedule shown directly on the Time Record screen (before individual login) —
+// only shows employees marked "Isama sa Weekly Schedule", and only days marked "Ipakita" by
+// admin. No edit controls here at all — pure display.
+async function renderStoreSchedule(){
+  const el=document.getElementById('storeScheduleView');
+  if(!el)return;
+  const schedEmployees=employees.filter(e=>e.include_in_schedule!==false);
+  if(!schedEmployees.length){el.innerHTML='<div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Walang schedule na naka-set.</div>';return;}
+  const{data:schedules}=await sb.from('employee_schedules').select('*').eq('is_visible',true);
+  const scheduleMap={};
+  (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const fmtTime=t=>t?new Date('2000-01-01T'+t).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
+  el.innerHTML=`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#f5f5f5">
+        <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:#f5f5f5">Employee</th>
+        ${dayNames.map(d=>`<th style="padding:6px 4px;text-align:center;min-width:76px">${d}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${schedEmployees.map(e=>{
+          const empSched=scheduleMap[e.id]||{};
+          return `<tr style="border-top:1px solid #eee">
+            <td style="padding:6px 8px;font-weight:700;position:sticky;left:0;background:#fff">${e.name}</td>
+            ${[0,1,2,3,4,5,6].map(dow=>{
+              const s=empSched[dow];
+              if(!s)return `<td style="text-align:center;padding:6px 4px;color:#ccc">—</td>`;
+              if(s.is_day_off)return `<td style="text-align:center;padding:6px 4px;color:#999">Off</td>`;
+              return `<td style="text-align:center;padding:6px 4px;color:var(--blue);font-weight:600">${fmtTime(s.shift_start)}${s.shift_end?`<br>${fmtTime(s.shift_end)}`:''}</td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
 function timeAction(action){
   if(LS.get('day_closed_'+getTodayKey(),false)){
     showToast('🔒 Day is closed. Time punching disabled.');
