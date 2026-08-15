@@ -409,6 +409,10 @@ button{cursor:pointer;font-family:inherit}
       <div class="lcard-label">BRANCH</div>
       <button class="time-btn tin" style="flex:0 0 auto;padding:8px 18px;font-size:13px;border-radius:8px;border-width:1.5px">SM Bicutan</button>
     </div>
+    <div class="lcard" style="border:2px solid var(--blue)">
+      <div class="lcard-label" style="color:var(--blue);font-size:14px">📅 SCHEDULE THIS WEEK</div>
+      <div id="storeScheduleView"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Loading schedule...</div></div>
+    </div>
     <div class="lcard">
       <div class="lcard-label">TIME RECORD — SM BICUTAN</div>
       <div class="time-row">
@@ -418,10 +422,6 @@ button{cursor:pointer;font-family:inherit}
         <button class="time-btn tout" onclick="timeAction('out')"><span class="dot-ind" style="background:var(--red)"></span>TIME OUT</button>
       </div>
       <div id="empList"><div style="text-align:center;padding:20px;color:#ccc;font-size:12px">Loading employees...</div></div>
-    </div>
-    <div class="lcard">
-      <div class="lcard-label">📅 SCHEDULE THIS WEEK</div>
-      <div id="storeScheduleView"><div style="text-align:center;padding:16px;color:#ccc;font-size:12px">Loading schedule...</div></div>
     </div>
     <button class="open-pos-btn" id="openPosBtn" onclick="openPosOrAdmin()">OPEN POS</button>
     <button class="back-role-btn" onclick="logoutCashier()">← Change Role / Logout</button>
