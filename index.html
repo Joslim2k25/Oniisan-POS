@@ -1521,6 +1521,27 @@ const dateStr=ts=>new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:
 // device's own timezone/clock settings.
 const getTodayKey=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 const getManilaNow=()=>new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+
+// FIX: photos in this app are captured as base64 data: URLs (canvas.toDataURL), and many
+// browsers (especially mobile) silently block window.open() when the target is a data: URL —
+// clicking the thumbnail did nothing. This shows the image in an in-page overlay instead,
+// which works everywhere since it's just an <img> rendered in the current page context.
+function zoomImage(src){
+  let overlay=document.getElementById('imgZoomOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='imgZoomOverlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;cursor:zoom-out';
+    overlay.onclick=()=>{overlay.style.display='none';};
+    const img=document.createElement('img');
+    img.id='imgZoomOverlayImg';
+    img.style.cssText='max-width:92vw;max-height:92vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)';
+    overlay.appendChild(img);
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('imgZoomOverlayImg').src=src;
+  overlay.style.display='flex';
+}
 const getMonthKey=()=>new Date().toISOString().slice(0,7);
 const msToHM=ms=>{const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h+'h '+m+'m';};
 function showToast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',dur);}
@@ -2215,7 +2236,7 @@ async function renderCashierExpList(){
       const net=e.net_amount||(e.amount-vat);
       return `<div class="cashier-exp-item">
         <span style="font-size:9px;font-weight:800;background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:8px;white-space:nowrap">${e.category}</span>
-        ${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:24px;height:24px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;flex-shrink:0" title="Click to view receipt"/>`:''}
+        ${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="zoomImage(this.src)" style="width:24px;height:24px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;flex-shrink:0" title="Click to view receipt"/>`:''}
         <div style="flex:1;padding:0 6px">
           <div style="font-size:11px;color:var(--text)">${e.description||'—'}</div>
           <div style="font-size:10px;color:var(--muted)">VAT: ${fmt(vat)} · Net: ${fmt(net)}</div>
@@ -2677,7 +2698,7 @@ async function renderExpenses(dateKey){
         <td style="font-size:11px;color:var(--muted)">${timeStr(e.created_at)}</td>
         <td><span class="exp-cat">${e.category}</span></td>
         <td>${e.description||'—'}</td>
-        <td style="text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
+        <td style="text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
         <td class="num re">${fmt(e.amount)}</td>
         <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
       </tr>`).join('')}</tbody>
@@ -3099,7 +3120,7 @@ async function renderSalesLog(dateKey,silent){
             <td><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--gold-light);color:var(--gold)">${(t.discount||'').toUpperCase()}</span></td>
             <td style="font-size:11px">${t.discount_name||'—'}</td>
             <td style="font-size:11px">${t.discount_id_num||'—'}</td>
-            <td style="text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>
+            <td style="text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>
             <td class="num re">${fmt(t.discount_amount||0)}</td>
             <td class="num re">${fmt(vat)}</td>
           </tr>`;}).join('')
@@ -3848,8 +3869,8 @@ function showMonthlyPaymentDetail(dk,type){
           <td style="padding:6px 8px">${t.table_name||'—'}</td>
           <td style="padding:6px 8px">${t.cashier_name||'—'}</td>
           ${isDiscount?`<td style="padding:6px 8px;text-transform:uppercase;font-size:11px">${t.discount||'—'}</td>`:''}
-          ${isDiscount?`<td style="padding:6px 8px;text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="window.open(this.src,'_blank')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>`:''}
-          ${isCashless?`<td style="padding:6px 8px;text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="window.open(this.src,'_blank')" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No screenshot</span>'}</td>`:''}
+          ${isDiscount?`<td style="padding:6px 8px;text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="zoomImage(this.src)" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>`:''}
+          ${isCashless?`<td style="padding:6px 8px;text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="zoomImage(this.src)" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No screenshot</span>'}</td>`:''}
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(isDiscount?(t.discount_amount||0):(t.total||0))}</td>
         </tr>`).join('')}
       </tbody>
@@ -3883,7 +3904,7 @@ function showMonthlyExpenseDetail(dk){
           <td style="padding:6px 8px">${e.created_at?new Date(e.created_at).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
           <td style="padding:6px 8px"><span class="exp-cat">${e.category||'—'}</span></td>
           <td style="padding:6px 8px">${e.description||'—'}</td>
-          <td style="padding:6px 8px;text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
+          <td style="padding:6px 8px;text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
           <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(e.amount||0)}</td>
         </tr>`).join('')}
       </tbody>
@@ -6496,7 +6517,7 @@ async function showPaymentDetail(pm,dateKey){
   </div>
   <div style="overflow-x:auto"><table class="tbl">
     <thead><tr><th>Time</th><th>OR#</th><th>Table</th><th>Items</th>${isCard?'<th>Card Details</th>':''}<th>Cashier</th>${isCashless?'<th style="text-align:center">Proof</th>':''}<th class="num">Amount</th></tr></thead>
-    <tbody>${filtered.map(t=>`<tr><td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:11px">${t.table_name||'—'}</td><td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}<td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td>${isCashless?`<td style="text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="window.open(this.src,'_blank')" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>`:''}<td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td></tr>`).join('')}</tbody>
+    <tbody>${filtered.map(t=>`<tr><td style="font-size:11px;white-space:nowrap">${timeStr(t.ts)}</td><td style="font-weight:700;color:var(--red);font-size:11px">${t.or_num||'—'}</td><td style="font-size:11px">${t.table_name||'—'}</td><td style="font-size:10px;color:var(--muted);max-width:120px">${(t.items||[]).slice(0,3).map(i=>i.name+'×'+i.qty).join(', ')}${(t.items||[]).length>3?'...':''}</td>${isCard?`<td style="font-size:11px;font-weight:700">${t.card_type||'—'} *${t.card_last4||'—'}</td>`:''}<td style="font-size:11px;color:var(--blue)">${t.cashier_name||'—'}</td>${isCashless?`<td style="text-align:center">${t.cashless_proof_photo?`<img src="${t.cashless_proof_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>`:''}<td class="num" style="font-weight:800;color:var(--green)">${fmt(t.total||0)}</td></tr>`).join('')}</tbody>
     <tfoot><tr style="background:#f0f0f0;font-weight:900"><td colspan="${isCard?5:(isCashless?5:4)}">TOTAL</td><td class="num gr">${fmt(total)}</td></tr></tfoot>
   </table></div>`;
 }
