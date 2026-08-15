@@ -460,6 +460,10 @@ button{cursor:pointer;font-family:inherit}
           <span style="color:var(--muted)">Expected Cash Sales</span>
           <span style="font-weight:800" id="expectedCashAmt">₱0.00</span>
         </div>
+        <div id="smRentalDeductedRow" style="display:none;justify-content:space-between;margin-bottom:6px;font-size:11px;color:var(--muted)">
+          <span>— kasama na dito ang SM Rental na inyong niremit</span>
+          <span id="smRentalDeductedAmt">₱0.00</span>
+        </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
           <span style="color:var(--muted)">Declared Cash on Hand</span>
           <span style="font-weight:800" id="declaredCashAmt">₱0.00</span>
@@ -2003,7 +2007,14 @@ async function saveCashDeclaration(){
   const cashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
   const exps = await sbGetExpenses();
   const cashExpenses = exps.reduce((s,e)=>s+(e.amount||0),0);
-  expectedCashSales = cashSales - cashExpenses;
+  // FIX: cash physically remitted to SM (rental) was never subtracted here, so a cashier
+  // who legitimately handed cash to SM during the day would be wrongly flagged SHORT.
+  let smRentalToday=0;
+  try{
+    const{data:smRec}=await sb.from('sm_rental').select('amount').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').limit(1).single();
+    smRentalToday=smRec?.amount||0;
+  }catch(e){ /* no SM rental recorded today — fine, treat as 0 */ }
+  expectedCashSales = cashSales - cashExpenses - smRentalToday;
   const variance = declared - expectedCashSales;
 
   const rec={
@@ -2011,6 +2022,7 @@ async function saveCashDeclaration(){
     declared_amount: declared,
     expected_amount: expectedCashSales,
     variance,
+    sm_rental_deducted: smRentalToday,
     declared_by: currentLoginEmp?.name||'Cashier',
     branch: 'SM Bicutan'
   };
@@ -2035,6 +2047,13 @@ async function saveCashDeclaration(){
   document.getElementById('expectedCashAmt').textContent=fmt(expectedCashSales);
   document.getElementById('declaredCashAmt').textContent=fmt(declared);
   document.getElementById('varianceAmt').textContent=fmt(Math.abs(variance));
+  const smRow=document.getElementById('smRentalDeductedRow');
+  if(smRentalToday>0){
+    smRow.style.display='flex';
+    document.getElementById('smRentalDeductedAmt').textContent='-'+fmt(smRentalToday);
+  } else {
+    smRow.style.display='none';
+  }
 
   if(variance===0){
     box.style.background='var(--green-light)';box.style.border='2px solid var(--green)';
