@@ -2788,6 +2788,7 @@ async function deleteExpense(id,dateKey){
 // ══════ DASHBOARD ══════
 async function renderDashboard(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading dashboard...</div>';
+  await refreshEmpStatusFromDB();
 
   const today=getTodayKey();
   const mk=getMonthKey();
@@ -2858,6 +2859,23 @@ async function renderDashboard(){
       <span style="font-size:12px;color:var(--muted);font-weight:400">${getManilaNow().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</span>
     </div>
     <button onclick="renderDashboard()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
+  </div>
+
+  <!-- WHO'S ON DUTY (live, from actual time_records) -->
+  <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px">WHO'S ON DUTY NGAYON</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+    ${employees.map(e=>{
+      const st=getEmpStatus(e.id);
+      const isIn=st.status==='in', isBrk=st.status==='break';
+      const dot=isIn?'🟢':isBrk?'🟡':'⚪';
+      const label=isIn?'IN since '+timeStr(st.since):isBrk?'On Break since '+timeStr(st.breakStart):'Wala pang log';
+      const bg=isIn?'#eafaf1':isBrk?'#fef9e7':'#f8f8f8';
+      const bd=isIn?'var(--green)':isBrk?'var(--gold)':'var(--border)';
+      return `<div style="background:${bg};border:1px solid ${bd};border-radius:10px;padding:8px 12px;min-width:150px">
+        <div style="font-size:12px;font-weight:800">${dot} ${e.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${label}</div>
+      </div>`;
+    }).join('')}
   </div>
 
   <!-- TODAY METRICS -->
