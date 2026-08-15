@@ -4785,13 +4785,20 @@ async function renderWeeklyScheduleAll(){
   const scheduleMap={};
   (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
   const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const completeCount=schedEmployees.filter(e=>{
+    const s=scheduleMap[e.id]||{};
+    return Object.keys(s).length>=7; // has an entry for all 7 days
+  }).length;
   document.getElementById('adminBody').innerHTML=`
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>📅 Weekly Schedule — Lahat ng Empleyado</div>
     <button onclick="renderEmployeeMgmt()" style="padding:8px 14px;background:#eee;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">← Balik</button>
     <button onclick="toggleAllScheduleVisibility(true)" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✅ I-check Lahat (Ipakita)</button>
     <button onclick="toggleAllScheduleVisibility(false)" style="padding:8px 14px;background:#eee;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">⬜ I-uncheck Lahat</button>
     <button id="saveAllSchedBtn" onclick="saveAllWeeklySchedules()" class="btn-green">💾 I-save Lahat</button>
+  </div>
+  <div style="margin-bottom:14px;padding:8px 12px;background:${completeCount===schedEmployees.length?'#e8f8ee':'#fff8e6'};border-radius:8px;font-size:12px;font-weight:700;color:${completeCount===schedEmployees.length?'var(--green)':'#b58105'}">
+    ${completeCount} sa ${schedEmployees.length} empleyado ang may kumpletong (7-araw) na schedule na naka-save.
   </div>
   <div style="overflow-x:auto;background:#fff;border-radius:12px;border:1px solid var(--border)">
     <table class="tbl" style="min-width:900px">
@@ -4802,8 +4809,10 @@ async function renderWeeklyScheduleAll(){
       <tbody>
         ${schedEmployees.map(e=>{
           const empSched=scheduleMap[e.id]||{};
-          return `<tr>
-            <td style="position:sticky;left:0;background:#fff;font-weight:700;z-index:1;border-right:2px solid var(--border)">${e.name}<div style="font-size:9px;color:var(--muted);text-transform:uppercase">${e.role}</div></td>
+          const daysSet=Object.keys(empSched).length;
+          const rowStatus=daysSet>=7?'<span style="font-size:9px;color:var(--green);font-weight:700">✓ Kumpleto</span>':daysSet>0?`<span style="font-size:9px;color:#b58105;font-weight:700">⚠️ ${daysSet}/7 lang</span>`:'<span style="font-size:9px;color:#ccc;font-weight:700">Wala pa</span>';
+          return `<tr style="background:${daysSet>=7?'#f7fdf9':'#fff'}">
+            <td style="position:sticky;left:0;background:${daysSet>=7?'#f7fdf9':'#fff'};font-weight:700;z-index:1;border-right:2px solid var(--border)">${e.name}<div style="font-size:9px;color:var(--muted);text-transform:uppercase">${e.role}</div>${rowStatus}</td>
             ${[0,1,2,3,4,5,6].map(dow=>{
               const s=empSched[dow];
               const isOff=s&&s.is_day_off;
