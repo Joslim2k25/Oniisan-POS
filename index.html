@@ -593,6 +593,7 @@ button{cursor:pointer;font-family:inherit}
       <div class="tab" data-tab="products">Products</div>
       <div class="tab" data-tab="categories">Categories</div>
       <div class="tab" data-tab="inventory">Inventory</div>
+      <div class="tab" data-tab="deliverysummary">📦 Delivery Summary</div>
       <div class="tab" data-tab="recipes">Recipes</div>
       <div class="tab" data-tab="payroll" style="color:var(--gold);font-weight:900">💰 Payroll</div>
       <div class="tab" data-tab="holidays">Holidays</div>
@@ -2535,6 +2536,7 @@ function renderTabContent(tab){
   else if(tab==='products')renderProductMgmt();
   else if(tab==='categories')renderCategoryMgmt();
   else if(tab==='inventory')renderInventoryHub();
+  else if(tab==='deliverysummary')renderDeliverySummary();
   else if(tab==='payroll')renderPayroll();
   else if(tab==='holidays')renderHolidays();
   else if(tab==='loyalty')renderLoyalty();
@@ -3415,6 +3417,113 @@ function downloadItemsReportCSV(){
 
 // ══════ CASHIER SHORTAGES REPORT — per-cashier variance summary across a date range ══════
 let __shortagesFrom=null,__shortagesTo=null;
+// ══════ DELIVERY SUMMARY (per week/month, admin-facing) ══════
+let __deliveryFrom=null, __deliveryTo=null, __deliveryRows=[];
+function renderDeliverySummary(){
+  const today=getTodayKey();
+  if(!__deliveryFrom){ const d=getManilaNow();d.setDate(d.getDate()-6); __deliveryFrom=d.toLocaleDateString('en-CA'); }
+  if(!__deliveryTo)__deliveryTo=today;
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>📦 Delivery Summary</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Select date range</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <div class="input-label">Mula</div>
+        <input type="date" class="inp" id="deliveryFrom" value="${__deliveryFrom}" max="${today}"/>
+      </div>
+      <div>
+        <div class="input-label">Hanggang</div>
+        <input type="date" class="inp" id="deliveryTo" value="${__deliveryTo}" max="${today}"/>
+      </div>
+      <button onclick="setDeliveryQuickRange('week')" style="padding:9px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Ngayong Linggo</button>
+      <button onclick="setDeliveryQuickRange('month')" style="padding:9px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Ngayong Buwan</button>
+      <button class="btn-green" onclick="generateDeliverySummary()" style="padding:9px 18px">🔄 Generate Report</button>
+      <button onclick="downloadDeliveryCSV()" style="padding:9px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download CSV</button>
+    </div>
+  </div>
+  <div id="deliveryResult"><div style="text-align:center;padding:30px;color:#ccc">Piliin ang date range, tapos i-click ang Generate Report.</div></div>`;
+}
+
+function setDeliveryQuickRange(period){
+  const today=getTodayKey();
+  if(period==='week'){
+    const d=getManilaNow();const dow=(d.getDay()+1)%7; d.setDate(d.getDate()-dow); // most recent Saturday
+    __deliveryFrom=d.toLocaleDateString('en-CA');
+  } else {
+    const d=getManilaNow();d.setDate(1);
+    __deliveryFrom=d.toLocaleDateString('en-CA');
+  }
+  __deliveryTo=today;
+  renderDeliverySummary();
+  generateDeliverySummary();
+}
+
+async function generateDeliverySummary(){
+  const from=document.getElementById('deliveryFrom').value;
+  const to=document.getElementById('deliveryTo').value;
+  if(!from||!to){showToast('Piliin muna ang mula at hanggang na petsa.');return;}
+  if(from>to){showToast('Mali ang date range — dapat una ang "Mula" bago ang "Hanggang".');return;}
+  __deliveryFrom=from;__deliveryTo=to;
+  document.getElementById('deliveryResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
+  setLoading(true);
+  const{data}=await sb.from('inventory_transactions').select('*').eq('transaction_type','delivery').eq('branch','SM Bicutan')
+    .gte('created_at',from+'T00:00:00.000Z').lte('created_at',to+'T23:59:59.999Z').order('created_at',{ascending:false});
+  setLoading(false);
+  const rows=data||[];
+  __deliveryRows=rows;
+
+  const byMaterial={};
+  rows.forEach(r=>{
+    if(!byMaterial[r.item_name])byMaterial[r.item_name]={item_name:r.item_name,unit:r.unit,totalQty:0,count:0};
+    byMaterial[r.item_name].totalQty+=(r.quantity||0);
+    byMaterial[r.item_name].count++;
+  });
+  const summary=Object.values(byMaterial).sort((a,b)=>b.totalQty-a.totalQty);
+  const totalDeliveries=rows.length;
+
+  document.getElementById('deliveryResult').innerHTML=`
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="metric" style="flex:1;min-width:140px"><div class="metric-val bl">${totalDeliveries}</div><div class="metric-lbl">Total Delivery Entries</div></div>
+    <div class="metric" style="flex:1;min-width:140px"><div class="metric-val">${summary.length}</div><div class="metric-lbl">Iba't ibang Materyal</div></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>Kabuuan bawat Materyal</div>
+    ${summary.length===0?'<div style="text-align:center;padding:20px;color:#ccc">Walang delivery sa date range na ito.</div>':`
+    <table class="tbl">
+      <thead><tr><th>Materyal</th><th class="num">Kabuuang Dami</th><th class="num">Bilang ng Delivery</th></tr></thead>
+      <tbody>
+        ${summary.map(s=>`<tr><td style="font-weight:700">${s.item_name}</td><td class="num">${s.totalQty} ${s.unit||''}</td><td class="num">${s.count}</td></tr>`).join('')}
+      </tbody>
+    </table>`}
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="red-bar"></div>Detalyadong Log (${rows.length} entries)</div>
+    ${rows.length===0?'<div style="text-align:center;padding:20px;color:#ccc">Wala pang delivery.</div>':
+      rows.map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+        <div><span style="font-weight:700">${r.item_name}</span> <span style="color:var(--muted)">+${r.quantity} ${r.unit||''}</span>${r.notes?` — <span style="color:var(--muted)">${r.notes}</span>`:''}</div>
+        <div style="color:var(--muted);font-size:11px;white-space:nowrap;margin-left:10px">${new Date(r.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} · ${r.performed_by||'—'}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function downloadDeliveryCSV(){
+  if(!__deliveryRows.length){showToast('Mag-generate muna ng report.');return;}
+  let csv='Date,Time,Material,Quantity,Unit,Notes,Logged By\n';
+  __deliveryRows.forEach(r=>{
+    const dt=new Date(r.created_at);
+    csv+=`"${dt.toLocaleDateString('en-CA',{timeZone:'Asia/Manila'})}","${dt.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})}","${r.item_name}",${r.quantity},"${r.unit||''}","${(r.notes||'').replace(/"/g,'""')}","${r.performed_by||''}"\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`delivery_summary_${__deliveryFrom}_to_${__deliveryTo}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function renderShortagesReport(){
   const today=getTodayKey();
   if(!__shortagesFrom)__shortagesFrom=today;
