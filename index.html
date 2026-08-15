@@ -1665,6 +1665,7 @@ async function checkUnifiedPin(){
     } else {
       // go to cashier time record
       goScreen('loginScreen');
+      refreshEmpStatusFromDB().then(renderEmpList);
       renderEmpList();
       loadProducts();
       renderRecentOrders();
@@ -1775,6 +1776,7 @@ function openPosOrAdmin(){
 function goBackFromPOS(){
   if(currentRole==='cashier'){
     goScreen('loginScreen');
+    refreshEmpStatusFromDB().then(renderEmpList);
     renderRecentOrders();
     renderStoreSchedule();
     renderCashierExpList();
@@ -1799,6 +1801,7 @@ function startCashierHomePoll(){
   cashierHomePollTimer=setInterval(()=>{
     refreshCashierSales();
     renderRecentOrders();
+    refreshEmpStatusFromDB().then(renderEmpList);
   },15000);
 }
 function stopCashierHomePoll(){
@@ -1857,8 +1860,44 @@ async function loadProducts(){
 }
 
 // ══════ EMP STATUS ══════
-function getEmpStatus(id){return LS.get('empstat_'+id,{status:'out',since:null,breakStart:null,totalWork:0});}
-function saveEmpStatus(id,s){LS.set('empstat_'+id,s);}
+// FIX (critical): getEmpStatus previously read ONLY from browser localStorage, completely
+// disconnected from the actual database. On a different device, or after the browser cache
+// was cleared, the app always assumed everyone was 'out' regardless of what time_records
+// actually showed — so employees who were genuinely still clocked IN could tap TIME IN again
+// (creating duplicate 'in' rows with zero out/break activity, exactly the pattern found in
+// the DTR grid), and BREAK OUT/BREAK IN/TIME OUT would be wrongly blocked as invalid actions.
+// Status is now derived from today's real time_records (last action wins), refreshed
+// whenever the Time Record screen loads/polls, and cached in-memory for synchronous reads.
+window.__empStatusCache={};
+async function refreshEmpStatusFromDB(){
+  const dk=getTodayKey();
+  const{data}=await sb.from('time_records').select('emp_id,action,ts,break_duration')
+    .gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts');
+  const byEmp={};
+  (data||[]).forEach(r=>{ if(!byEmp[r.emp_id])byEmp[r.emp_id]=[]; byEmp[r.emp_id].push(r); });
+  const cache={};
+  Object.keys(byEmp).forEach(empId=>{
+    const recs=byEmp[empId];
+    const last=recs[recs.length-1];
+    let status='out',since=null,breakStart=null;
+    if(last.action==='in'){status='in';since=last.ts;}
+    else if(last.action==='brk_out'){status='break';breakStart=last.ts;}
+    else if(last.action==='brk_in'){status='in';since=last.ts;}
+    else if(last.action==='out'){status='out';}
+    cache[empId]={status,since,breakStart,totalWork:0,totalBreak:0};
+  });
+  window.__empStatusCache=cache;
+  return cache;
+}
+function getEmpStatus(id){
+  if(window.__empStatusCache&&window.__empStatusCache[id])return window.__empStatusCache[id];
+  return {status:'out',since:null,breakStart:null,totalWork:0};
+}
+function saveEmpStatus(id,s){
+  LS.set('empstat_'+id,s); // kept for backward-compat / offline fallback only
+  if(!window.__empStatusCache)window.__empStatusCache={};
+  window.__empStatusCache[id]=s;
+}
 
 // ══════ EMPLOYEE LIST ══════
 function renderEmpList(){
