@@ -1880,23 +1880,24 @@ async function viewMySchedule(empId,empName){
     const s=schedMap[dow];
     const isOff=s&&s.is_day_off;
     const isVisible=s&&s.is_visible;
+    const dateLabel=getCurrentWeekDates()[dow];
     const inStr=s&&s.shift_start?new Date('2000-01-01T'+s.shift_start).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'—';
     const outStr=s&&s.shift_end?new Date('2000-01-01T'+s.shift_end).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
     const timeStr=outStr?`${inStr} - ${outStr}`:inStr;
     if(isOff){
       return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
-        <span style="font-weight:700;font-size:13px">${dayNames[dow]}</span>
+        <span style="font-weight:700;font-size:13px">${dayNames[dow]} <span style="font-weight:400;font-size:10px;color:var(--muted)">${dateLabel}</span></span>
         <span style="font-size:12px;font-weight:700;color:#999">Day Off</span>
       </div>`;
     }
     if(!isVisible){
       return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
-        <span style="font-weight:700;font-size:13px;color:#ccc">${dayNames[dow]}</span>
+        <span style="font-weight:700;font-size:13px;color:#ccc">${dayNames[dow]} <span style="font-weight:400;font-size:10px">${dateLabel}</span></span>
         <span style="font-size:11px;color:#ccc">Hindi pa naka-post</span>
       </div>`;
     }
     return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
-      <span style="font-weight:700;font-size:13px">${dayNames[dow]}</span>
+      <span style="font-weight:700;font-size:13px">${dayNames[dow]} <span style="font-weight:400;font-size:10px;color:var(--muted)">${dateLabel}</span></span>
       <span style="font-size:12px;font-weight:700;color:var(--blue)">${timeStr}</span>
     </div>`;
   }).join('');
@@ -2284,7 +2285,7 @@ function renderStoreScheduleCompact(){
       <span style="font-weight:700">${e.name}</span>${statusHtml}
     </div>`;
   }).join('');
-  el.innerHTML=`<div style="font-size:10px;color:var(--muted);padding:0 8px 4px;text-align:right">Ngayong araw lang \u2014 <span style="color:var(--blue);text-decoration:underline;cursor:pointer" onclick="renderStoreScheduleFull()">tingnan ang buong linggo</span></div>${rows}`;
+  el.innerHTML=`<div style="font-size:10px;color:var(--muted);padding:0 8px 4px;text-align:right">${new Date().toLocaleDateString('en-PH',{weekday:'long',month:'short',day:'numeric'})} \u2014 <span style="color:var(--blue);text-decoration:underline;cursor:pointer" onclick="renderStoreScheduleFull()">tingnan ang buong linggo</span></div>${rows}`;
 }
 
 // Full week view — the compact grid, opened on demand instead of always shown.
@@ -2297,7 +2298,7 @@ function renderStoreScheduleFull(){
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:#f5f5f5">
         <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:#f5f5f5">Employee</th>
-        ${dayNames.map(d=>`<th style="padding:6px 4px;text-align:center;min-width:76px">${d}</th>`).join('')}
+        ${dayNames.map((d,i)=>`<th style="padding:6px 4px;text-align:center;min-width:76px">${d}<br><span style="font-weight:400;font-size:9px;color:var(--muted)">${getCurrentWeekDates()[i]}</span></th>`).join('')}
       </tr></thead>
       <tbody>
         ${schedEmployees.map(e=>{
@@ -2316,6 +2317,18 @@ function renderStoreScheduleFull(){
       </tbody>
     </table>
   </div>`;
+}
+
+// Returns ['Aug 17','Aug 18',...] for the current Sun-Sat week, to label schedule day columns.
+function getCurrentWeekDates(){
+  const now=new Date();
+  const sun=new Date(now);sun.setDate(now.getDate()-now.getDay());
+  const out=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(sun);d.setDate(sun.getDate()+i);
+    out.push(d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}));
+  }
+  return out;
 }
 
 function timeAction(action){
@@ -4812,7 +4825,7 @@ async function renderWeeklyScheduleAll(){
     <table class="tbl" style="min-width:900px">
       <thead><tr>
         <th style="position:sticky;left:0;background:#1a1a1a;z-index:2;min-width:150px">Employee</th>
-        ${dayNames.map(d=>`<th style="text-align:center;min-width:100px">${d}</th>`).join('')}
+        ${dayNames.map((d,i)=>`<th style="text-align:center;min-width:100px">${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${getCurrentWeekDates()[i]}</span></th>`).join('')}
       </tr></thead>
       <tbody>
         ${schedEmployees.map(e=>{
