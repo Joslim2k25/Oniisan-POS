@@ -1872,9 +1872,16 @@ async function viewMySchedule(empId,empName){
   const rows=[0,1,2,3,4,5,6].map(dow=>{
     const s=schedMap[dow];
     const isOff=s&&s.is_day_off;
+    const isVisible=s&&s.is_visible;
     const inStr=s&&s.shift_start?new Date('2000-01-01T'+s.shift_start).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'—';
     const outStr=s&&s.shift_end?new Date('2000-01-01T'+s.shift_end).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
     const timeStr=outStr?`${inStr} - ${outStr}`:inStr;
+    if(!isVisible){
+      return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
+        <span style="font-weight:700;font-size:13px;color:#ccc">${dayNames[dow]}</span>
+        <span style="font-size:11px;color:#ccc">Hindi pa naka-post</span>
+      </div>`;
+    }
     return `<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0f0f0">
       <span style="font-weight:700;font-size:13px">${dayNames[dow]}</span>
       <span style="font-size:12px;font-weight:700;color:${isOff?'#999':'var(--blue)'}">${isOff?'Day Off':timeStr}</span>
@@ -4706,6 +4713,8 @@ async function renderWeeklyScheduleAll(){
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>📅 Weekly Schedule — Lahat ng Empleyado</div>
     <button onclick="renderEmployeeMgmt()" style="padding:8px 14px;background:#eee;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">← Balik</button>
+    <button onclick="toggleAllScheduleVisibility(true)" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✅ I-check Lahat (Ipakita)</button>
+    <button onclick="toggleAllScheduleVisibility(false)" style="padding:8px 14px;background:#eee;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">⬜ I-uncheck Lahat</button>
     <button id="saveAllSchedBtn" onclick="saveAllWeeklySchedules()" class="btn-green">💾 I-save Lahat</button>
   </div>
   <div style="overflow-x:auto;background:#fff;border-radius:12px;border:1px solid var(--border)">
@@ -4722,6 +4731,7 @@ async function renderWeeklyScheduleAll(){
             ${[0,1,2,3,4,5,6].map(dow=>{
               const s=empSched[dow];
               const isOff=s&&s.is_day_off;
+              const isVisible=s&&s.is_visible;
               const timeInVal=s&&s.shift_start?s.shift_start.slice(0,5):(e.shift_start||'09:00');
               const timeOutVal=s&&s.shift_end?s.shift_end.slice(0,5):'19:00';
               return `<td style="text-align:center;padding:6px 4px">
@@ -4730,6 +4740,7 @@ async function renderWeeklyScheduleAll(){
                 <div style="font-size:8px;color:var(--muted);text-align:left;padding-left:2px">Out</div>
                 <input class="inp" type="time" id="wschedOut_${e.id}_${dow}" value="${timeOutVal}" ${isOff?'disabled':''} style="width:100%;padding:5px;font-size:11px;margin-bottom:3px"/>
                 <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px"><input type="checkbox" id="wsched_${e.id}_${dow}_off" ${isOff?'checked':''} onchange="document.getElementById('wsched_${e.id}_${dow}').disabled=this.checked;document.getElementById('wschedOut_${e.id}_${dow}').disabled=this.checked"/> Off</label>
+                <label style="display:flex;align-items:center;justify-content:center;gap:3px;font-size:9px;margin-top:2px;color:var(--green);font-weight:700"><input type="checkbox" id="wsched_${e.id}_${dow}_vis" ${isVisible?'checked':''}/> Ipakita</label>
               </td>`;
             }).join('')}
           </tr>`;
@@ -4738,6 +4749,16 @@ async function renderWeeklyScheduleAll(){
     </table>
   </div>
   <div style="font-size:11px;color:var(--muted);margin-top:10px">💡 Punan ang oras bawat araw bawat empleyado, o i-check ang "Off" kung walang trabaho. I-click ang "I-save Lahat" pagkatapos.</div>`;
+}
+
+function toggleAllScheduleVisibility(show){
+  employees.forEach(e=>{
+    for(let dow=0;dow<7;dow++){
+      const cb=document.getElementById(`wsched_${e.id}_${dow}_vis`);
+      if(cb)cb.checked=show;
+    }
+  });
+  showToast(show?'Naka-check na lahat — i-click ang "I-save Lahat" para i-apply':'Naka-uncheck na lahat — i-click ang "I-save Lahat" para i-apply');
 }
 
 async function saveAllWeeklySchedules(){
@@ -4749,13 +4770,15 @@ async function saveAllWeeklySchedules(){
       const timeInput=document.getElementById(`wsched_${e.id}_${dow}`);
       const timeOutInput=document.getElementById(`wschedOut_${e.id}_${dow}`);
       const offInput=document.getElementById(`wsched_${e.id}_${dow}_off`);
+      const visInput=document.getElementById(`wsched_${e.id}_${dow}_vis`);
       if(!timeInput)continue;
       const isOff=offInput.checked;
+      const isVisible=visInput?.checked||false;
       const timeVal=timeInput.value||e.shift_start||'09:00';
       const timeOutVal=timeOutInput?.value||'19:00';
       try{
         const{error}=await sb.from('employee_schedules').upsert(
-          {emp_id:e.id,emp_name:e.name,day_of_week:dow,shift_start:isOff?null:timeVal,shift_end:isOff?null:timeOutVal,is_day_off:isOff,branch:'SM Bicutan',updated_at:new Date().toISOString()},
+          {emp_id:e.id,emp_name:e.name,day_of_week:dow,shift_start:isOff?null:timeVal,shift_end:isOff?null:timeOutVal,is_day_off:isOff,is_visible:isVisible,branch:'SM Bicutan',updated_at:new Date().toISOString()},
           {onConflict:'emp_id,day_of_week'}
         );
         if(error)throw error;
