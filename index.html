@@ -999,6 +999,7 @@ button{cursor:pointer;font-family:inherit}
     </div>
     <div class="input-group"><div class="input-label">4-digit PIN</div><input class="inp" id="empModalPin" type="password" placeholder="e.g. 1234" maxlength="4"/></div>
     <div class="input-group"><div class="input-label">Shift Start Time (default — gagamitin kung walang schedule sa araw na iyon)</div><input class="inp" id="empModalShiftStart" type="time" value="09:00"/></div>
+    <div class="input-group"><label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700"><input type="checkbox" id="empModalIncludeSched" checked/> Isama sa Weekly Schedule (naka-schedule sa operations)</label></div>
     <div class="input-group">
       <div class="input-label">Weekly Schedule (opsyonal — i-override ang shift time bawat araw)</div>
       <div id="empModalScheduleGrid" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:#fafafa">
@@ -4705,6 +4706,8 @@ async function renderEmployeeMgmt(){
 async function renderWeeklyScheduleAll(){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   await loadEmployees();
+  const schedEmployees=employees.filter(e=>e.include_in_schedule!==false);
+  window.__scheduleEmployees=schedEmployees;
   const{data:schedules}=await sb.from('employee_schedules').select('*');
   const scheduleMap={};
   (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
@@ -4724,7 +4727,7 @@ async function renderWeeklyScheduleAll(){
         ${dayNames.map(d=>`<th style="text-align:center;min-width:100px">${d}</th>`).join('')}
       </tr></thead>
       <tbody>
-        ${employees.map(e=>{
+        ${schedEmployees.map(e=>{
           const empSched=scheduleMap[e.id]||{};
           return `<tr>
             <td style="position:sticky;left:0;background:#fff;font-weight:700;z-index:1;border-right:2px solid var(--border)">${e.name}<div style="font-size:9px;color:var(--muted);text-transform:uppercase">${e.role}</div></td>
@@ -4752,7 +4755,7 @@ async function renderWeeklyScheduleAll(){
 }
 
 function toggleAllScheduleVisibility(show){
-  employees.forEach(e=>{
+  (window.__scheduleEmployees||[]).forEach(e=>{
     for(let dow=0;dow<7;dow++){
       const cb=document.getElementById(`wsched_${e.id}_${dow}_vis`);
       if(cb)cb.checked=show;
@@ -4765,7 +4768,8 @@ async function saveAllWeeklySchedules(){
   const btn=document.getElementById('saveAllSchedBtn');
   if(btn){btn.disabled=true;btn.textContent='Sinasave...';}
   let okCount=0,failCount=0;
-  for(const e of employees){
+  const targetEmployees=window.__scheduleEmployees||[];
+  for(const e of targetEmployees){
     for(let dow=0;dow<7;dow++){
       const timeInput=document.getElementById(`wsched_${e.id}_${dow}`);
       const timeOutInput=document.getElementById(`wschedOut_${e.id}_${dow}`);
@@ -4790,7 +4794,7 @@ async function saveAllWeeklySchedules(){
     }
   }
   if(btn){btn.disabled=false;btn.textContent='💾 I-save Lahat';}
-  if(failCount===0)showToast(`✅ Na-save ang schedule ng ${employees.length} empleyado!`);
+  if(failCount===0)showToast(`✅ Na-save ang schedule ng ${targetEmployees.length} empleyado!`);
   else showToast(`⚠️ ${okCount} na-save, ${failCount} nabigo — tingnan ang console.`);
 }
 
@@ -4803,6 +4807,7 @@ function openEmpModal(empId){
   document.getElementById('empModalRole').value=emp?.role||'cashier';
   document.getElementById('empModalPin').value=emp?.pin||'';
   document.getElementById('empModalShiftStart').value=emp?.shift_start||'09:00';
+  document.getElementById('empModalIncludeSched').checked=emp?emp.include_in_schedule!==false:true;
   // Reset grid to defaults first
   for(let dow=0;dow<7;dow++){
     document.getElementById(`empSched_${dow}_time`).value=emp?.shift_start||'09:00';
@@ -4837,10 +4842,11 @@ async function saveEmployee(){
   const role=document.getElementById('empModalRole').value;
   const pin=document.getElementById('empModalPin').value.trim();
   const shiftStart=document.getElementById('empModalShiftStart').value||'09:00';
+  const includeSched=document.getElementById('empModalIncludeSched').checked;
   if(!name){showToast('Name is required.');return;}
   if(pin&&(pin.length!==4||isNaN(pin))){showToast('PIN must be 4 digits.');return;}
   setLoading(true);
-  const record={name,initials,role,pin:pin||'0000',shift_start:shiftStart,branch:'SM Bicutan',is_active:true};
+  const record={name,initials,role,pin:pin||'0000',shift_start:shiftStart,include_in_schedule:includeSched,branch:'SM Bicutan',is_active:true};
   let error,empId=id;
   if(id){({error}=await sb.from('employees').update(record).eq('id',id));}
   else{const{data,error:insErr}=await sb.from('employees').insert([record]).select('id').single();error=insErr;empId=data?.id;}
