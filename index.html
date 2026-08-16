@@ -84,7 +84,7 @@ button{cursor:pointer;font-family:inherit}
 .lcard-label{font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px}
 .emp-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #f5f5f5;cursor:pointer;border-radius:8px}
 .emp-row:hover{background:#fafafa}
-.emp-row.selected{background:var(--red-light)}
+.emp-row.selected{background:var(--red-light);border:2px solid var(--red);box-shadow:0 0 0 2px rgba(220,53,69,.15)}
 .emp-dot{width:9px;height:9px;border-radius:50%;background:#ddd;flex-shrink:0}
 .emp-dot.in{background:var(--green)}.emp-dot.brk{background:var(--gold)}
 .emp-avatar{width:36px;height:36px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0;overflow:hidden}
@@ -415,6 +415,7 @@ button{cursor:pointer;font-family:inherit}
     </div>
     <div class="lcard">
       <div class="lcard-label">TIME RECORD — SM BICUTAN</div>
+      <div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:700;color:#7a5c00">⚠️ Piliin muna ang PANGALAN NINYO sa listahan sa ibaba, BAGO tapikin ang TIME IN / BREAK OUT / BREAK IN / TIME OUT.</div>
       <div class="time-row">
         <button class="time-btn tin" onclick="timeAction('in')"><span class="dot-ind" style="background:var(--green)"></span>TIME IN</button>
         <button class="time-btn tbrk" onclick="timeAction('brk_out')"><span class="dot-ind" style="background:var(--gold)"></span>BREAK OUT</button>
@@ -2519,8 +2520,14 @@ async function doTimeAction(action,empId,photoDataUrl){
     addToQueue('dtr',rec);
   }
 
+  // CRITICAL FIX: selectedEmp was never cleared after a punch completed, so on this shared
+  // kiosk screen, the NEXT person to tap a time-action button (without first tapping their
+  // own name) would have their punch silently recorded under whoever was selected last —
+  // this is very likely why several employees' DTR showed repeated/misattributed 'in'
+  // entries with no matching break/out activity. Force re-selection before every punch now.
+  selectedEmp=null;
   renderEmpList();
-  showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded!${dtrSaved?'':' (naka-queue — i-Sync Now kapag may internet)'}`);
+  showToast(`${({in:'Time In',brk_out:'Break Out',brk_in:'Break In',out:'Time Out'}[action]||action)} recorded for ${emp?.name}!${dtrSaved?'':' (naka-queue — i-Sync Now kapag may internet)'} — Susunod: PILIIN ANG PANGALAN NINYO bago mag-punch.`);
 }
 
 // ══════ CAMERA ══════
