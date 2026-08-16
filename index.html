@@ -452,6 +452,16 @@ button{cursor:pointer;font-family:inherit}
         <input class="inp" id="cashOnHandAmt" type="number" inputmode="decimal" placeholder="0.00"
           style="font-size:22px;font-weight:800;text-align:center" min="0" step="0.01"/>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:10px;font-weight:800;color:#555">Cashier's Signature ✍️ (para sa accountability)</div>
+        <button type="button" onclick="clearCashDeclSignature()" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:700">Clear</button>
+      </div>
+      <div style="background:#fff;border:2px solid var(--green);border-radius:10px;position:relative;margin-bottom:10px">
+        <canvas id="cashDeclSigCanvas" width="320" height="120"
+          style="width:100%;height:120px;border-radius:8px;cursor:crosshair;touch-action:none;display:block"></canvas>
+        <div id="cashDeclSigPlaceholder" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#ccc;font-weight:700;pointer-events:none;white-space:nowrap">✍️ Pumirma dito</div>
+      </div>
+      <div id="cashDeclSigStatus" style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:10px">Wala pang pirma</div>
       <button onclick="saveCashDeclaration()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Submit Cash Declaration</button>
       
       <!-- Result shown AFTER submit -->
@@ -1997,6 +2007,8 @@ function clearCashDeclaration(){
   document.getElementById('cashOnHandAmt').value='';
   document.getElementById('cashOnHandAmt').disabled=false;
   document.getElementById('cashVarianceBox').style.display='none';
+  clearCashDeclSignature();
+  setTimeout(()=>initCashDeclSigPad(),100);
   const btn=document.querySelector('[onclick="saveCashDeclaration()"]');
   if(btn){btn.disabled=false;btn.textContent='Submit Cash Declaration';btn.style.background='var(--green)';}
   document.getElementById('cashDeclStatus').innerHTML='';
@@ -2066,6 +2078,7 @@ async function computeCashVariance(){
 async function saveCashDeclaration(){
   const declared = +document.getElementById('cashOnHandAmt').value||0;
   if(!declared){showToast('Enter your cash on hand amount.');return;}
+  if(!cashDeclSigData){showToast('Kailangan munang pumirma bago i-submit ang Cash Declaration — para sa accountability.');return;}
 
   // Get latest cash sales
   const txns = await sbGetTransactions();
@@ -2089,6 +2102,7 @@ async function saveCashDeclaration(){
     variance,
     sm_rental_deducted: smRentalToday,
     declared_by: currentLoginEmp?.name||'Cashier',
+    signature: cashDeclSigData,
     branch: 'SM Bicutan'
   };
 
@@ -3699,7 +3713,7 @@ async function generateShortagesReport(){
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Daily Detail</div>
     ${decls.length?`<table class="tbl">
-      <thead><tr><th>Date</th><th>Cashier</th><th class="num">Expected</th><th class="num">Declared</th><th class="num">Variance</th><th style="text-align:center">Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Cashier</th><th class="num">Expected</th><th class="num">Declared</th><th class="num">Variance</th><th style="text-align:center">Status</th><th style="text-align:center">Signature</th></tr></thead>
       <tbody>
         ${decls.map(d=>{
           const v=d.variance||0;
@@ -3711,6 +3725,7 @@ async function generateShortagesReport(){
             <td class="num">${fmt(d.declared_amount||0)}</td>
             <td class="num" style="font-weight:800;color:${v<0?'var(--red)':v>0?'var(--blue)':'var(--green)'}">${v===0?'—':(v>0?'+':'')+fmt(v)}</td>
             <td style="text-align:center">${status}</td>
+            <td style="text-align:center">${d.signature?`<img src="${d.signature}" onclick="zoomImage(this.src)" style="width:60px;height:30px;object-fit:contain;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:#fff" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">Walang pirma</span>'}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -4139,6 +4154,31 @@ function initSmRentalSigPad(){
   canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',draw);canvas.addEventListener('mouseup',end);
   canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',draw,{passive:false});canvas.addEventListener('touchend',end,{passive:false});
 }
+let cashDeclSigData=null,cashDeclSigDrawing=false;
+function initCashDeclSigPad(){
+  const canvas=document.getElementById('cashDeclSigCanvas');
+  if(!canvas||canvas._init)return;
+  canvas._init=true;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+  const getPos=(e)=>{const r=canvas.getBoundingClientRect();const src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*(canvas.width/r.width),y:(src.clientY-r.top)*(canvas.height/r.height)};};
+  const start=(e)=>{e.preventDefault();cashDeclSigDrawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);document.getElementById('cashDeclSigPlaceholder').style.display='none';};
+  const draw=(e)=>{e.preventDefault();if(!cashDeclSigDrawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();};
+  const end=(e)=>{e.preventDefault();cashDeclSigDrawing=false;cashDeclSigData=canvas.toDataURL('image/png');
+    document.getElementById('cashDeclSigStatus').textContent='✅ Nakuha ang pirma';document.getElementById('cashDeclSigStatus').style.color='var(--green)';};
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',draw);canvas.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',draw,{passive:false});canvas.addEventListener('touchend',end,{passive:false});
+}
+function clearCashDeclSignature(){
+  const canvas=document.getElementById('cashDeclSigCanvas');
+  if(!canvas)return;
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  cashDeclSigData=null;
+  document.getElementById('cashDeclSigPlaceholder').style.display='block';
+  document.getElementById('cashDeclSigStatus').textContent='Wala pang pirma';
+  document.getElementById('cashDeclSigStatus').style.color='var(--muted)';
+}
+
 function clearSmRentalSignature(){
   const canvas=document.getElementById('smRentalSigCanvas');
   if(!canvas)return;
