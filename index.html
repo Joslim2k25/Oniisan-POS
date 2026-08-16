@@ -1522,6 +1522,9 @@ const dateStr=ts=>new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:
 // device's own timezone/clock settings.
 const getTodayKey=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 const getManilaNow=()=>new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+// Converts any timestamp string to its Manila-local YYYY-MM-DD date key — use this instead of
+// raw ts.slice(0,10) (which is UTC) anywhere transactions/records are grouped "by day".
+const manilaDateKey=ts=>new Date(ts).toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 
 // FIX: photos in this app are captured as base64 data: URLs (canvas.toDataURL), and many
 // browsers (especially mobile) silently block window.open() when the target is a data: URL —
@@ -2850,7 +2853,7 @@ async function renderDashboard(){
   for(let i=6;i>=0;i--){
     const d=getManilaNow();d.setDate(d.getDate()-i);
     const dk=d.toLocaleDateString('en-CA');
-    const dayTxns=txnsMon.filter(t=>t.ts.slice(0,10)===dk);
+    const dayTxns=txnsMon.filter(t=>manilaDateKey(t.ts)===dk);
     trend.push({dk,label:d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}),gross:dayTxns.reduce((s,t)=>s+(t.total||0),0)});
   }
   const maxTrend=Math.max(...trend.map(t=>t.gross),1);
@@ -3750,7 +3753,7 @@ async function renderMonthly(monthKey){
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
 
   const dayMap={};
-  txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
+  txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
   const days=Object.keys(dayMap).sort();
 
   let mGross=0,mGcash=0,mMaya=0,mGotyme=0,mFoodpanda=0,mGrabfood=0,mCard=0,mDiscount=0,mExpenses=0,mSmRental=0,mNet=0,mTxns=0;
@@ -3993,7 +3996,7 @@ function showDiscountIdLog(mk){
     const g=groups[idKey];
     g.names.add(t.discount_name||'—');
     g.types.add((t.discount||'').toUpperCase());
-    g.dates.add(t.ts.slice(0,10));
+    g.dates.add(manilaDateKey(t.ts));
     g.count++;
     g.total+=(t.discount_amount||0);
     g.rows.push(t);
@@ -4283,7 +4286,7 @@ async function computePayroll(start,end){
   for(const empId of Object.keys(empMap)){
     const emp=empMap[empId];
     const dayMap={};
-    emp.records.forEach(r=>{const dk=r.ts.slice(0,10);if(!dayMap[dk])dayMap[dk]=[];dayMap[dk].push(r);});
+    emp.records.forEach(r=>{const dk=manilaDateKey(r.ts);if(!dayMap[dk])dayMap[dk]=[];dayMap[dk].push(r);});
     let daysWorked=0,totalHours=0,otHours=0,holidayPay=0;
     Object.keys(dayMap).forEach(dk=>{
       const outRec=dayMap[dk].find(r=>r.action==='out');
@@ -4571,7 +4574,7 @@ async function downloadMonthlyExcel(mk){
   setLoading(false);
   const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];
   const dayMap={};
-  txns.forEach(t=>{const d=t.ts.slice(0,10);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
+  txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
   const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','Expenses','NET SALES','Cash Declared','Variance','Status'];
   const csvRows=[headers.join(',')];
   Object.keys(dayMap).sort().forEach(dk=>{
@@ -4791,7 +4794,7 @@ async function renderDTR(dateKey){
   (schedules||[]).forEach(s=>{ if(!scheduleMap[s.emp_id])scheduleMap[s.emp_id]={}; scheduleMap[s.emp_id][s.day_of_week]=s; });
   const empDayMap={};
   recs.forEach(r=>{
-    const empId=r.emp_id;const dayKey=r.ts.slice(0,10);
+    const empId=r.emp_id;const dayKey=manilaDateKey(r.ts);
     if(!empDayMap[empId]){empDayMap[empId]={name:r.emp_name,days:{}};}
     if(!empDayMap[empId].days[dayKey])empDayMap[empId].days[dayKey]=[];
     empDayMap[empId].days[dayKey].push(r);
