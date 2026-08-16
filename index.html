@@ -4816,6 +4816,7 @@ async function renderDTR(dateKey){
     </th>`;
   }).join('');
   const fmtPunchTime=ts=>new Date(ts).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}).replace(' ','').toLowerCase();
+  const lateSummaryData=[];
   const empRows=employees.map(emp=>{
     const empData=empDayMap[emp.id]||{days:{}};
     let totalHours=0;let daysWorked=0;let totalLateMins=0;
@@ -4868,6 +4869,7 @@ async function renderDTR(dateKey){
       }
     }).join('');
     const initials=emp.initials||emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    lateSummaryData.push({name:emp.name,role:emp.role,totalLateMins,daysWorked});
     return `<tr>
       <td style="padding:8px 10px;font-weight:700;white-space:nowrap;border-right:2px solid var(--border);position:sticky;left:0;background:#fff;z-index:1">
         <div style="display:flex;align-items:center;gap:6px">
@@ -4931,6 +4933,31 @@ async function renderDTR(dateKey){
       <div style="text-align:center"><div style="font-size:20px;font-weight:900">${grandTotalLateMins}</div><div style="font-size:10px;opacity:.85">Total Late (mins)</div></div>
     </div>
   </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span><div class="red-bar"></div>⏰ Lates Summary — ${cutoffLabel} (naka-rank, pinaka-maraming late sa itaas)</span>
+      <button onclick="downloadLatesSummaryCSV()" style="padding:7px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">📥 Download CSV</button>
+    </div>
+    ${(()=>{
+      window.__lateSummaryData=lateSummaryData;
+      const sorted=[...lateSummaryData].sort((a,b)=>b.totalLateMins-a.totalLateMins);
+      const anyLate=sorted.some(s=>s.totalLateMins>0);
+      if(!anyLate)return '<div style="text-align:center;padding:16px;color:#ccc;font-size:12px">🎉 Walang na-late sa buong period na ito.</div>';
+      return `<table class="tbl">
+        <thead><tr><th>#</th><th>Employee</th><th>Role</th><th class="num">Days Worked</th><th class="num">Total Late (mins)</th></tr></thead>
+        <tbody>
+          ${sorted.map((s,i)=>`<tr style="${s.totalLateMins>0?'':'opacity:.5'}">
+            <td>${i+1}</td>
+            <td style="font-weight:700">${s.name}</td>
+            <td style="text-transform:uppercase;font-size:11px;color:var(--muted)">${s.role}</td>
+            <td class="num">${s.daysWorked}</td>
+            <td class="num" style="font-weight:900;color:${s.totalLateMins>0?'var(--red)':'#ccc'}">${s.totalLateMins}${s.totalLateMins>0?` (${(s.totalLateMins/60).toFixed(1)}h)`:''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    })()}
+  </div>
   <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
     <table style="border-collapse:collapse;font-size:12px;width:100%">
       <thead>
@@ -4959,6 +4986,22 @@ async function renderDTR(dateKey){
 // TIME OUT punch (with exact time + photo) behind a day's summarized hours cell.
 const DTR_ACTION_LABELS={in:'TIME IN',brk_out:'BREAK OUT',brk_in:'BREAK IN',out:'TIME OUT'};
 const DTR_ACTION_COLORS={in:'var(--green)',brk_out:'var(--gold)',brk_in:'var(--blue)',out:'var(--red)'};
+function downloadLatesSummaryCSV(){
+  const data=window.__lateSummaryData||[];
+  if(!data.length){showToast('Wala pang data na ma-e-export.');return;}
+  const sorted=[...data].sort((a,b)=>b.totalLateMins-a.totalLateMins);
+  let csv='Rank,Employee,Role,Days Worked,Total Late (mins),Total Late (hrs)\n';
+  sorted.forEach((s,i)=>{
+    csv+=`${i+1},"${s.name}","${s.role}",${s.daysWorked},${s.totalLateMins},${(s.totalLateMins/60).toFixed(2)}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`lates_summary_${getTodayKey()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function showDtrDayDetail(empId,dt){
   const empData=(window.__dtrEmpDayMap||{})[empId];
   const dayRecs=(empData&&empData.days[dt])?empData.days[dt].slice().sort((a,b)=>a.ts.localeCompare(b.ts)):[];
