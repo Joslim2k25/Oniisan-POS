@@ -1395,7 +1395,6 @@ const QUEUE_KEY='oniisan_offline_q';
 function addToQueue(type,data){const q=LS.get(QUEUE_KEY,[]);q.push({type,data,ts:new Date().toISOString()});LS.set(QUEUE_KEY,q);updateSyncBadge();}
 function updateSyncBadge(){const q=LS.get(QUEUE_KEY,[]);const b=document.getElementById('syncBadge');if(b)b.textContent=q.length+' pending';}
 async function syncQueue(){
-  if(!navigator.onLine){showToast('No internet connection');return;}
   const q=LS.get(QUEUE_KEY,[]);
   if(!q.length){showToast('All data synced!');return;}
   setLoading(true);
@@ -2256,10 +2255,10 @@ async function saveCashierExpense(){
     branch: 'SM Bicutan'
   };
   setLoading(true);
-  if(navigator.onLine){
+  try{
     const{error}=await sb.from('expenses').insert([rec]);
     if(error) addToQueue('expense',rec);
-  } else addToQueue('expense',rec);
+  }catch(e){ addToQueue('expense',rec); }
   // local cache
   const cache=LS.get('exp_'+getTodayKey(),[]);
   cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});
@@ -2660,10 +2659,10 @@ async function sbPaginateAll(buildQuery){
 }
 async function sbGetTransactions(dateKey){
   const d=dateKey||getTodayKey();
-  if(navigator.onLine){
+  try{
     const{data,error}=await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
     if(!error){LS.set('txn_'+d,data||[]);return data||[];}
-  }
+  }catch(e){}
   // also filter voided from local cache
   return (LS.get('txn_'+d,[])).filter(t=>!t.is_voided);
 }
@@ -2714,22 +2713,22 @@ async function sbSaveTxn(txn){
 
 async function sbGetDailyReport(dk){
   const d=dk||getTodayKey();
-  if(navigator.onLine){const{data}=await sb.from('daily_reports').select('*').eq('date_key',d).single();if(data){LS.set('dailyrep_'+d,data);return data;}}
+  try{const{data}=await sb.from('daily_reports').select('*').eq('date_key',d).single();if(data){LS.set('dailyrep_'+d,data);return data;}}catch(e){}
   return LS.get('dailyrep_'+d,{date_key:d,expenses:0,grabfood:0,foodpanda:0,gcash_fee:0,maya_fee:0,gotyme_fee:0,discount_pwd:0,discount_senior:0,discount_staff:0,other_deductions:0,notes:''});
 }
 
 async function sbSaveDailyReport(rep){
   setLoading(true);
   LS.set('dailyrep_'+rep.date_key,rep);
-  if(navigator.onLine){const{data:ex}=await sb.from('daily_reports').select('id').eq('date_key',rep.date_key).single();const fn=ex?sb.from('daily_reports').update(rep).eq('date_key',rep.date_key):sb.from('daily_reports').insert([rep]);const{error}=await fn;if(error)showToast('Saved locally');else showToast('Daily report saved!');}
-  else showToast('Saved offline');
+  try{const{data:ex}=await sb.from('daily_reports').select('id').eq('date_key',rep.date_key).single();const fn=ex?sb.from('daily_reports').update(rep).eq('date_key',rep.date_key):sb.from('daily_reports').insert([rep]);const{error}=await fn;if(error)showToast('Saved locally');else showToast('Daily report saved!');}
+  catch(e){showToast('Saved locally');}
   setLoading(false);
 }
 
 // ══════ EXPENSES ══════
 async function sbGetExpenses(dateKey){
   const d=dateKey||getTodayKey();
-  if(navigator.onLine){const{data,error}=await sb.from('expenses').select('*').eq('date_key',d).eq('branch','SM Bicutan').order('created_at');if(!error){LS.set('exp_'+d,data||[]);return data||[];}}
+  try{const{data,error}=await sb.from('expenses').select('*').eq('date_key',d).eq('branch','SM Bicutan').order('created_at');if(!error){LS.set('exp_'+d,data||[]);return data||[];}}catch(e){}
   return LS.get('exp_'+d,[]);
 }
 
@@ -2821,9 +2820,9 @@ async function renderDashboard(){
   // Load data
   const[txnsDay, txnsMon, expsDay, expsMon] = await Promise.all([
     sbGetTransactions(today),
-    navigator.onLine ? sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').range(from,to)) : Promise.resolve([]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
     sbGetExpenses(today),
-    navigator.onLine ? sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r.data||[]) : Promise.resolve([]),
+    sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r.data||[]).catch(()=>[]),
   ]);
 
   // Daily metrics
@@ -3040,10 +3039,11 @@ async function renderSalesLog(dateKey,silent){
   if(!silent)document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   // Fetch ALL txns for display (including voided), filter for totals
   let allTxnsDisplay=[];
-  if(navigator.onLine){
-    const{data}=await sb.from('transactions').select('*').gte('ts',key+'T00:00:00.000Z').lte('ts',key+'T23:59:59.999Z').order('ts');
+  try{
+    const{data,error}=await sb.from('transactions').select('*').gte('ts',key+'T00:00:00.000Z').lte('ts',key+'T23:59:59.999Z').order('ts');
+    if(error)throw error;
     allTxnsDisplay=data||[];
-  } else {
+  } catch(e) {
     allTxnsDisplay=LS.get('txn_'+key,[]);
   }
   const txns=allTxnsDisplay.filter(t=>!t.is_voided); // non-voided only for totals
@@ -3228,12 +3228,13 @@ async function voidTransaction(id, orNum){
   if(!confirm(`VOID transaction ${orNum}?\
 \
 This will mark it as voided in the records.`))return;
-  if(navigator.onLine){
-    await sb.from('transactions').update({is_voided:true,voided_at:tsNow()}).eq('or_num',orNum);
+  try{
+    const{error}=await sb.from('transactions').update({is_voided:true,voided_at:tsNow()}).eq('or_num',orNum);
+    if(error)throw error;
     showToast(`${orNum} voided!`);
     renderSalesLog();
-  } else {
-    showToast('Cannot void while offline.');
+  } catch(e) {
+    showToast('Hindi na-void — subukan ulit kapag may internet.');
   }
 }
 
@@ -3760,11 +3761,11 @@ async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
-  const allTxns=navigator.onLine?await sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts').range(from,to)):null;
-  const{data:allReps}=navigator.onLine?await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
-  const{data:allExps}=navigator.onLine?await sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
-  const{data:allCash}=navigator.onLine?await sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}):{data:null};
-  const{data:allSmRental}=navigator.onLine?await sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31'):{data:null};
+  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null);
+  const{data:allReps}=await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
+  const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
+  const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null}));
+  const{data:allSmRental}=await sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
 
   const dayMap={};
@@ -4061,15 +4062,15 @@ async function saveCashOnHand(dk){
   if(!declared){showToast('Enter cash on hand amount.');return;}
 
   // Policy: SM Rental must be logged (even if ₱0) BEFORE Cash on Hand for the day.
-  const{data:smExisting}=navigator.onLine?await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1):{data:null};
-  if(navigator.onLine&&(!smExisting||!smExisting.length)){
+  const{data:smExisting}=await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).catch(()=>({data:null}));
+  if(!smExisting||!smExisting.length){
     showToast('⚠️ Log SM Rental first (even if ₱0) before saving Cash on Hand.');
     return;
   }
 
   const txns=await sbGetTransactions(dk);
   const exps=await sbGetExpenses(dk);
-  const{data:smRentalRow}=navigator.onLine?await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single():{data:null};
+  const{data:smRentalRow}=await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
   const smRentalAmt=smRentalRow?.amount||0;
 
   // Expected = NET SALES (Gross - Cashless - Discount - VAT - Expenses - SM Rental)
@@ -4081,14 +4082,14 @@ async function saveCashOnHand(dk){
   const expected=gross-cashless-discount-vat-expTotal-smRentalAmt;
   const variance=declared-expected;
   // preserve existing bank_deposited flag if a declaration already exists
-  const{data:existing}=navigator.onLine?await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single():{data:null};
+  const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
   const rec={date_key:dk,declared_amount:declared,expected_amount:expected,variance,declared_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan',bank_deposited:existing?existing.bank_deposited:false};
   setLoading(true);
-  if(navigator.onLine){
+  try{
     const{data:ex}=await sb.from('cash_declarations').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1);
     if(ex&&ex.length){await sb.from('cash_declarations').update(rec).eq('date_key',dk);}
     else{await sb.from('cash_declarations').insert([rec]);}
-  }
+  }catch(e){ showToast('⚠️ Hindi na-save online.'); }
   setLoading(false);
   showToast(`Saved! ${variance===0?'✅ EXACT':variance>0?'⬆️ OVER '+fmt(variance):'⬇️ SHORT '+fmt(Math.abs(variance))}`);
   renderMonthly(dk.slice(0,7));
@@ -4129,11 +4130,11 @@ function confirmSmRental(){
 async function persistSmRental(dk,amount,receiverName,signature,onDone){
   const rec={date_key:dk,branch:'SM Bicutan',amount,receiver_name:receiverName,receiver_signature:signature,entered_by:currentLoginEmp?.name||'Admin'};
   setLoading(true);
-  if(navigator.onLine){
+  try{
     const{data:ex}=await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1);
     if(ex&&ex.length){await sb.from('sm_rental').update(rec).eq('date_key',dk).eq('branch','SM Bicutan');}
     else{await sb.from('sm_rental').insert([rec]);}
-  } else {
+  } catch(e) {
     addToQueue('sm_rental',rec);
   }
   setLoading(false);
@@ -4208,15 +4209,20 @@ function showSmRentalDetail(dk){
 // does not touch declared/expected/variance amounts, so it can't be used
 // to alter sales figures, only to mark that the cash was physically banked.
 async function toggleBankDeposit(dk){
-  if(!navigator.onLine){showToast('Connect to internet to confirm bank deposit.');return;}
-  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single();
+  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
   if(!existing){showToast('Please save Cash on Hand first before marking as deposited.');return;}
   const newState=!existing.bank_deposited;
   setLoading(true);
-  const{error}=await sb.from('cash_declarations').update({bank_deposited:newState}).eq('date_key',dk).eq('branch','SM Bicutan');
-  setLoading(false);
-  if(error){showToast('Error updating bank status.');return;}
-  showToast(newState?'✅ Marked as deposited to bank':'Unmarked bank deposit');
+  try{
+    const{error}=await sb.from('cash_declarations').update({bank_deposited:newState}).eq('date_key',dk).eq('branch','SM Bicutan');
+    setLoading(false);
+    if(error){showToast('Error updating bank status.');return;}
+    showToast(newState?'✅ Marked as deposited to bank':'Unmarked bank deposit');
+  }catch(e){
+    setLoading(false);
+    showToast('Hindi na-update — subukan ulit kapag may internet.');
+    return;
+  }
   renderMonthly(dk.slice(0,7));
 }
 
