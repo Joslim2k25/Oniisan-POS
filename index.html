@@ -3761,11 +3761,13 @@ async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
-  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null);
-  const{data:allReps}=await sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
-  const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
-  const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null}));
-  const{data:allSmRental}=await sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null}));
+  const[allTxns,{data:allReps},{data:allExps},{data:allCash},{data:allSmRental}]=await Promise.all([
+    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null),
+    sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
+    sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
+    sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
+    sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
+  ]);
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
 
   const dayMap={};
@@ -3922,14 +3924,24 @@ async function renderMonthly(monthKey){
 
 // Click-to-detail: shows every transaction behind a GCash/Maya/GoTyme/FoodPanda/GrabFood/Card/Discount total
 const PAYMENT_LABELS={gcash:'GCash',maya:'Maya',gotyme:'GoTyme',foodpanda:'FoodPanda',grabfood:'GrabFood',card:'Card',discount:'PWD/Senior/Staff Discount'};
-function showMonthlyPaymentDetail(dk,type){
+async function showMonthlyPaymentDetail(dk,type){
   const row=(window.__monthlyRows||[]).find(r=>r.dk===dk);
-  if(!row||!row.dayTxns){showToast('No data available.');return;}
+  if(!row){showToast('No data available.');return;}
+  document.getElementById('paymentDetailTitle').textContent=`Loading...`;
+  document.getElementById('paymentDetailContent').innerHTML='<div style="text-align:center;padding:20px;color:#ccc">Loading...</div>';
+  document.getElementById('paymentDetailModal').classList.add('open');
+  // Fetch this single day's transactions fresh, WITH photos — the main Monthly Report load
+  // deliberately excludes discount_id_photo/cashless_proof_photo (they're large base64 blobs
+  // that would otherwise slow down loading a whole month), so pull them in only when this
+  // specific day's detail is actually opened.
+  const{data}=await sb.from('transactions').select('*').eq('is_voided',false)
+    .gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts').catch(()=>({data:null}));
+  const dayTxns=data||[];
   const isDiscount=type==='discount';
   const isCashless=['gcash','maya','gotyme','card'].includes(type);
   const matching=isDiscount
-    ? row.dayTxns.filter(t=>t.discount&&t.discount!=='none'&&(t.discount_amount||0)>0)
-    : row.dayTxns.filter(t=>t.payment_method===type);
+    ? dayTxns.filter(t=>t.discount&&t.discount!=='none'&&(t.discount_amount||0)>0)
+    : dayTxns.filter(t=>t.payment_method===type);
   const total=matching.reduce((s,t)=>s+(isDiscount?(t.discount_amount||0):(t.total||0)),0);
 
   document.getElementById('paymentDetailTitle').textContent=`${PAYMENT_LABELS[type]||type} — ${dk} (${matching.length} ${matching.length===1?'order':'orders'})`;
