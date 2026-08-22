@@ -3572,8 +3572,12 @@ async function generateDeliverySummary(){
   __deliveryFrom=from;__deliveryTo=to;
   document.getElementById('deliveryResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
   setLoading(true);
+  // Manila-anchored boundaries (from 00:00 Manila to 23:59:59 Manila), not raw UTC —
+  // otherwise deliveries logged near Manila midnight could fall outside the range.
+  const fromUTC=new Date(from+'T00:00:00+08:00').toISOString();
+  const toUTC=new Date(to+'T23:59:59.999+08:00').toISOString();
   const{data}=await sb.from('inventory_transactions').select('*').eq('transaction_type','delivery').eq('branch','SM Bicutan')
-    .gte('created_at',from+'T00:00:00.000Z').lte('created_at',to+'T23:59:59.999Z').order('created_at',{ascending:false});
+    .gte('created_at',fromUTC).lte('created_at',toUTC).order('created_at',{ascending:false});
   setLoading(false);
   const rows=data||[];
   __deliveryRows=rows;
@@ -3585,12 +3589,40 @@ async function generateDeliverySummary(){
     byMaterial[r.item_name].count++;
   });
   const summary=Object.values(byMaterial).sort((a,b)=>b.totalQty-a.totalQty);
+
+  // NEW: per-cashier breakdown — who is (or isn't) actually logging deliveries.
+  const byCashier={};
+  rows.forEach(r=>{
+    const who=r.performed_by||'(Walang naka-log na pangalan)';
+    if(!byCashier[who])byCashier[who]={name:who,count:0,materials:new Set(),lastLogged:r.created_at};
+    byCashier[who].count++;
+    byCashier[who].materials.add(r.item_name);
+    if(r.created_at>byCashier[who].lastLogged)byCashier[who].lastLogged=r.created_at;
+  });
+  const cashierSummary=Object.values(byCashier).sort((a,b)=>b.count-a.count);
+
   const totalDeliveries=rows.length;
 
   document.getElementById('deliveryResult').innerHTML=`
   <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div class="metric" style="flex:1;min-width:140px"><div class="metric-val bl">${totalDeliveries}</div><div class="metric-lbl">Total Delivery Entries</div></div>
     <div class="metric" style="flex:1;min-width:140px"><div class="metric-val">${summary.length}</div><div class="metric-lbl">Iba't ibang Materyal</div></div>
+    <div class="metric" style="flex:1;min-width:140px"><div class="metric-val">${cashierSummary.length}</div><div class="metric-lbl">Nag-log na Empleyado</div></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="red-bar"></div>👤 Sino ang Nag-log ng Delivery (accountability)</div>
+    ${cashierSummary.length===0?'<div style="text-align:center;padding:20px;color:#ccc">Walang naka-log na delivery sa date range na ito.</div>':`
+    <table class="tbl">
+      <thead><tr><th>Empleyado</th><th class="num">Bilang ng Log</th><th class="num">Iba't ibang Materyal</th><th>Huling Log</th></tr></thead>
+      <tbody>
+        ${cashierSummary.map(c=>`<tr>
+          <td style="font-weight:700">${c.name}</td>
+          <td class="num">${c.count}</td>
+          <td class="num">${c.materials.size}</td>
+          <td style="font-size:11px;color:var(--muted)">${new Date(c.lastLogged).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`}
   </div>
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><div class="red-bar"></div>Kabuuan bawat Materyal</div>
