@@ -6611,15 +6611,16 @@ async function submitManagerApproval(pendingDiscType){
   if(!pin){errBox.textContent='Ilagay ang PIN.';return;}
   errBox.textContent='Checking...';
   try{
-    const{data}=await sb.from('employees').select('name,role').eq('pin',pin).eq('active',true).in('role',['admin','owner']).limit(1).then(r=>r).catch(()=>({data:null}));
-    if(data&&data.length){
+    const{data}=await sb.from('app_settings').select('value').eq('key','discount_approval_pin').single().then(r=>r).catch(()=>({data:null}));
+    const correctPin=data?.value;
+    if(correctPin && pin===correctPin){
       approvedDiscountThisTxn=true;
       document.getElementById('mgrApprovalOverlay').remove();
       document.getElementById('discountSelect').value=pendingDiscType;
-      showToast(`✅ Approved by ${data[0].name}`);
+      showToast('✅ Discount Approved');
       onDiscountChange();
     } else {
-      errBox.textContent='❌ Maling PIN o hindi Manager/Admin.';
+      errBox.textContent='❌ Maling Discount Approval PIN.';
       document.getElementById('mgrApprovalPin').value='';
     }
   }catch(e){
