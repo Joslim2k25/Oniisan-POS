@@ -3827,11 +3827,11 @@ async function renderMonthly(monthKey){
     // Cash on Hand = Gross − Expenses − SM Rental − full cashless sales (gcash/maya/gotyme/card/grabfood/foodpanda) − PWD/Senior discount − VAT − other manual deductions
     const cashlessTotal=gcash+maya+gotyme+card+grabfood+foodpanda;
     const otherDed=(rep.other_deductions||0);
-    const net=g-dayExps-smRentalAmt-cashlessTotal-discount-vat-otherDed;
+    const net=g-dayExps-smRentalAmt-cashlessTotal-otherDed; // g (gross) is already net of discount — don't subtract it again
     // cash declaration — recalculate variance using NET SALES formula
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
-    const expectedCash=g-cashlessTotal-discount-vat-dayExps-smRentalAmt;
+    const expectedCash=g-cashlessTotal-dayExps-smRentalAmt;
     const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
     return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
@@ -3966,9 +3966,16 @@ async function showMonthlyPaymentDetail(dk,type){
   // deliberately excludes discount_id_photo/cashless_proof_photo (they're large base64 blobs
   // that would otherwise slow down loading a whole month), so pull them in only when this
   // specific day's detail is actually opened.
-  const{data}=await sb.from('transactions').select('*').eq('is_voided',false)
-    .gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts').catch(()=>({data:null}));
-  const dayTxns=data||[];
+  let dayTxns=[];
+  try{
+    const{data}=await sb.from('transactions').select('*').eq('is_voided',false)
+      .gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts');
+    dayTxns=data||[];
+  }catch(e){
+    document.getElementById('paymentDetailTitle').textContent='Error';
+    document.getElementById('paymentDetailContent').innerHTML='<div style="text-align:center;padding:20px;color:var(--red)">Hindi na-load ang datos. Subukan ulit.</div>';
+    return;
+  }
   const isDiscount=type==='discount';
   const isCashless=['gcash','maya','gotyme','card'].includes(type);
   const matching=isDiscount
@@ -4106,7 +4113,7 @@ async function saveCashOnHand(dk){
   if(!declared){showToast('Enter cash on hand amount.');return;}
 
   // Policy: SM Rental must be logged (even if ₱0) BEFORE Cash on Hand for the day.
-  const{data:smExisting}=await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).catch(()=>({data:null}));
+  const{data:smExisting}=await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).then(r=>r).catch(()=>({data:null}));
   if(!smExisting||!smExisting.length){
     showToast('⚠️ Log SM Rental first (even if ₱0) before saving Cash on Hand.');
     return;
@@ -4114,7 +4121,7 @@ async function saveCashOnHand(dk){
 
   const txns=await sbGetTransactions(dk);
   const exps=await sbGetExpenses(dk);
-  const{data:smRentalRow}=await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
+  const{data:smRentalRow}=await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
   const smRentalAmt=smRentalRow?.amount||0;
 
   // Expected = NET SALES (Gross - Cashless - Discount - VAT - Expenses - SM Rental)
@@ -4123,10 +4130,10 @@ async function saveCashOnHand(dk){
   const discount=txns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const vat=discount/1.12*0.12;
   const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
-  const expected=gross-cashless-discount-vat-expTotal-smRentalAmt;
+  const expected=gross-cashless-expTotal-smRentalAmt;
   const variance=declared-expected;
   // preserve existing bank_deposited flag if a declaration already exists
-  const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
+  const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
   const rec={date_key:dk,declared_amount:declared,expected_amount:expected,variance,declared_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan',bank_deposited:existing?existing.bank_deposited:false};
   setLoading(true);
   try{
@@ -4253,7 +4260,7 @@ function showSmRentalDetail(dk){
 // does not touch declared/expected/variance amounts, so it can't be used
 // to alter sales figures, only to mark that the cash was physically banked.
 async function toggleBankDeposit(dk){
-  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().catch(()=>({data:null}));
+  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
   if(!existing){showToast('Please save Cash on Hand first before marking as deposited.');return;}
   const newState=!existing.bank_deposited;
   setLoading(true);
@@ -4271,7 +4278,7 @@ async function toggleBankDeposit(dk){
 }
 
 // ══════ PAYROLL ══════
-const DAILY_RATE=755;
+const DAILY_RATE=695;
 const OT_RATE=DAILY_RATE/8*1.25;
 const TOTAL_DEDUCTIONS=850;
 const APPROVERS=['Owner','Aimee'];
@@ -4679,7 +4686,7 @@ async function downloadMonthlyExcel(mk){
     const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
     const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
     const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
-    const net=gross-discount-dayExps;
+    const net=gross-dayExps; // gross (t.total) is already net of discount — don't subtract it again
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     const declared=cashDecl?cashDecl.declared_amount:'';
     const variance=cashDecl?cashDecl.variance:'';
