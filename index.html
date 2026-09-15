@@ -447,6 +447,13 @@ button{cursor:pointer;font-family:inherit}
     <div class="lcard" style="margin-top:12px;border:2px solid var(--green);background:var(--green-light)">
       <div class="lcard-label" style="color:var(--green)">CASH ON HAND DECLARATION</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Count your cash then declare the total amount</div>
+
+      <div class="input-group" style="margin-bottom:10px">
+        <div class="input-label">SM Rental Amount Today (₱) — ilagay 0 kung wala</div>
+        <input class="inp" id="smRentalTodayAmt" type="number" inputmode="decimal" placeholder="0.00"
+          style="font-size:16px;font-weight:700;text-align:center" min="0" step="0.01"/>
+      </div>
+
       <div class="input-group" style="margin-bottom:10px">
         <div class="input-label">Declared Cash on Hand (₱)</div>
         <input class="inp" id="cashOnHandAmt" type="number" inputmode="decimal" placeholder="0.00"
@@ -2005,6 +2012,8 @@ let expectedCashSales = 0;
 function clearCashDeclaration(){
   document.getElementById('cashOnHandAmt').value='';
   document.getElementById('cashOnHandAmt').disabled=false;
+  const smInput=document.getElementById('smRentalTodayAmt');
+  if(smInput){smInput.value='';smInput.disabled=false;}
   document.getElementById('cashVarianceBox').style.display='none';
   clearCashDeclSignature();
   setTimeout(()=>initCashDeclSigPad(),100);
@@ -2079,18 +2088,25 @@ async function saveCashDeclaration(){
   if(!declared){showToast('Enter your cash on hand amount.');return;}
   if(!cashDeclSigData){showToast('Kailangan munang pumirma bago i-submit ang Cash Declaration — para sa accountability.');return;}
 
+  // SM Rental is now declared directly in this same form (not a separate pre-requisite
+  // step) — read it here and log/update it as part of the same closing action, so the
+  // cashier can't accidentally skip it, but also doesn't hit a dead-end error.
+  const smInput=document.getElementById('smRentalTodayAmt');
+  if(!smInput||smInput.value===''){showToast('⚠️ Ilagay ang SM Rental Amount (₱0 kung wala).');return;}
+  const smRentalToday=+smInput.value||0;
+  try{
+    const{data:ex}=await sb.from('sm_rental').select('id').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').limit(1).then(r=>r).catch(()=>({data:null}));
+    const smRec={date_key:getTodayKey(),branch:'SM Bicutan',amount:smRentalToday,entered_by:currentLoginEmp?.name||'Cashier'};
+    if(ex&&ex.length){await sb.from('sm_rental').update(smRec).eq('date_key',getTodayKey()).eq('branch','SM Bicutan');}
+    else{await sb.from('sm_rental').insert([smRec]);}
+  }catch(e){ showToast('⚠️ Hindi na-save ang SM Rental — subukan ulit.'); return; }
+
   // Get latest cash sales
   const txns = await sbGetTransactions();
   const cashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
   const exps = await sbGetExpenses();
   const cashExpenses = exps.reduce((s,e)=>s+(e.amount||0),0);
-  // FIX: cash physically remitted to SM (rental) was never subtracted here, so a cashier
-  // who legitimately handed cash to SM during the day would be wrongly flagged SHORT.
-  let smRentalToday=0;
-  try{
-    const{data:smRec}=await sb.from('sm_rental').select('amount').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').limit(1).single();
-    smRentalToday=smRec?.amount||0;
-  }catch(e){ /* no SM rental recorded today — fine, treat as 0 */ }
+  // smRentalToday already known from the input field above — no need to re-fetch.
   expectedCashSales = cashSales - cashExpenses - smRentalToday;
   const variance = declared - expectedCashSales;
 
@@ -2152,6 +2168,7 @@ async function saveCashDeclaration(){
 
   // Disable input after submit — recorded na
   document.getElementById('cashOnHandAmt').disabled=true;
+  if(smInput)smInput.disabled=true;
   document.querySelector('[onclick="saveCashDeclaration()"]').disabled=true;
   document.querySelector('[onclick="saveCashDeclaration()"]').textContent='✅ Submitted';
   document.querySelector('[onclick="saveCashDeclaration()"]').style.background='#aaa';
