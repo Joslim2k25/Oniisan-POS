@@ -6065,7 +6065,7 @@ function selectDiscItem(id){
 function addItem(id){const item=MENU.find(i=>String(i.id)===String(id));if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
 function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;}}renderOrderPanel();}
 function deleteItem(id){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;renderOrderPanel();}
-function clearOrder(){order={};discItemKey=null;renderOrderPanel();}
+function clearOrder(){order={};discItemKey=null;approvedDiscountThisTxn=false;const ds=document.getElementById('discountSelect');if(ds)ds.value='none';renderOrderPanel();}
 
 function renderOrderPanel(){
   const items=Object.values(order);
@@ -6564,6 +6564,15 @@ function onDiscountChange(){
   const warningBox=document.getElementById('discountWarningBox');
   const check=document.getElementById('discountConfirmCheck');
   discItemKey=null; // switching discount type always clears the previous 1-item selection
+
+  // Policy: ANY discount (PWD/Senior/Staff) requires a manager/supervisor PIN before it can
+  // be applied — cashiers can't just self-apply a discount.
+  if(disc!=='none' && !approvedDiscountThisTxn){
+    document.getElementById('discountSelect').value='none';
+    promptManagerApprovalForDiscount(disc);
+    return;
+  }
+
   if(disc==='pwd'||disc==='senior'){
     warningBox.style.display='block';
     check.checked=false;
@@ -6572,6 +6581,50 @@ function onDiscountChange(){
     if(check) check.checked=false;
   }
   renderOrderPanel();
+}
+
+// ══════ MANAGER/SUPERVISOR APPROVAL FOR DISCOUNTS ══════
+let approvedDiscountThisTxn=false; // resets on each new transaction (see resetOrder/clearOrder)
+function promptManagerApprovalForDiscount(pendingDiscType){
+  const overlay=document.createElement('div');
+  overlay.id='mgrApprovalOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px 22px;text-align:center;max-width:300px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+    <div style="font-size:36px;margin-bottom:6px">🔒</div>
+    <div style="font-size:15px;font-weight:900;color:#1a1a1a;margin-bottom:4px">Manager/Supervisor Approval</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Kailangan ng PIN ng Manager/Admin bago mag-apply ng discount.</div>
+    <input type="password" inputmode="numeric" maxlength="4" id="mgrApprovalPin" placeholder="Manager PIN" autofocus
+      style="width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:8px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:6px;box-sizing:border-box"/>
+    <div id="mgrApprovalError" style="color:var(--red);font-size:11px;font-weight:700;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="document.getElementById('mgrApprovalOverlay').remove()" style="flex:1;padding:11px;background:#f1f5f9;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Cancel</button>
+      <button onclick="submitManagerApproval('${pendingDiscType}')" style="flex:1;padding:11px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer">Approve</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('mgrApprovalPin').focus();
+  document.getElementById('mgrApprovalPin').addEventListener('keydown',e=>{if(e.key==='Enter')submitManagerApproval(pendingDiscType);});
+}
+async function submitManagerApproval(pendingDiscType){
+  const pin=document.getElementById('mgrApprovalPin').value.trim();
+  const errBox=document.getElementById('mgrApprovalError');
+  if(!pin){errBox.textContent='Ilagay ang PIN.';return;}
+  errBox.textContent='Checking...';
+  try{
+    const{data}=await sb.from('employees').select('name,role').eq('pin',pin).eq('active',true).in('role',['admin','owner']).limit(1).then(r=>r).catch(()=>({data:null}));
+    if(data&&data.length){
+      approvedDiscountThisTxn=true;
+      document.getElementById('mgrApprovalOverlay').remove();
+      document.getElementById('discountSelect').value=pendingDiscType;
+      showToast(`✅ Approved by ${data[0].name}`);
+      onDiscountChange();
+    } else {
+      errBox.textContent='❌ Maling PIN o hindi Manager/Admin.';
+      document.getElementById('mgrApprovalPin').value='';
+    }
+  }catch(e){
+    errBox.textContent='⚠️ Hindi ma-verify. Subukan ulit.';
+  }
 }
 
 function checkDiscountConfirm(){
@@ -6630,7 +6683,7 @@ async function confirmCharge(){
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
-  order={};renderOrderPanel();closeReceipt();
+  order={};approvedDiscountThisTxn=false;const dsEl=document.getElementById('discountSelect');if(dsEl)dsEl.value='none';renderOrderPanel();closeReceipt();
   await sbSaveTxn(txn);
   if(loyaltyPhone){
     document.getElementById('loyaltyPhoneInput').value='';
