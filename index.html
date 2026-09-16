@@ -4520,14 +4520,21 @@ function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPa
   // Save this payslip permanently — this is what 13th month pay computation will read from
   // later, so it must not depend only on the payslip window staying open.
   (async()=>{
-    const{error}=await sb.from('payroll_records').insert([{
+    const rec={
       emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,
       total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,
       holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,
       custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,
       total_deduction:totalDed,net_pay:netPay,source:source||'manual',
       generated_by:currentLoginEmp?.name||'Admin'
-    }]);
+    };
+    // FIX: previously always INSERTed, so re-generating the same employee's payslip for the
+    // same period (e.g. after a rate correction) created duplicate records instead of
+    // replacing the old one — check for an existing record first and update it if found.
+    const{data:ex}=await sb.from('payroll_records').select('id').eq('emp_name',name).eq('period_start',start).eq('period_end',end).limit(1).then(r=>r).catch(()=>({data:null}));
+    let error;
+    if(ex&&ex.length){({error}=await sb.from('payroll_records').update(rec).eq('id',ex[0].id));}
+    else{({error}=await sb.from('payroll_records').insert([rec]));}
     if(!error)showToast('✅ Na-save ang payslip para sa 13th month pay records');
     else showToast('⚠️ Hindi na-save ang payslip record: '+error.message);
   })();
