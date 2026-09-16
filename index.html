@@ -6697,7 +6697,13 @@ async function confirmCharge(){
   if(loyaltyPhone){
     document.getElementById('loyaltyPhoneInput').value='';
     document.getElementById('loyaltyLinkStatus').textContent='';
-    await creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum);
+    // Per policy: PWD/Senior discounted transactions no longer earn loyalty rebate
+    // (already getting the 20% statutory discount, so no additional rebate on top).
+    if(disc==='pwd'||disc==='senior'){
+      showToast('ℹ️ Walang loyalty rebate para sa PWD/Senior discount transactions.');
+    } else {
+      await creditLoyaltyRebate(loyaltyPhone,txn.total,txn.orNum);
+    }
     // If rebate was redeemed, record it
     if(rebateApplied>0&&loyaltyCustomerData){
       // Insert redemption transaction
