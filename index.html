@@ -1412,6 +1412,7 @@ async function syncQueue(){
       else if(item.type==='dtr'){const{error}=await sb.from('time_records').insert([item.data]);if(error)failed.push(item);}
       else if(item.type==='expense'){const{error}=await sb.from('expenses').insert([item.data]);if(error)failed.push(item);}
       else if(item.type==='sm_rental'){const{error}=await sb.from('sm_rental').upsert([item.data],{onConflict:'date_key,branch'});if(error)failed.push(item);}
+      else if(item.type==='cash_declaration'){const{error}=await sb.from('cash_declarations').upsert([item.data],{onConflict:'date_key,branch'});if(error)failed.push(item);}
     }catch(e){failed.push(item);}
   }
   LS.set(QUEUE_KEY,failed);
