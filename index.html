@@ -6618,21 +6618,25 @@ async function submitManagerApproval(pendingDiscType){
   const errBox=document.getElementById('mgrApprovalError');
   if(!pin){errBox.textContent='Ilagay ang PIN.';return;}
   errBox.textContent='Checking...';
+  let correctPin=null;
   try{
     const{data}=await sb.from('app_settings').select('value').eq('key','discount_approval_pin').single().then(r=>r).catch(()=>({data:null}));
-    const correctPin=data?.value;
-    if(correctPin && pin===correctPin){
-      approvedDiscountThisTxn=true;
-      document.getElementById('mgrApprovalOverlay').remove();
-      document.getElementById('discountSelect').value=pendingDiscType;
-      showToast('✅ Discount Approved');
-      onDiscountChange();
-    } else {
-      errBox.textContent='❌ Maling Discount Approval PIN.';
-      document.getElementById('mgrApprovalPin').value='';
-    }
-  }catch(e){
-    errBox.textContent='⚠️ Hindi ma-verify. Subukan ulit.';
+    correctPin=data?.value||null;
+    if(correctPin) localStorage.setItem('discount_approval_pin_cache',correctPin);
+  }catch(e){ /* fall through to cached PIN below */ }
+  // Offline fallback: if the live lookup failed (no internet), use the last successfully
+  // fetched PIN cached locally — so discount approval keeps working even without connection,
+  // instead of always rejecting the correct PIN just because it couldn't be re-verified live.
+  if(!correctPin) correctPin=localStorage.getItem('discount_approval_pin_cache');
+  if(correctPin && pin===correctPin){
+    approvedDiscountThisTxn=true;
+    document.getElementById('mgrApprovalOverlay').remove();
+    document.getElementById('discountSelect').value=pendingDiscType;
+    showToast('✅ Discount Approved');
+    onDiscountChange();
+  } else {
+    errBox.textContent='❌ Maling Discount Approval PIN.';
+    document.getElementById('mgrApprovalPin').value='';
   }
 }
 
