@@ -2260,6 +2260,13 @@ async function saveCashierExpense(){
   const vat = +document.getElementById('cashierExpVAT').value||0;
   const desc = document.getElementById('cashierExpDesc').value.trim();
   if(!amt){showToast('Enter an amount.');return;}
+  // SM Rental must NEVER be logged as an Expense — it has its own dedicated field in Cash
+  // Declaration. Checks description text since this form has no 'Rent' category option, but
+  // staff could still type "rental"/"rent" in the description under any category.
+  if(desc.toLowerCase().includes('rent')){
+    showToast('⚠️ Hindi dito nilalagay ang SM Rental! Gamitin ang SM Rental field sa Cash Declaration.');
+    return;
+  }
   const total = amt + vat;
   const rec={
     date_key: getTodayKey(),
@@ -2804,7 +2811,10 @@ async function saveExpense(){
   // SM Rental must NEVER be logged as an Expense — it has its own dedicated field in Cash
   // Declaration. Logging it both ways double-subtracts the same payment from Expected Cash,
   // making the cashier look falsely SHORT by that exact amount (found & confirmed Sept 17).
-  if(cat==='Rent'||cat.toLowerCase().includes('sm rental')){
+  // Checks both category AND description text, since staff could type "rental" in the
+  // description under any category, not just select a 'Rent' category.
+  const descLower=desc.toLowerCase();
+  if(cat==='Rent'||cat.toLowerCase().includes('sm rental')||descLower.includes('rent')){
     showToast('⚠️ Hindi dito nilalagay ang SM Rental! Gamitin ang SM Rental field sa Cash Declaration.');
     return;
   }
