@@ -2087,7 +2087,6 @@ async function computeCashVariance(){
 async function saveCashDeclaration(){
   const declared = +document.getElementById('cashOnHandAmt').value||0;
   if(!declared){showToast('Enter your cash on hand amount.');return;}
-  if(declared<0){showToast('⚠️ Hindi puwedeng negative ang Cash on Hand — pakitama ang halaga.');return;}
   if(!cashDeclSigData){showToast('Kailangan munang pumirma bago i-submit ang Cash Declaration — para sa accountability.');return;}
 
   // SM Rental is now declared directly in this same form (not a separate pre-requisite
