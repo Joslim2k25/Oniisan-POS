@@ -3836,7 +3836,7 @@ async function renderMonthly(monthKey){
     const rep=reps.find(r=>r.date_key===dk)||{};
     const dayExpsList=exps.filter(e=>e.date_key===dk);
     const dayExps=dayExpsList.reduce((s,e)=>s+(e.amount||0),0);
-    const smRental=smRentals.find(s=>s.date_key===dk)||null;
+    const smRental=smRentals.find(s=>String(s.date_key).slice(0,10)===dk)||null;
     const smRentalAmt=smRental?.amount||0;
     const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
     const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
