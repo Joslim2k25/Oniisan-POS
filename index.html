@@ -2836,23 +2836,27 @@ async function renderDashboard(){
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
 
   // Load data
-  const[txnsDay, txnsMon, expsDay, expsMon] = await Promise.all([
+  const[txnsDay, txnsMon, expsDay, expsMon, smRentalDay, smRentalMon] = await Promise.all([
     sbGetTransactions(today),
     sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
     sbGetExpenses(today),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r.data||[]).catch(()=>[]),
+    sb.from('sm_rental').select('amount').eq('date_key',today).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null})),
+    sb.from('sm_rental').select('amount').gte('date_key',mk+'-01').lte('date_key',mk+'-31').eq('branch','SM Bicutan').then(r=>r.data||[]).catch(()=>[]),
   ]);
 
   // Daily metrics
   const dGross=txnsDay.reduce((s,t)=>s+(t.total||0),0);
   const dExp=expsDay.reduce((s,e)=>s+(e.amount||0),0);
-  const dNet=dGross-dExp;
+  const dSmRental=smRentalDay?.data?.amount||0;
+  const dNet=dGross-dExp-dSmRental;
   const dTxns=txnsDay.length;
 
   // Monthly metrics
   const mGross=txnsMon.reduce((s,t)=>s+(t.total||0),0);
   const mExp=expsMon.reduce((s,e)=>s+(e.amount||0),0);
-  const mNet=mGross-mExp;
+  const mSmRental=smRentalMon.reduce((s,r)=>s+(r.amount||0),0);
+  const mNet=mGross-mExp-mSmRental;
   const mTxns=txnsMon.length;
 
   // Payment breakdown today
