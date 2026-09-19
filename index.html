@@ -3839,6 +3839,8 @@ async function renderMonthly(monthKey){
     sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
   ]);
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
+  const smRentalMap={};
+  smRentals.forEach(s=>{ const k=String(s.date_key).slice(0,10); smRentalMap[k]=s; });
 
   const dayMap={};
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
@@ -3852,7 +3854,7 @@ async function renderMonthly(monthKey){
     const rep=reps.find(r=>r.date_key===dk)||{};
     const dayExpsList=exps.filter(e=>e.date_key===dk);
     const dayExps=dayExpsList.reduce((s,e)=>s+(e.amount||0),0);
-    const smRental=smRentals.find(s=>String(s.date_key).slice(0,10)===dk)||null;
+    const smRental=smRentalMap[dk]||null;
     const smRentalAmt=smRental?.amount||0;
     const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
     const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
