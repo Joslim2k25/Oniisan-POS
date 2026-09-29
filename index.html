@@ -2935,7 +2935,6 @@ async function renderDashboard(){
       <span style="font-size:12px;color:var(--muted);font-weight:400">${getManilaNow().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</span>
     </div>
     <button onclick="renderDashboard()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
-    <button onclick="simpleSmRentalTest()" style="padding:6px 14px;border:2px solid #f00;border-radius:8px;background:#ff0;font-size:12px;font-weight:900;cursor:pointer;margin-left:8px">🧪 TEST SM RENTAL</button>
   </div>
 
   <!-- WHO'S ON DUTY (live, from actual time_records) -->
@@ -3906,11 +3905,6 @@ async function renderMonthly(monthKey){
   let mVAT=0;
 
   document.getElementById('adminBody').innerHTML=`
-  <div style="background:#ff0;color:#000;padding:14px;margin-bottom:14px;border-radius:8px;font-weight:900;font-size:13px;border:3px solid #f00">
-    🔧 DEBUG INFO (temporary): Nakuha ang ${smRentals.length} SM Rental record(s) para sa buwang ito.
-    ${smRentals.length>0 ? 'Mga petsa: '+smRentals.map(s=>s.date_key+'='+fmt(s.amount)).join(', ') : '⚠️ WALANG record na nakuha!'}
-    <br>Code version: MAP-BASED-LOOKUP-v2 (${new Date().toISOString()})
-  </div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px"><div class="red-bar"></div>Monthly Report</div>
     <div style="display:flex;gap:8px;align-items:center">
