@@ -3847,12 +3847,13 @@ async function renderMonthly(monthKey){
   const mk=monthKey||getMonthKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
+  const lastDayStr=String(lastDay).padStart(2,'0');
   const[allTxns,{data:allReps},{data:allExps},{data:allCash},{data:allSmRental}]=await Promise.all([
-    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+String(lastDay).padStart(2,'0')+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null),
-    sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
-    sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
-    sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
-    sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-31').then(r=>r).catch(()=>({data:null})),
+    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null),
+    sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
+    sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
+    sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
+    sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
   ]);
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
   const smRentalMap={};
