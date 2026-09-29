@@ -2203,20 +2203,11 @@ async function saveCashDeclaration(){
 }
 
 function lockTimeButtons(){
-  // Lock time punch buttons
-  const timeRow=document.querySelector('.time-row');
-  if(timeRow){
-    timeRow.querySelectorAll('button').forEach(btn=>{
-      btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='not-allowed';
-    });
-    if(!document.getElementById('dayClosedBanner')){
-      const banner=document.createElement('div');
-      banner.id='dayClosedBanner';
-      banner.style.cssText='background:#555;color:#fff;text-align:center;padding:10px;border-radius:8px;font-size:12px;font-weight:800;margin-bottom:8px;letter-spacing:.5px';
-      banner.textContent='🔒 DAY CLOSED — Time punching disabled until tomorrow';
-      timeRow.parentNode.insertBefore(banner,timeRow);
-    }
-  }
+  // NOTE: Time In/Out buttons are intentionally NOT disabled here anymore — employees
+  // (especially those on later shifts, or who haven't left yet) still need to be able to
+  // punch Time Out even after the cashier has already submitted the day's Cash Declaration.
+  // Only POS checkout and expense logging are locked, since those affect the closed day's
+  // sales/cash figures.
 
   // Hide expense logging section — day is done, no more expenses
   const expSection=document.querySelector('[onclick="saveCashierExpense()"]');
@@ -2481,11 +2472,6 @@ const SCHEDULE_DOW_LABELS_EN=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
 const SCHEDULE_DOW_LABELS_TL=['Sabado','Linggo','Lunes','Martes','Miyerkules','Huwebes','Biyernes'];
 
 function timeAction(action){
-  if(LS.get('day_closed_'+getTodayKey(),false)){
-    showToast('🔒 Day is closed. Time punching disabled.');
-    lockTimeButtons();
-    return;
-  }
   if(!selectedEmp){showToast('Select an employee first.');return;}
   const emp=employees.find(e=>e.id===selectedEmp);
   if(!emp){showToast('Employee not found.');return;}
