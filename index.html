@@ -1310,6 +1310,21 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const LOYALTY_REBATE_RATE=0.025;
 const LOYALTY_SIGNUP_URL='https://oniisan-pos.vercel.app/loyalty.html'; // standalone signup/lookup page
 
+// SUPER SIMPLE DIAGNOSTIC — direct fetch, no complexity, bypasses renderMonthly entirely.
+async function simpleSmRentalTest(){
+  alert('Testing... please wait for the result popup.');
+  try{
+    const{data,error}=await sb.from('sm_rental').select('*').gte('date_key','2026-09-01').lte('date_key','2026-09-30');
+    if(error){
+      alert('❌ ERROR: '+JSON.stringify(error));
+      return;
+    }
+    alert('✅ SUCCESS!\n\nRecords found: '+(data?data.length:0)+'\n\nRaw data:\n'+JSON.stringify(data,null,2));
+  }catch(e){
+    alert('❌ EXCEPTION: '+e.message);
+  }
+}
+
 function openLoyaltyQR(){
   document.getElementById('loyaltyQRModal').classList.add('open');
   document.getElementById('loyaltyQRUrl').textContent=LOYALTY_SIGNUP_URL;
@@ -2920,6 +2935,7 @@ async function renderDashboard(){
       <span style="font-size:12px;color:var(--muted);font-weight:400">${getManilaNow().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</span>
     </div>
     <button onclick="renderDashboard()" style="padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
+    <button onclick="simpleSmRentalTest()" style="padding:6px 14px;border:2px solid #f00;border-radius:8px;background:#ff0;font-size:12px;font-weight:900;cursor:pointer;margin-left:8px">🧪 TEST SM RENTAL</button>
   </div>
 
   <!-- WHO'S ON DUTY (live, from actual time_records) -->
