@@ -1210,6 +1210,8 @@ let employees=[];
 let MENU=[];
 let selectedEmp=null;
 let currentRole='cashier';
+// ONLY these two exact roles may ever reach the Admin Portal (fail-closed: any other / blank / misspelled role is denied)
+const isAdminRole=r=>r==='owner'||r==='admin';
 let currentLoginEmp=null;
 let currentCat='all';
 let order={};
@@ -1309,7 +1311,12 @@ function showToast(msg,dur=2500){const t=document.getElementById('toast');t.text
 function setLoading(on){document.getElementById('loadingBar').classList.toggle('active',on);}
 
 // ══════ SCREEN NAV ══════
-function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goScreen(id){
+  // Security gate at the single choke point every screen change passes through: no button, menu or
+  // role-string quirk can open the Admin Portal for anyone who is not owner/admin.
+  if(id==='adminScreen'&&!isAdminRole(currentRole)){showToast('⛔ Walang access sa Admin Portal.');return;}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');
+}
 
 // ══════ UNIFIED LOGIN ══════
 let selectedLoginEmp = null;
@@ -1374,15 +1381,7 @@ async function checkUnifiedPin(){
   const emp=employees.find(e=>e.id===selectedLoginEmp);
   // check against employee PIN
   let matched=emp&&String(emp.pin).trim()===pin;
-  // fallback hardcoded for owner/admin
-  if(!matched){
-    const fallback=[
-      {id:'f_owner',name:'Owner',role:'owner',pin:'1234'},
-      {id:'f_admin',name:'Admin/Manager',role:'admin',pin:'5678'},
-    ];
-    const fb=fallback.find(f=>f.pin===pin&&emp&&(emp.role==='owner'||emp.role==='admin'));
-    if(fb) matched=true;
-  }
+  // (no hardcoded fallback PINs — only the employee's real PIN from the database is accepted)
 
   if(matched){
     errEl.style.display='none';
@@ -1453,10 +1452,7 @@ function checkAdminPin(){
   if(input) input.value='';
   checkUnifiedPin();
 }
-const ADMIN_PINS=[
-  {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
-  {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
-];
+const ADMIN_PINS=[]; // intentionally empty — PINs must never be hardcoded in public source
 
 function checkAdminPin(){
   const input=document.getElementById('adminPinInput');
@@ -1518,19 +1514,18 @@ function selectRole(role){
 }
 
 function openPosOrAdmin(){
-  if(currentRole==='cashier'){
-    // Check if day is already closed
-    if(LS.get('day_closed_'+getTodayKey(),false)){
-      showToast('🔒 Day is closed. Cannot open POS.');
-      return;
-    }
-    goScreen('posScreen');renderMenu();
+  if(isAdminRole(currentRole)){goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');return;}
+  // Everyone else (cashier, cook, blank or misspelled role...) can ONLY open the POS — never the Admin Portal.
+  // Check if day is already closed
+  if(LS.get('day_closed_'+getTodayKey(),false)){
+    showToast('🔒 Day is closed. Cannot open POS.');
+    return;
   }
-  else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
+  goScreen('posScreen');renderMenu();
 }
 
 function goBackFromPOS(){
-  if(currentRole==='cashier'){
+  if(!isAdminRole(currentRole)){
     goScreen('loginScreen');
     renderRecentOrders();
     renderCashierExpList();
@@ -1548,16 +1543,7 @@ function goBackFromPOS(){
 // ══════ LOAD DATA ══════
 async function loadEmployees(){
   // Hardcoded fallback — always shows even without Supabase
-  const FALLBACK_EMPLOYEES=[
-    {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
-    {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
-    {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
-    {id:'f_joe',name:'Joe',role:'cashier',pin:'0000',initials:'JO',is_active:true,branch:'SM Bicutan'},
-    {id:'f_sarah',name:'Sarah',role:'cashier',pin:'0000',initials:'SA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_aimee',name:'Aimee',role:'cashier',pin:'0000',initials:'AI',is_active:true,branch:'SM Bicutan'},
-  ];
+  const FALLBACK_EMPLOYEES=[]; // no hardcoded accounts — the real list always comes from the database
 
   // Show cached employees IMMEDIATELY
   const cached=LS.get('employees_cache',[]);
@@ -2659,6 +2645,7 @@ async function renderSalesLog(dateKey){
 }
 
 async function voidTransaction(id, orNum){
+  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-void.');return;}
   if(!confirm(`VOID transaction ${orNum}?\
 \
 This will mark it as voided in the records.`))return;
@@ -4818,13 +4805,7 @@ window.addEventListener('DOMContentLoaded',function(){
   const _cached=LS.get('employees_cache',[]);
   if(_cached.length){employees=_cached;}
   else{
-    employees=[
-      {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
-      {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
-      {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
-      {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
-      {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
-    ];
+    employees=[]; // no hardcoded accounts
   }
   renderRoleEmpList();
   loadEmployees();

@@ -1454,6 +1454,8 @@ let employees=[];
 let MENU=[];
 let selectedEmp=null;
 let currentRole='cashier';
+// ONLY these two exact roles may ever reach the Admin Portal (fail-closed: any other / blank / misspelled role is denied)
+const isAdminRole=r=>r==='owner'||r==='admin';
 let currentLoginEmp=null;
 let currentCat='all';
 let order={};
@@ -1583,7 +1585,12 @@ function showToast(msg,dur=2500){const t=document.getElementById('toast');t.text
 function setLoading(on){document.getElementById('loadingBar').classList.toggle('active',on);}
 
 // ══════ SCREEN NAV ══════
-function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goScreen(id){
+  // Security gate at the single choke point every screen change passes through: no button, menu or
+  // role-string quirk can open the Admin Portal for anyone who is not owner/admin.
+  if(id==='adminScreen'&&!isAdminRole(currentRole)){showToast('⛔ Walang access sa Admin Portal.');return;}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');
+}
 
 // ══════ UNIFIED LOGIN ══════
 let selectedLoginEmp = null;
@@ -1648,15 +1655,7 @@ async function checkUnifiedPin(){
   const emp=employees.find(e=>e.id===selectedLoginEmp);
   // check against employee PIN
   let matched=emp&&String(emp.pin).trim()===pin;
-  // fallback hardcoded for owner/admin
-  if(!matched){
-    const fallback=[
-      {id:'f_owner',name:'Owner',role:'owner',pin:'1234'},
-      {id:'f_admin',name:'Admin/Manager',role:'admin',pin:'5678'},
-    ];
-    const fb=fallback.find(f=>f.pin===pin&&emp&&(emp.role==='owner'||emp.role==='admin'));
-    if(fb) matched=true;
-  }
+  // (no hardcoded fallback PINs — only the employee's real PIN from the database is accepted)
 
   if(matched){
     errEl.style.display='none';
@@ -1731,10 +1730,7 @@ function checkAdminPin(){
   if(input) input.value='';
   checkUnifiedPin();
 }
-const ADMIN_PINS=[
-  {id:'owner',name:'Owner',role:'owner',pin:'1234',initials:'OW'},
-  {id:'admin',name:'Admin/Manager',role:'admin',pin:'5678',initials:'AD'},
-];
+const ADMIN_PINS=[]; // intentionally empty — PINs must never be hardcoded in public source
 
 function checkAdminPin(){
   const input=document.getElementById('adminPinInput');
@@ -1797,19 +1793,18 @@ function selectRole(role){
 
 function openPosOrAdmin(){
   stopCashierHomePoll();
-  if(currentRole==='cashier'){
-    // Check if day is already closed
-    if(LS.get('day_closed_'+getTodayKey(),false)){
-      showToast('🔒 Day is closed. Cannot open POS.');
-      return;
-    }
-    goScreen('posScreen');renderMenu();
+  if(isAdminRole(currentRole)){goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');return;}
+  // Everyone else (cashier, cook, blank or misspelled role...) can ONLY open the POS — never the Admin Portal.
+  // Check if day is already closed
+  if(LS.get('day_closed_'+getTodayKey(),false)){
+    showToast('🔒 Day is closed. Cannot open POS.');
+    return;
   }
-  else{goScreen('adminScreen');setActiveTab('dashboard');renderTabContent('dashboard');}
+  goScreen('posScreen');renderMenu();
 }
 
 function goBackFromPOS(){
-  if(currentRole==='cashier'){
+  if(!isAdminRole(currentRole)){
     goScreen('loginScreen');
     refreshEmpStatusFromDB().then(renderEmpList);
     renderRecentOrders();
@@ -1846,16 +1841,7 @@ function stopCashierHomePoll(){
 // ══════ LOAD DATA ══════
 async function loadEmployees(){
   // Hardcoded fallback — always shows even without Supabase
-  const FALLBACK_EMPLOYEES=[
-    {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
-    {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
-    {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
-    {id:'f_joe',name:'Joe',role:'cashier',pin:'0000',initials:'JO',is_active:true,branch:'SM Bicutan'},
-    {id:'f_sarah',name:'Sarah',role:'cashier',pin:'0000',initials:'SA',is_active:true,branch:'SM Bicutan'},
-    {id:'f_aimee',name:'Aimee',role:'cashier',pin:'0000',initials:'AI',is_active:true,branch:'SM Bicutan'},
-  ];
+  const FALLBACK_EMPLOYEES=[]; // no hardcoded accounts — the real list always comes from the database
 
   // Show cached employees IMMEDIATELY
   const cached=LS.get('employees_cache',[]);
@@ -2852,15 +2838,18 @@ async function renderDashboard(){
   const mk=getMonthKey();
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
   const lastDayStr=String(lastDay).padStart(2,'0');
+  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-6); // last 7 days inclusive of today
+  const weekAgoKey=weekAgo.toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 
   // Load data
-  const[txnsDay, txnsMon, expsDay, expsMon, smRentalDay, smRentalMon] = await Promise.all([
+  const[txnsDay, txnsMon, expsDay, expsMon, smRentalDay, smRentalMon, txnsWeek] = await Promise.all([
     sbGetTransactions(today),
     sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
     sbGetExpenses(today),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r.data||[]).catch(()=>[]),
     sb.from('sm_rental').select('amount').eq('date_key',today).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('amount').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).eq('branch','SM Bicutan').then(r=>r.data||[]).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',weekAgoKey+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
   ]);
 
   // Daily metrics
@@ -2890,6 +2879,16 @@ async function renderDashboard(){
   }));
   const top8Day=Object.values(itemDayMap).sort((a,b)=>b.qty-a.qty).slice(0,8);
   const maxDayQty=top8Day[0]?.qty||1;
+
+  // Top 8 items THIS WEEK (last 7 days)
+  const itemWeekMap={};
+  txnsWeek.forEach(t=>(t.items||[]).forEach(i=>{
+    if(!itemWeekMap[i.name]){itemWeekMap[i.name]={name:i.name,qty:0,amt:0};}
+    itemWeekMap[i.name].qty+=i.qty;
+    itemWeekMap[i.name].amt+=i.price*i.qty;
+  }));
+  const top8Week=Object.values(itemWeekMap).sort((a,b)=>b.qty-a.qty).slice(0,8);
+  const maxWeekQty=top8Week[0]?.qty||1;
 
   // Top 8 items MONTHLY
   const itemMonMap={};
@@ -3024,7 +3023,7 @@ async function renderDashboard(){
   </div>
 
   <!-- TOP 8 ITEMS -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
 
     <!-- TOP 8 TODAY -->
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border)">
@@ -3046,6 +3045,28 @@ async function renderDashboard(){
           </div>
         </div>
       `).join(''):'<div style="text-align:center;color:#ccc;font-size:12px;padding:30px">No sales yet today</div>'}
+    </div>
+
+    <!-- TOP 8 WEEKLY (last 7 days) -->
+    <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;margin-bottom:14px">📅 TOP 8 BEST SELLERS — THIS WEEK</div>
+      ${top8Week.length?top8Week.map((item,idx)=>`
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px">${rankEmojis[idx]}</span>
+              <span style="font-size:12px;font-weight:700;color:var(--text)">${item.name}</span>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:12px;font-weight:800;color:${rankColors[idx]}">${item.qty} pcs</div>
+              <div style="font-size:10px;color:var(--muted)">${fmt(item.amt)}</div>
+            </div>
+          </div>
+          <div style="height:6px;background:#f0f0f0;border-radius:3px">
+            <div style="height:6px;background:${rankColors[idx]};border-radius:3px;width:${Math.round(item.qty/maxWeekQty*100)}%;transition:width .5s"></div>
+          </div>
+        </div>
+      `).join(''):'<div style="text-align:center;color:#ccc;font-size:12px;padding:30px">No sales this week</div>'}
     </div>
 
     <!-- TOP 8 MONTHLY -->
@@ -3265,6 +3286,7 @@ async function renderSalesLog(dateKey,silent){
 }
 
 async function voidTransaction(id, orNum){
+  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-void.');return;}
   if(!confirm(`VOID transaction ${orNum}?\
 \
 This will mark it as voided in the records.`))return;
@@ -7143,13 +7165,7 @@ window.addEventListener('DOMContentLoaded',function(){
   const _cached=LS.get('employees_cache',[]);
   if(_cached.length){employees=_cached;}
   else{
-    employees=[
-      {id:'f_owner',name:'Owner',role:'owner',pin:'1234',initials:'OW',is_active:true,branch:'SM Bicutan'},
-      {id:'f_cath',name:'Cath',role:'cashier',pin:'0000',initials:'CA',is_active:true,branch:'SM Bicutan'},
-      {id:'f_marvin',name:'Marvin',role:'cashier',pin:'0000',initials:'MA',is_active:true,branch:'SM Bicutan'},
-      {id:'f_charlie',name:'Charlie',role:'cashier',pin:'0000',initials:'CH',is_active:true,branch:'SM Bicutan'},
-      {id:'f_ruben',name:'Ruben',role:'cashier',pin:'0000',initials:'RU',is_active:true,branch:'SM Bicutan'},
-    ];
+    employees=[]; // no hardcoded accounts
   }
   renderRoleEmpList();
   loadEmployees();
