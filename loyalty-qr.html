@@ -2645,17 +2645,8 @@ async function renderSalesLog(dateKey){
 }
 
 async function voidTransaction(id, orNum){
-  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-void.');return;}
-  if(!confirm(`VOID transaction ${orNum}?\
-\
-This will mark it as voided in the records.`))return;
-  if(navigator.onLine){
-    await sb.from('transactions').update({is_voided:true,voided_at:tsNow()}).eq('or_num',orNum);
-    showToast(`${orNum} voided!`);
-    renderSalesLog();
-  } else {
-    showToast('Cannot void while offline.');
-  }
+  // The void feature now needs an approval code and only exists in the main POS (oniisan-pos.vercel.app).
+  showToast('Gamitin ang main POS (oniisan-pos.vercel.app) para mag-void — kailangan ng Void Approval Code.');
 }
 
 // ══════ DAILY REPORT ══════
