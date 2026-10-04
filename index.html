@@ -1646,6 +1646,50 @@ function clearEmpSelection(){
   renderRoleEmpList();
 }
 
+// ══════ SERVER-SIDE PIN CHECK ══════
+// Employee PINs are no longer downloaded to the browser. The server checks them (verify_employee_pin).
+// To keep the POS usable with no internet, each device remembers a one-way hash of a PIN the last time that
+// employee logged in successfully ON THIS DEVICE, and only uses it when there is no connection.
+async function pinVerifier(empId,pin){
+  try{
+    const buf=new TextEncoder().encode('oniisan-pin-v1:'+empId+':'+pin);
+    const h=await crypto.subtle.digest('SHA-256',buf);
+    return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){return null;}
+}
+async function rememberPinVerifier(empId,pin){
+  const v=await pinVerifier(empId,pin); if(!v) return;
+  const all=LS.get('pin_verifiers',{}); all[empId]=v; LS.set('pin_verifiers',all);
+}
+async function verifyPinLocally(empId,pin){
+  const mine=(LS.get('pin_verifiers',{}))[empId]; if(!mine) return false;
+  return (await pinVerifier(empId,pin))===mine;
+}
+// returns 'ok' | 'wrong' | 'locked' | 'offline'
+async function verifyPinOnline(empId,pin){
+  if(!navigator.onLine) return 'offline';
+  try{
+    const{data,error}=await sb.rpc('verify_employee_pin',{p_emp_id:empId,p_pin:pin});
+    if(error) return 'offline';
+    if(data&&data.ok){ await rememberPinVerifier(empId,pin); return 'ok'; }
+    if(data&&data.error==='locked') return 'locked';
+    return 'wrong';
+  }catch(e){ return 'offline'; }
+}
+// One-time migration: any PIN still sitting in this device's OLD employee cache becomes a local verifier, then is dropped.
+async function stripPinsFromCache(list){
+  if(!Array.isArray(list)) return [];
+  const all=LS.get('pin_verifiers',{}); let changed=false;
+  for(const e of list){
+    if(e&&e.pin!==undefined&&e.pin!==null&&String(e.pin).trim()!==''&&!all[e.id]){
+      const v=await pinVerifier(e.id,String(e.pin).trim());
+      if(v){all[e.id]=v;changed=true;}
+    }
+  }
+  if(changed) LS.set('pin_verifiers',all);
+  return list.map(({pin,...rest})=>rest);
+}
+
 async function checkUnifiedPin(){
   const pin=document.getElementById('unifiedPinInput').value.trim();
   const errEl=document.getElementById('unifiedPinError');
@@ -1653,9 +1697,22 @@ async function checkUnifiedPin(){
   if(pin.length<4){showToast('Enter 4-digit PIN.');return;}
 
   const emp=employees.find(e=>e.id===selectedLoginEmp);
-  // check against employee PIN
-  let matched=emp&&String(emp.pin).trim()===pin;
-  // (no hardcoded fallback PINs — only the employee's real PIN from the database is accepted)
+  if(!errEl.dataset.def) errEl.dataset.def=errEl.textContent;
+  errEl.textContent=errEl.dataset.def; errEl.style.color='';
+  // The PIN is checked by the SERVER (verify_employee_pin) — PINs are no longer sent to the browser.
+  // With no connection, fall back to this device's own remembered verifier (see verifyPinLocally).
+  let matched=false;
+  if(emp){
+    const res=await verifyPinOnline(emp.id,pin);
+    if(res==='ok') matched=true;
+    else if(res==='offline') matched=await verifyPinLocally(emp.id,pin);
+    else if(res==='locked'){
+      errEl.textContent='🔒 Masyadong maraming maling PIN. Subukan ulit pagkatapos ng 10 minuto.';
+      errEl.style.display='block'; errEl.style.color='var(--red)';
+      document.getElementById('unifiedPinInput').value='';
+      return;
+    }
+  }
 
   if(matched){
     errEl.style.display='none';
@@ -1732,20 +1789,6 @@ function checkAdminPin(){
 }
 const ADMIN_PINS=[]; // intentionally empty — PINs must never be hardcoded in public source
 
-function checkAdminPin(){
-  const input=document.getElementById('adminPinInput');
-  const errEl=document.getElementById('adminPinError');
-  const entered=input.value.trim();
-  if(entered.length<4)return;
-  let emp=ADMIN_PINS.find(e=>e.pin===entered);
-  if(!emp&&employees.length) emp=employees.find(e=>String(e.pin).trim()===entered&&(e.role==='owner'||e.role==='admin'));
-  if(emp){
-    errEl.style.display='none';input.value='';
-    onAdminPINSuccess(emp);
-  } else {
-    errEl.style.display='block';input.value='';input.focus();
-  }
-}
 
 function onAdminPINSuccess(emp){
   currentRole=emp.role;currentLoginEmp=emp;
@@ -1843,9 +1886,12 @@ async function loadEmployees(){
   // Hardcoded fallback — always shows even without Supabase
   const FALLBACK_EMPLOYEES=[]; // no hardcoded accounts — the real list always comes from the database
 
-  // Show cached employees IMMEDIATELY
-  const cached=LS.get('employees_cache',[]);
+  // Show cached employees IMMEDIATELY — PINs are stripped out (the server checks PINs now); any PIN still in an
+  // old cache is first turned into a one-way local verifier so offline logins keep working.
+  let cached=LS.get('employees_cache',[]);
   if(cached.length){
+    cached=await stripPinsFromCache(cached);
+    LS.set('employees_cache',cached);
     employees=cached;
   } else {
     // Use fallback if no cache
@@ -1856,7 +1902,7 @@ async function loadEmployees(){
 
   // Then try Supabase in background
   try{
-    const{data,error}=await sb.from('employees').select('*').eq('is_active',true).eq('branch','SM Bicutan').order('role',{ascending:false});
+    const{data,error}=await sb.from('employees').select('id,created_at,name,initials,role,branch,is_active,shift_start,include_in_schedule').eq('is_active',true).eq('branch','SM Bicutan').order('role',{ascending:false});
     if(!error&&data&&data.length){
       employees=data;
       LS.set('employees_cache',data);
@@ -5406,7 +5452,8 @@ function openEmpModal(empId){
   document.getElementById('empModalName').value=emp?.name||'';
   document.getElementById('empModalInitials').value=emp?.initials||'';
   document.getElementById('empModalRole').value=emp?.role||'cashier';
-  document.getElementById('empModalPin').value=emp?.pin||'';
+  document.getElementById('empModalPin').value='';
+  document.getElementById('empModalPin').placeholder=emp?'Blangko = hindi babaguhin':'e.g. 1234';
   document.getElementById('empModalShiftStart').value=emp?.shift_start||'09:00';
   document.getElementById('empModalIncludeSched').checked=emp?emp.include_in_schedule!==false:true;
   // Reset grid to defaults first
@@ -5445,9 +5492,12 @@ async function saveEmployee(){
   const shiftStart=document.getElementById('empModalShiftStart').value||'09:00';
   const includeSched=document.getElementById('empModalIncludeSched').checked;
   if(!name){showToast('Name is required.');return;}
-  if(pin&&(pin.length!==4||isNaN(pin))){showToast('PIN must be 4 digits.');return;}
+  if(pin&&!/^\d{4}$/.test(pin)){showToast('PIN must be 4 digits.');return;}
+  if(!id&&!pin){showToast('Maglagay ng 4-digit PIN para sa bagong empleyado.');return;}
   setLoading(true);
-  const record={name,initials,role,pin:pin||'0000',shift_start:shiftStart,include_in_schedule:includeSched,branch:'SM Bicutan',is_active:true};
+  const record={name,initials,role,shift_start:shiftStart,include_in_schedule:includeSched,branch:'SM Bicutan',is_active:true};
+  // PINs can no longer be read back into this form, so a blank PIN on an edit means "keep the current PIN".
+  if(pin) record.pin=pin;
   let error,empId=id;
   if(id){({error}=await sb.from('employees').update(record).eq('id',id));}
   else{const{data,error:insErr}=await sb.from('employees').insert([record]).select('id').single();error=insErr;empId=data?.id;}
@@ -7220,7 +7270,7 @@ window.addEventListener('DOMContentLoaded',function(){
   if(roleDate)roleDate.textContent=dateText;
   if(loginDate)loginDate.textContent=dateText;
   const _cached=LS.get('employees_cache',[]);
-  if(_cached.length){employees=_cached;}
+  if(_cached.length){employees=_cached.map(({pin,...rest})=>rest);}
   else{
     employees=[]; // no hardcoded accounts
   }
