@@ -2720,13 +2720,23 @@ async function sbPaginateAll(buildQuery){
 // only for ONE day, when a detail popup is opened.
 const TXN_LIGHT_COLS='id,created_at,or_num,ts,table_name,items,subtotal,discount,discount_amount,total,payment_method,branch,card_last4,card_type,discount_name,discount_id_num,is_voided,voided_at,cash_tendered,change_given,cashier_name,vatable_sales,vat_amount,vat_exempt,kitchen_status,kitchen_started_at,kitchen_done_at,voided_by,void_reason,void_device';
 // ══════ NET SALES — ONE formula used by every screen ══════
-// NET SALES = Gross − Cashless (GCash, Maya, GoTyme, Card, GrabFood, FoodPanda) − Expenses − SM Rental (− other manual deductions)
-// "Gross" is the sum of each sale's `total`, which is ALREADY net of PWD/Senior/Staff discount and the VAT exemption
-// (checked on all 544 discounted sales: subtotal − discount_amount = total), so discount and VAT are never subtracted again.
+// NET SALES = Gross (before discount) − Discount − VAT − Cashless (GCash, Maya, GoTyme, GrabFood, FoodPanda, Card)
+//             − Expenses − SM Rental (− other manual deductions)
+// A sale's `total` is already AFTER discount and VAT exemption (checked on all 544 discounted sales:
+// subtotal − discount_amount = total). So Gross here is the sum of `subtotal` (before discount), and
+// discount_amount (the TOTAL reduction) is split into its two parts so the formula adds up line by line:
+//   PWD / Senior: 62.5% discount (20% off the VAT-exclusive price) + 37.5% VAT exemption  (reduction = price × 0.32/1.12)
+//   Staff meal:   100% discount, no VAT exemption
 // All SM Rental logged for the day counts here, whether it was paid from the cash drawer or outside it.
 const CASHLESS_METHODS=['gcash','maya','gotyme','card','grabfood','foodpanda'];
 const cashlessTotalOf=txns=>txns.filter(t=>CASHLESS_METHODS.includes(t.payment_method)).reduce((s,t)=>s+(t.total||0),0);
-const computeNetSales=({gross=0,cashless=0,expenses=0,smRental=0,other=0})=>gross-cashless-expenses-smRental-other;
+function discountSplit(t){
+  const r=t.discount_amount||0;
+  return (t.discount==='senior'||t.discount==='pwd')?{discount:r*0.625,vat:r*0.375}:{discount:r,vat:0};
+}
+const splitTotals=txns=>txns.reduce((a,t)=>{const s=discountSplit(t);a.discount+=s.discount;a.vat+=s.vat;return a;},{discount:0,vat:0});
+const grossBeforeDiscount=txns=>txns.reduce((s,t)=>s+(t.subtotal!=null?t.subtotal:((t.total||0)+(t.discount_amount||0))),0);
+const computeNetSales=({gross=0,discount=0,vat=0,cashless=0,expenses=0,smRental=0,other=0})=>gross-discount-vat-cashless-expenses-smRental-other;
 async function sbGetSmRentalTotal(dateKey){
   try{
     const{data}=await sb.from('sm_rental').select('amount').eq('date_key',dateKey).eq('branch','SM Bicutan');
@@ -2923,7 +2933,9 @@ async function renderDashboard(){
   const dExp=expsDay.reduce((s,e)=>s+(e.amount||0),0);
   const dSmRental=smRentalDay?.data?.amount||0;
   const dCashless=cashlessTotalOf(txnsDay);
-  const dNet=computeNetSales({gross:dGross,cashless:dCashless,expenses:dExp,smRental:dSmRental});
+  const dSplit=splitTotals(txnsDay);
+  const dGrossPre=grossBeforeDiscount(txnsDay); // gross BEFORE discount/VAT — same Gross as the Monthly Report
+  const dNet=computeNetSales({gross:dGrossPre,discount:dSplit.discount,vat:dSplit.vat,cashless:dCashless,expenses:dExp,smRental:dSmRental});
   const dTxns=txnsDay.length;
 
   // Monthly metrics
@@ -2931,7 +2943,9 @@ async function renderDashboard(){
   const mExp=expsMon.reduce((s,e)=>s+(e.amount||0),0);
   const mSmRental=smRentalMon.reduce((s,r)=>s+(r.amount||0),0);
   const mCashless=cashlessTotalOf(txnsMon);
-  const mNet=computeNetSales({gross:mGross,cashless:mCashless,expenses:mExp,smRental:mSmRental});
+  const mSplit=splitTotals(txnsMon);
+  const mGrossPre=grossBeforeDiscount(txnsMon);
+  const mNet=computeNetSales({gross:mGrossPre,discount:mSplit.discount,vat:mSplit.vat,cashless:mCashless,expenses:mExp,smRental:mSmRental});
   const mTxns=txnsMon.length;
 
   // Payment breakdown today
@@ -3013,7 +3027,7 @@ async function renderDashboard(){
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--green)">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">GROSS SALES</div>
-      <div style="font-size:22px;font-weight:900;color:var(--green)">${fmtn(dGross)}</div>
+      <div style="font-size:22px;font-weight:900;color:var(--green)">${fmtn(dGrossPre)}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:2px">₱ Philippine Peso</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--red)">
@@ -3024,7 +3038,7 @@ async function renderDashboard(){
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--gold)">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">NET SALES</div>
       <div style="font-size:22px;font-weight:900;color:var(--gold)">${fmtn(dNet)}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">After cashless, expenses &amp; SM rental</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">After discount, VAT, cashless, expenses &amp; SM rental</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);border-top:4px solid var(--blue)">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">TRANSACTIONS</div>
@@ -3038,7 +3052,7 @@ async function renderDashboard(){
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
     <div style="background:#1a1a2e;border-radius:12px;padding:16px;border-top:4px solid #4ade80">
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">MONTHLY GROSS</div>
-      <div style="font-size:22px;font-weight:900;color:#4ade80">${fmtn(mGross)}</div>
+      <div style="font-size:22px;font-weight:900;color:#4ade80">${fmtn(mGrossPre)}</div>
     </div>
     <div style="background:#1a1a2e;border-radius:12px;padding:16px;border-top:4px solid #f87171">
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">MONTHLY EXPENSES</div>
@@ -3181,7 +3195,10 @@ async function renderSalesLog(dateKey,silent){
   const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
   const smRentalDay=await sbGetSmRentalTotal(key);
   const cashlessDay=cashlessTotalOf(txns);
-  const netDay=computeNetSales({gross,cashless:cashlessDay,expenses:expTotal,smRental:smRentalDay});
+  const splitDay=splitTotals(txns);
+  const grossPreDay=grossBeforeDiscount(txns); // gross BEFORE discount and VAT exemption
+  const netDay=computeNetSales({gross:grossPreDay,discount:splitDay.discount,vat:splitDay.vat,cashless:cashlessDay,expenses:expTotal,smRental:smRentalDay});
+  const dedRow=(label,val)=>val>0?`<div class="sum-row deduct"><span class="sum-label">— ${label}</span><span class="sum-val">-${fmt(val)}</span></div>`:'';
 
   // Item summary
   const itemMap={};
@@ -3203,8 +3220,8 @@ async function renderSalesLog(dateKey,silent){
   const staffTxns=txns.filter(t=>t.discount==='staff');
   const pwdDiscAmt=pwdTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
   const seniorDiscAmt=seniorTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-  const pwdVAT=pwdDiscAmt/1.12*0.12;
-  const seniorVAT=seniorDiscAmt/1.12*0.12;
+  const pwdVAT=pwdDiscAmt*0.375;     // VAT exempted = 37.5% of a PWD/Senior reduction (12/32)
+  const seniorVAT=seniorDiscAmt*0.375;
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px" class="no-print">
@@ -3216,7 +3233,7 @@ async function renderSalesLog(dateKey,silent){
 
   <!-- SUMMARY METRICS -->
   <div class="metric-grid" style="margin-bottom:14px">
-    <div class="metric"><div class="metric-val gr">${fmtn(gross)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
+    <div class="metric"><div class="metric-val gr">${fmtn(grossPreDay)}</div><div class="metric-lbl">Gross Sales (₱)</div></div>
     <div class="metric"><div class="metric-val re">${fmtn(expTotal)}</div><div class="metric-lbl">Total Expenses (₱)</div></div>
     <div class="metric"><div class="metric-val go">${fmtn(netDay)}</div><div class="metric-lbl">Net Sales (₱)</div></div>
     <div class="metric"><div class="metric-val bl">${txns.length}</div><div class="metric-lbl">Transactions</div></div>
@@ -3327,18 +3344,18 @@ async function renderSalesLog(dateKey,silent){
       <thead><tr><th>OR#</th><th>Type</th><th>Name</th><th>ID Number</th><th style="text-align:center">ID Photo</th><th class="num">Discount</th><th class="num">VAT</th></tr></thead>
       <tbody>
         ${[...pwdTxns,...seniorTxns,...staffTxns].length?[...pwdTxns,...seniorTxns,...staffTxns].map(t=>{
-          const vat=(t.discount_amount||0)/1.12*0.12;
+          const vat=discountSplit(t).vat;
           return `<tr>
             <td style="font-weight:700;font-size:11px">${t.or_num}</td>
             <td><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--gold-light);color:var(--gold)">${(t.discount||'').toUpperCase()}</span></td>
             <td style="font-size:11px">${t.discount_name||'—'}</td>
             <td style="font-size:11px">${t.discount_id_num||'—'}</td>
             <td style="text-align:center">${t.discount_id_photo?`<img src="${t.discount_id_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">—</span>'}</td>
-            <td class="num re">${fmt(t.discount_amount||0)}</td>
+            <td class="num re">${fmt(discountSplit(t).discount)}</td>
             <td class="num re">${fmt(vat)}</td>
           </tr>`;}).join('')
         :'<tr><td colspan="7" style="text-align:center;color:#ccc;padding:12px">No discounts today</td></tr>'}
-        ${[...pwdTxns,...seniorTxns,...staffTxns].length?`<tr style="background:#f0f0f0;font-weight:800"><td colspan="5">TOTAL</td><td class="num re">${fmt(pwdDiscAmt+seniorDiscAmt)}</td><td class="num re">${fmt(pwdVAT+seniorVAT)}</td></tr>`:''}
+        ${[...pwdTxns,...seniorTxns,...staffTxns].length?`<tr style="background:#f0f0f0;font-weight:800"><td colspan="5">TOTAL</td><td class="num re">${fmt(splitTotals([...pwdTxns,...seniorTxns,...staffTxns]).discount)}</td><td class="num re">${fmt(splitTotals([...pwdTxns,...seniorTxns,...staffTxns]).vat)}</td></tr>`:''}
       </tbody>
     </table>
   </div>
@@ -3346,13 +3363,14 @@ async function renderSalesLog(dateKey,silent){
   <!-- NET SUMMARY -->
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Net Summary</div>
-    <div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
-    ${cashlessDay>0?`<div class="sum-row deduct"><span class="sum-label">— Cashless (GCash/Maya/GoTyme/Card/GrabFood/FoodPanda)</span><span class="sum-val">-${fmt(cashlessDay)}</span></div>`:''}
-    ${expTotal>0?`<div class="sum-row deduct"><span class="sum-label">— Total Expenses</span><span class="sum-val">-${fmt(expTotal)}</span></div>`:''}
-    ${smRentalDay>0?`<div class="sum-row deduct"><span class="sum-label">— SM Rental</span><span class="sum-val">-${fmt(smRentalDay)}</span></div>`:''}
+    <div class="sum-row gross-row"><span class="sum-label">Gross Sales (before discount)</span><span class="sum-val">${fmt(grossPreDay)}</span></div>
+    ${dedRow('Discount (PWD / Senior / Staff)',splitDay.discount)}
+    ${dedRow('VAT (exempted on PWD / Senior)',splitDay.vat)}
+    ${dedRow('GCash',pmBreak.gcash)}${dedRow('Maya',pmBreak.maya)}${dedRow('GoTyme',pmBreak.gotyme)}${dedRow('Card',pmBreak.card)}${dedRow('GrabFood',pmBreak.grabfood)}${dedRow('FoodPanda',pmBreak.foodpanda)}
+    ${dedRow('Total Expenses',expTotal)}
+    ${dedRow('SM Rental',smRentalDay)}
     <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
     <div class="sum-row net-row"><span class="sum-label">NET SALES</span><span class="sum-val">${fmt(netDay)}</span></div>
-    ${(pwdDiscAmt+seniorDiscAmt)>0?`<div style="font-size:10px;color:var(--muted);margin-top:8px">ℹ️ Kasama na sa Gross ang PWD discount (${fmt(pwdDiscAmt)}), Senior discount (${fmt(seniorDiscAmt)}) at VAT (${fmt(pwdVAT+seniorVAT)}) — hindi na ibinabawas ulit.</div>`:''}
   </div>`;
 }
 
@@ -3440,7 +3458,8 @@ async function renderDailyReportForm(dateKey){
   const pmSales={cash:0,gcash:0,maya:0,gotyme:0,card:0,grabfood:0,foodpanda:0};
   txns.forEach(t=>{if(pmSales[t.payment_method]!==undefined)pmSales[t.payment_method]+=(t.total||0);});
   const smRentalDay=await sbGetSmRentalTotal(key);
-  const discInfoDay={pwd:txns.filter(t=>t.discount==='pwd').reduce((s,t)=>s+(t.discount_amount||0),0),senior:txns.filter(t=>t.discount==='senior').reduce((s,t)=>s+(t.discount_amount||0),0)};
+  const splitDay=splitTotals(txns);
+  const grossPreDay=grossBeforeDiscount(txns);
 
   document.getElementById('adminBody').innerHTML=`
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -3484,26 +3503,28 @@ async function renderDailyReportForm(dateKey){
   </div>
   <div class="card" id="net_summary_card">
     <div class="card-title"><div class="red-bar"></div>Net Summary</div>
-    <div id="net_summary_inner">${buildNetSummary(gross,rep,expTotal,pmSales,smRentalDay,discInfoDay)}</div>
+    <div id="net_summary_inner">${buildNetSummary(grossPreDay,rep,expTotal,pmSales,smRentalDay,splitDay)}</div>
   </div>`;
 }
 
-// NET SALES = Gross − Cashless (GCash/Maya/GoTyme/Card/GrabFood/FoodPanda) − Store Expenses − SM Rental − Other manual deductions.
-// Gross (sum of each sale's total) is ALREADY net of PWD/Senior discount and VAT exemption, so those are shown for
-// information only and never subtracted again. pmSales and discounts come from the actual transaction records.
-function buildNetSummary(gross,rep,expTotal,pmSales,smRental,disc){
-  pmSales=pmSales||{};disc=disc||{pwd:0,senior:0};smRental=smRental||0;
+// NET SALES = Gross (before discount) − Discount − VAT − Cashless (GCash/Maya/GoTyme/Card/GrabFood/FoodPanda)
+//             − Store Expenses − SM Rental − Other manual deductions.
+// `gross` here is the amount BEFORE discount/VAT; `split` = {discount, vat} from splitTotals(). pmSales and the split come
+// from the actual transaction records, so they cannot be altered by hand.
+function buildNetSummary(gross,rep,expTotal,pmSales,smRental,split){
+  pmSales=pmSales||{};split=split||{discount:0,vat:0};smRental=smRental||0;
   const cashlessTotal=(pmSales.gcash||0)+(pmSales.maya||0)+(pmSales.gotyme||0)+(pmSales.card||0)+(pmSales.grabfood||0)+(pmSales.foodpanda||0);
-  const net=computeNetSales({gross,cashless:cashlessTotal,expenses:expTotal||0,smRental,other:rep.other_deductions||0});
+  const net=computeNetSales({gross,discount:split.discount,vat:split.vat,cashless:cashlessTotal,expenses:expTotal||0,smRental,other:rep.other_deductions||0});
   const row=(label,val)=>val>0?`<div class="sum-row deduct"><span class="sum-label">— ${label}</span><span class="sum-val">-${fmt(val)}</span></div>`:'';
-  return `<div class="sum-row gross-row"><span class="sum-label">Gross Sales</span><span class="sum-val">${fmt(gross)}</span></div>
+  return `<div class="sum-row gross-row"><span class="sum-label">Gross Sales (before discount)</span><span class="sum-val">${fmt(gross)}</span></div>
+  ${row('Discount (PWD / Senior / Staff)',split.discount)}
+  ${row('VAT (exempted on PWD / Senior)',split.vat)}
   ${row('GCash Sales',pmSales.gcash||0)}${row('Maya Sales',pmSales.maya||0)}${row('GoTyme Sales',pmSales.gotyme||0)}${row('Card Sales',pmSales.card||0)}${row('GrabFood Sales',pmSales.grabfood||0)}${row('FoodPanda Sales',pmSales.foodpanda||0)}
   ${row('Store Expenses',expTotal||0)}
   ${row('SM Rental',smRental)}
   ${row('Other',rep.other_deductions||0)}
   <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
-  <div class="sum-row net-row"><span class="sum-label">NET SALES (CASH ON HAND)</span><span class="sum-val">${fmt(net)}</span></div>
-  ${((disc.pwd||0)+(disc.senior||0))>0?`<div style="font-size:10px;color:var(--muted);margin-top:8px">ℹ️ Kasama na sa Gross ang PWD discount (${fmt(disc.pwd||0)}) at Senior discount (${fmt(disc.senior||0)}) pati ang VAT nito — hindi na ibinabawas ulit.</div>`:''}`;
+  <div class="sum-row net-row"><span class="sum-label">NET SALES (CASH ON HAND)</span><span class="sum-val">${fmt(net)}</span></div>`;
 }
 
 async function saveDailyReportForm(key){
@@ -3512,8 +3533,7 @@ async function saveDailyReportForm(key){
   const txns=await sbGetTransactions(key);const gross=txns.reduce((s,t)=>s+(t.total||0),0);
   const exps=await sbGetExpenses(key);const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
   const pm={};txns.forEach(t=>{pm[t.payment_method]=(pm[t.payment_method]||0)+(t.total||0);});
-  const disc={pwd:txns.filter(t=>t.discount==='pwd').reduce((s,t)=>s+(t.discount_amount||0),0),senior:txns.filter(t=>t.discount==='senior').reduce((s,t)=>s+(t.discount_amount||0),0)};
-  document.getElementById('net_summary_inner').innerHTML=buildNetSummary(gross,rep,expTotal,pm,await sbGetSmRentalTotal(key),disc);
+  document.getElementById('net_summary_inner').innerHTML=buildNetSummary(grossBeforeDiscount(txns),rep,expTotal,pm,await sbGetSmRentalTotal(key),splitTotals(txns));
 }
 
 // ══════ MONTHLY ══════
@@ -4015,8 +4035,11 @@ async function renderMonthly(monthKey){
     const foodpanda=dayTxns.filter(t=>t.payment_method==='foodpanda').reduce((s,t)=>s+(t.total||0),0);
     const grabfood=dayTxns.filter(t=>t.payment_method==='grabfood').reduce((s,t)=>s+(t.total||0),0);
     const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
-    const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
-    const vat=discount/1.12*0.12;
+    // discount_amount is the TOTAL reduction (VAT exemption + discount). Split it so Gross − Discount − VAT = the sales total.
+    const dSplit=splitTotals(dayTxns);
+    const discount=dSplit.discount;              // discount only (PWD/Senior 20%, staff meal)
+    const vat=dSplit.vat;                        // VAT exempted on PWD/Senior sales
+    const grossPre=grossBeforeDiscount(dayTxns); // gross BEFORE discount and VAT exemption (g stays the after-discount total used for the cash check)
     // Cash on Hand = Gross − Expenses − SM Rental − full cashless sales (gcash/maya/gotyme/card/grabfood/foodpanda) − PWD/Senior discount − VAT − other manual deductions
     const cashlessTotal=gcash+maya+gotyme+card+grabfood+foodpanda;
     const otherDed=(rep.other_deductions||0);
@@ -4026,8 +4049,8 @@ async function renderMonthly(monthKey){
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
     const expectedCash=g-cashlessTotal-dayExps-smRentalDrawer;
     const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
-    mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
-    return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
+    mGross+=grossPre;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
+    return{dk,gross:grossPre,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
   });
 
   const months=[];
@@ -4059,6 +4082,7 @@ async function renderMonthly(monthKey){
     <div class="metric"><div class="metric-val go">${fmtn(mNet)}</div><div class="metric-lbl">NET</div></div>
     <div class="metric"><div class="metric-val bl">${mTxns}</div><div class="metric-lbl">Txns</div></div>
   </div>
+  <div style="font-size:11px;color:var(--muted);margin:-4px 0 10px">NET SALES = Gross − GCash − Maya − GoTyme − FoodPanda − GrabFood − Card − Discount − VAT − Expenses − SM Rental</div>
   <div style="border-radius:12px;overflow:hidden;border:1px solid #333;overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1200px">
       <thead>
@@ -4082,7 +4106,7 @@ async function renderMonthly(monthKey){
       </thead>
       <tbody>
         ${rows.map((r,idx)=>{
-          const vat=r.discount/1.12*0.12;
+          const vat=r.vat||0;
           mVAT+=vat;
           const varStr=r.variance===null?'—':
             r.variance===0?'<span style="color:#4ade80;font-weight:800">✅ EXACT</span>':
@@ -4900,7 +4924,7 @@ async function downloadMonthlyExcel(mk){
   const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];const smRows=allSm||[];
   const dayMap={};
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
-  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status'];
+  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status'];
   const csvRows=[headers.join(',')];
   Object.keys(dayMap).sort().forEach(dk=>{
     const dayTxns=dayMap[dk];
@@ -4912,15 +4936,15 @@ async function downloadMonthlyExcel(mk){
     const foodpanda=dayTxns.filter(t=>t.payment_method==='foodpanda').reduce((s,t)=>s+(t.total||0),0);
     const grabfood=dayTxns.filter(t=>t.payment_method==='grabfood').reduce((s,t)=>s+(t.total||0),0);
     const card=dayTxns.filter(t=>t.payment_method==='card').reduce((s,t)=>s+(t.total||0),0);
-    const discount=dayTxns.reduce((s,t)=>s+(t.discount_amount||0),0);
+    const dSplit=splitTotals(dayTxns);const discount=dSplit.discount;const vatEx=dSplit.vat;const grossPre=grossBeforeDiscount(dayTxns);
     const dayExps=exps.filter(e=>e.date_key===dk).reduce((s,e)=>s+(e.amount||0),0);
     const daySm=smRows.filter(s=>String(s.date_key).slice(0,10)===dk).reduce((s,r)=>s+(r.amount||0),0);
-    const net=computeNetSales({gross,cashless:gcash+maya+gotyme+foodpanda+grabfood+card,expenses:dayExps,smRental:daySm}); // gross (t.total) is already net of discount — don't subtract it again
+    const net=computeNetSales({gross:grossPre,discount,vat:vatEx,cashless:gcash+maya+gotyme+foodpanda+grabfood+card,expenses:dayExps,smRental:daySm}); // gross (t.total) is already net of discount — don't subtract it again
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     const declared=cashDecl?cashDecl.declared_amount:'';
     const variance=cashDecl?cashDecl.variance:'';
     const status=cashDecl?(cashDecl.variance===0?'EXACT':cashDecl.variance>0?'OVER':'SHORT'):'';
-    csvRows.push([dk,dayTxns.length,gross,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-dayExps,-daySm,net,declared,variance,status].join(','));
+    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status].join(','));
   });
   const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
@@ -4981,12 +5005,13 @@ function buildReadingContent(txns,now,type,exps,smRental){
   const totalDisc=pwdDisc+seniorDisc+staffDisc;
   const vatableSales=gross/1.12;
   const vatAmount=gross-vatableSales;
-  const lessVAT=totalDisc/1.12*0.12;
+  const split=splitTotals(txns); // discount only + VAT exempted (their sum = totalDisc)
+  const lessVAT=split.vat;
   const expTotal=exps?exps.reduce((s,e)=>s+(e.amount||0),0):0;
   // `gross` (sum of each sale's total) is ALREADY after discount/VAT exemption; GROSS TOTAL on the receipt is the amount BEFORE discount.
   const grossPre=txns.reduce((s,t)=>s+(t.subtotal!=null?t.subtotal:(t.total||0)),0);
   const smRentalAmt=smRental||0;
-  const netSales=computeNetSales({gross,cashless:nonCash,expenses:expTotal,smRental:smRentalAmt});
+  const netSales=computeNetSales({gross:grossPre,discount:split.discount,vat:split.vat,cashless:nonCash,expenses:expTotal,smRental:smRentalAmt});
   const line=(label,val,bold=false)=>`
     <div style="display:flex;justify-content:space-between;padding:2px 0;${bold?'font-weight:900;font-size:13px;':'font-size:12px;'}border-bottom:1px dotted #eee">
       <span>${label}</span><span>${val}</span>
@@ -5029,15 +5054,15 @@ function buildReadingContent(txns,now,type,exps,smRental){
     ${divider()}
     ${line('TOTAL',fmtn(totalDisc),true)}
     ${line('Less VAT:','')}
-    ${line('  Senior:',`-${fmtn(seniorDisc/1.12*0.12)}`)}
-    ${line('  PWD:',`-${fmtn(pwdDisc/1.12*0.12)}`)}
+    ${line('  Senior:',`-${fmtn(seniorDisc*0.375)}`)}
+    ${line('  PWD:',`-${fmtn(pwdDisc*0.375)}`)}
   </div>
   ${divider()}
   <div style="font-size:12px;margin-bottom:6px">
     ${line('GROSS TOTAL',fmtn(grossPre),true)}
-    ${line('DISCOUNTS (incl. VAT)',`(-) ${fmtn(totalDisc)}`)}
+    ${line('Less: Discount',`(-) ${fmtn(split.discount)}`)}
+    ${line('Less: VAT',`(-) ${fmtn(split.vat)}`)}
     ${line('SERVICE CHARGES','0.00')}
-    ${line('SALES AFTER DISCOUNT',fmtn(gross))}
     ${line('Less: Cashless',`(-) ${fmtn(nonCash)}`)}
     ${expTotal>0?line('Less: Expenses',`(-) ${fmtn(expTotal)}`):''}
     ${smRentalAmt>0?line('Less: SM Rental',`(-) ${fmtn(smRentalAmt)}`):''}
