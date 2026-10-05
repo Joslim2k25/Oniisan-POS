@@ -837,6 +837,10 @@ button{cursor:pointer;font-family:inherit}
       <div id="smRentalSigPlaceholder" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:#ccc;font-weight:700;pointer-events:none;white-space:nowrap">✍️ Receiver signs here</div>
     </div>
     <div id="smRentalSigStatus" style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:10px">No signature yet</div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;margin:0 0 12px;cursor:pointer">
+      <input type="checkbox" id="smRentalFromDrawer" checked style="margin-top:2px;width:18px;height:18px;flex-shrink:0"/>
+      <span><b>Kinuha sa cash drawer</b> ang bayad na ito.<br><span style="color:var(--muted);font-size:11px">I-uncheck kung binayaran sa labas ng drawer (hal. bank/GCash). Ibabawas pa rin sa Net Sales, pero hindi sa Expected Cash.</span></span>
+    </label>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeSmRentalModal()">Cancel</button>
       <button class="mbtn primary" id="smRentalConfirmBtn" onclick="confirmSmRental()">Confirm Payout</button>
@@ -2143,7 +2147,7 @@ async function saveCashDeclaration(){
   const smRentalToday=+smInput.value||0;
   try{
     const{data:ex}=await sb.from('sm_rental').select('id').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').limit(1).then(r=>r).catch(()=>({data:null}));
-    const smRec={date_key:getTodayKey(),branch:'SM Bicutan',amount:smRentalToday,entered_by:currentLoginEmp?.name||'Cashier'};
+    const smRec={date_key:getTodayKey(),branch:'SM Bicutan',amount:smRentalToday,entered_by:currentLoginEmp?.name||'Cashier',paid_from_drawer:true};
     if(ex&&ex.length){await sb.from('sm_rental').update(smRec).eq('date_key',getTodayKey()).eq('branch','SM Bicutan');}
     else{await sb.from('sm_rental').insert([smRec]);}
   }catch(e){ showToast('⚠️ Hindi na-save ang SM Rental — subukan ulit.'); return; }
@@ -3984,6 +3988,9 @@ async function renderMonthly(monthKey){
     const dayExps=dayExpsList.reduce((s,e)=>s+(e.amount||0),0);
     const smRental=smRentalMap[dk]||null;
     const smRentalAmt=smRental?.amount||0;
+    // Rent paid OUTSIDE the cash drawer (bank/GCash/owner) still reduces NET SALES, but must NOT be taken off the
+    // expected cash — the cashier's counted cash never had it removed, so subtracting it would show a false OVER.
+    const smRentalDrawer=(smRental&&smRental.paid_from_drawer===false)?0:smRentalAmt;
     const gcash=dayTxns.filter(t=>t.payment_method==='gcash').reduce((s,t)=>s+(t.total||0),0);
     const maya=dayTxns.filter(t=>t.payment_method==='maya').reduce((s,t)=>s+(t.total||0),0);
     const gotyme=dayTxns.filter(t=>t.payment_method==='gotyme').reduce((s,t)=>s+(t.total||0),0);
@@ -3999,7 +4006,7 @@ async function renderMonthly(monthKey){
     // cash declaration — recalculate variance using NET SALES formula
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
-    const expectedCash=g-cashlessTotal-dayExps-smRentalAmt;
+    const expectedCash=g-cashlessTotal-dayExps-smRentalDrawer;
     const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
     mGross+=g;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
     return{dk,gross:g,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
@@ -4075,7 +4082,7 @@ async function renderMonthly(monthKey){
           </div>`;
           const isDeposited=r.cashDecl&&r.cashDecl.bank_deposited;
           const smRentalCell=r.smRental
-            ? `<span onclick="event.stopPropagation();showSmRentalDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:${r.smRental.amount>0?'#f472b6':'#666'};font-weight:700">${r.smRental.amount>0?'-'+fmt(r.smRental.amount):'₱0 ✓'}</span>`
+            ? `<span onclick="event.stopPropagation();showSmRentalDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:${r.smRental.amount>0?'#f472b6':'#666'};font-weight:700">${r.smRental.amount>0?'-'+fmt(r.smRental.amount):'₱0 ✓'}${r.smRental.paid_from_drawer===false?' <span title="Binayad sa labas ng cash drawer — ibinawas sa Net Sales pero hindi sa Expected Cash" style="font-size:10px">🏦</span>':''}</span>`
             : `<div style="display:flex;align-items:center;gap:4px;justify-content:center" onclick="event.stopPropagation()">
                 <input type="number" id="smrental_${r.dk}" placeholder="0" style="width:60px;background:rgba(255,255,255,.1);border:1px solid #555;border-radius:4px;color:#fff;padding:4px 6px;font-size:11px;font-weight:700;text-align:right"/>
                 <button onclick="event.stopPropagation();saveSmRental('${r.dk}')" style="padding:4px 8px;background:#f472b6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:800;cursor:pointer">Log</button>
@@ -4289,8 +4296,9 @@ async function saveCashOnHand(dk){
 
   const txns=await sbGetTransactions(dk);
   const exps=await sbGetExpenses(dk);
-  const{data:smRentalRow}=await sb.from('sm_rental').select('amount').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
-  const smRentalAmt=smRentalRow?.amount||0;
+  const{data:smRentalRow}=await sb.from('sm_rental').select('amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  // only rent that was taken out of the cash drawer reduces the expected cash (rent paid outside the drawer reduces NET SALES only)
+  const smRentalAmt=(smRentalRow&&smRentalRow.paid_from_drawer===false)?0:(smRentalRow?.amount||0);
 
   // Expected = NET SALES (Gross - Cashless - Discount - VAT - Expenses - SM Rental)
   const gross=txns.reduce((s,t)=>s+(t.total||0),0);
@@ -4328,6 +4336,7 @@ function saveSmRental(dk){
   document.getElementById('smRentalDateLabel').textContent=dk;
   document.getElementById('smRentalAmountLabel').textContent=fmt(amt);
   document.getElementById('smRentalReceiverName').value='';
+  document.getElementById('smRentalFromDrawer').checked=true;
   clearSmRentalSignature();
   document.getElementById('smRentalModal').classList.add('open');
   setTimeout(()=>initSmRentalSigPad(),100);
@@ -4344,10 +4353,10 @@ function confirmSmRental(){
     closeSmRentalModal();
     showToast(`SM Rental of ${fmt(amt)} logged & signed by ${receiverName}.`);
     renderMonthly(dk.slice(0,7));
-  });
+  },document.getElementById('smRentalFromDrawer').checked);
 }
-async function persistSmRental(dk,amount,receiverName,signature,onDone){
-  const rec={date_key:dk,branch:'SM Bicutan',amount,receiver_name:receiverName,receiver_signature:signature,entered_by:currentLoginEmp?.name||'Admin'};
+async function persistSmRental(dk,amount,receiverName,signature,onDone,paidFromDrawer){
+  const rec={date_key:dk,branch:'SM Bicutan',amount,receiver_name:receiverName,receiver_signature:signature,entered_by:currentLoginEmp?.name||'Admin',paid_from_drawer:paidFromDrawer!==false};
   setLoading(true);
   try{
     const{data:ex}=await sb.from('sm_rental').select('id').eq('date_key',dk).eq('branch','SM Bicutan').limit(1);
@@ -4417,11 +4426,36 @@ function showSmRentalDetail(dk){
     <div style="text-align:center;padding:10px">
       <div style="font-size:24px;font-weight:900;color:var(--red);margin-bottom:10px">${fmt(sm.amount)}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Received by</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:14px">${sm.receiver_name||'—'}</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">${sm.receiver_name||'—'}</div>
+      <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:${sm.paid_from_drawer===false?'#9ca3af':'#16a34a'}">${sm.paid_from_drawer===false?'🏦 Binayad sa labas ng cash drawer (hindi ibinabawas sa Expected Cash)':'💵 Kinuha sa cash drawer (ibinabawas sa Expected Cash)'}</div>
+      <button onclick="toggleSmRentalDrawer('${dk}')" style="padding:8px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">${sm.paid_from_drawer===false?'Gawing "kinuha sa drawer"':'Gawing "labas ng drawer"'}</button>
       ${sm.receiver_signature?`<img src="${sm.receiver_signature}" style="max-width:280px;border:1px solid var(--border);border-radius:8px;background:#fff"/>`:'<div style="color:#ccc">No signature on file</div>'}
     </div>`
     : '<div style="text-align:center;color:#ccc;padding:30px">No SM Rental logged for this day.</div>';
   document.getElementById('paymentDetailModal').classList.add('open');
+}
+
+// Admin: switch an SM Rental between "taken from the cash drawer" and "paid outside the drawer".
+// Outside-drawer rent still reduces NET SALES but is NOT taken off the Expected Cash, so the OVER/SHORT check stays honest.
+// The saved cash declaration is shifted by the same amount so every report agrees.
+async function toggleSmRentalDrawer(dk){
+  const{data:sm}=await sb.from('sm_rental').select('id,amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  if(!sm){showToast('Walang SM Rental sa araw na ito.');return;}
+  const wasDrawer=sm.paid_from_drawer!==false;
+  const amt=+sm.amount||0;
+  setLoading(true);
+  try{
+    const{error}=await sb.from('sm_rental').update({paid_from_drawer:!wasDrawer}).eq('id',sm.id);
+    if(error)throw error;
+    // taking the rent OUT of the drawer raises the expected cash by that amount (variance goes down); putting it back does the opposite
+    const delta=wasDrawer?amt:-amt;
+    const{data:cd}=await sb.from('cash_declarations').select('id,expected_amount,variance').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+    if(cd){await sb.from('cash_declarations').update({expected_amount:(cd.expected_amount||0)+delta,variance:(cd.variance||0)-delta}).eq('id',cd.id);}
+    showToast(wasDrawer?'🏦 Na-mark: binayad sa labas ng cash drawer':'💵 Na-mark: kinuha sa cash drawer');
+  }catch(e){showToast('Hindi na-update — subukan ulit kapag may internet.');}
+  setLoading(false);
+  document.getElementById('paymentDetailModal').classList.remove('open');
+  renderMonthly(dk.slice(0,7));
 }
 
 // Toggle bank deposit confirmation for a given day. Only flips the flag —
