@@ -258,8 +258,10 @@ function setFilter(f){
 // ── Load Orders from Supabase ──
 async function loadOrders(){
   const today=new Date().toISOString().slice(0,10);
+  // NOT select('*'): this runs every 15 seconds, and '*' would also download every GCash-proof / discount-ID photo
+  // of the day (base64) each time. The kitchen never uses photos.
   const{data,error}=await sb.from('transactions')
-    .select('*')
+    .select('id,created_at,or_num,ts,table_name,items,subtotal,discount,discount_amount,total,payment_method,branch,card_last4,card_type,discount_name,discount_id_num,is_voided,voided_at,cash_tendered,change_given,cashier_name,vatable_sales,vat_amount,vat_exempt,kitchen_status,kitchen_started_at,kitchen_done_at,voided_by,void_reason,void_device')
     .eq('is_voided',false)
     .gte('ts',today+'T00:00:00.000Z')
     .lte('ts',today+'T23:59:59.999Z')

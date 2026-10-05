@@ -1512,14 +1512,10 @@ async function createSession(empId, empName){
   // Delete any existing sessions for this employee on this device
   await sb.from('employee_sessions').delete()
     .eq('emp_id', empId).eq('device_id', deviceId);
-  // Create new session
-  const {error} = await sb.from('employee_sessions').insert([{
-    emp_id: String(empId),
-    emp_name: empName,
-    device_id: deviceId
-  }]);
-  if(error) console.error('Session create error:', error);
-  else console.log('Session created successfully!');
+  // NOTE: the session INSERT failed with 401 on EVERY login (the public key has no permission on this table), so the
+  // "already logged in on another device" block has never actually worked. It is deliberately NOT turned on:
+  // checkSession() blocks INDEFINITELY until that account logs out, which would lock staff out of their other devices.
+  // The insert is skipped so it stops raising an error on every login.
   // Store session locally
   LS.set('active_session_emp', empId);
   // Start heartbeat to update last_active every 5 minutes
@@ -2718,10 +2714,15 @@ async function sbPaginateAll(buildQuery){
   }
   return all;
 }
+// Every transactions column EXCEPT discount_id_photo and cashless_proof_photo. Those two hold ~148 MB of base64 images
+// (the real sales data is ~1 MB). Bulk loads must never select them: with the public key's 3-second query limit,
+// select('*') over a week (~22 MB) was timing out -> HTTP 500 errors in the Dashboard/Sales. Photos are fetched
+// only for ONE day, when a detail popup is opened.
+const TXN_LIGHT_COLS='id,created_at,or_num,ts,table_name,items,subtotal,discount,discount_amount,total,payment_method,branch,card_last4,card_type,discount_name,discount_id_num,is_voided,voided_at,cash_tendered,change_given,cashier_name,vatable_sales,vat_amount,vat_exempt,kitchen_status,kitchen_started_at,kitchen_done_at,voided_by,void_reason,void_device';
 async function sbGetTransactions(dateKey){
   const d=dateKey||getTodayKey();
   try{
-    const{data,error}=await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
+    const{data,error}=await sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',d+'T00:00:00.000Z').lte('ts',d+'T23:59:59.999Z').order('ts');
     if(!error){LS.set('txn_'+d,data||[]);return data||[];}
   }catch(e){}
   // also filter voided from local cache
@@ -2894,12 +2895,12 @@ async function renderDashboard(){
   // Load data
   const[txnsDay, txnsMon, expsDay, expsMon, smRentalDay, smRentalMon, txnsWeek] = await Promise.all([
     sbGetTransactions(today),
-    sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
     sbGetExpenses(today),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r.data||[]).catch(()=>[]),
-    sb.from('sm_rental').select('amount').eq('date_key',today).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null})),
+    sb.from('sm_rental').select('amount').eq('date_key',today).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('amount').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).eq('branch','SM Bicutan').then(r=>r.data||[]).catch(()=>[]),
-    sbPaginateAll((from,to)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',weekAgoKey+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',weekAgoKey+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
   ]);
 
   // Daily metrics
@@ -3540,7 +3541,7 @@ async function generateItemsReport(){
   __itemsReportSearch='';
   document.getElementById('itemsReportResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
   setLoading(true);
-  const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select('*').eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').range(f,t));
+  const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').range(f,t));
   setLoading(false);
 
   const itemMap={};
@@ -4296,7 +4297,7 @@ async function saveCashOnHand(dk){
 
   const txns=await sbGetTransactions(dk);
   const exps=await sbGetExpenses(dk);
-  const{data:smRentalRow}=await sb.from('sm_rental').select('amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  const{data:smRentalRow}=await sb.from('sm_rental').select('amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
   // only rent that was taken out of the cash drawer reduces the expected cash (rent paid outside the drawer reduces NET SALES only)
   const smRentalAmt=(smRentalRow&&smRentalRow.paid_from_drawer===false)?0:(smRentalRow?.amount||0);
 
@@ -4309,7 +4310,7 @@ async function saveCashOnHand(dk){
   const expected=gross-cashless-expTotal-smRentalAmt;
   const variance=declared-expected;
   // preserve existing bank_deposited flag if a declaration already exists
-  const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
   const rec={date_key:dk,declared_amount:declared,expected_amount:expected,variance,declared_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan',bank_deposited:existing?existing.bank_deposited:false};
   setLoading(true);
   try{
@@ -4439,7 +4440,7 @@ function showSmRentalDetail(dk){
 // Outside-drawer rent still reduces NET SALES but is NOT taken off the Expected Cash, so the OVER/SHORT check stays honest.
 // The saved cash declaration is shifted by the same amount so every report agrees.
 async function toggleSmRentalDrawer(dk){
-  const{data:sm}=await sb.from('sm_rental').select('id,amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  const{data:sm}=await sb.from('sm_rental').select('id,amount,paid_from_drawer').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
   if(!sm){showToast('Walang SM Rental sa araw na ito.');return;}
   const wasDrawer=sm.paid_from_drawer!==false;
   const amt=+sm.amount||0;
@@ -4449,7 +4450,7 @@ async function toggleSmRentalDrawer(dk){
     if(error)throw error;
     // taking the rent OUT of the drawer raises the expected cash by that amount (variance goes down); putting it back does the opposite
     const delta=wasDrawer?amt:-amt;
-    const{data:cd}=await sb.from('cash_declarations').select('id,expected_amount,variance').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+    const{data:cd}=await sb.from('cash_declarations').select('id,expected_amount,variance').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
     if(cd){await sb.from('cash_declarations').update({expected_amount:(cd.expected_amount||0)+delta,variance:(cd.variance||0)-delta}).eq('id',cd.id);}
     showToast(wasDrawer?'🏦 Na-mark: binayad sa labas ng cash drawer':'💵 Na-mark: kinuha sa cash drawer');
   }catch(e){showToast('Hindi na-update — subukan ulit kapag may internet.');}
@@ -4462,7 +4463,7 @@ async function toggleSmRentalDrawer(dk){
 // does not touch declared/expected/variance amounts, so it can't be used
 // to alter sales figures, only to mark that the cash was physically banked.
 async function toggleBankDeposit(dk){
-  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).single().then(r=>r).catch(()=>({data:null}));
+  const{data:existing}=await sb.from('cash_declarations').select('*').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
   if(!existing){showToast('Please save Cash on Hand first before marking as deposited.');return;}
   const newState=!existing.bank_deposited;
   setLoading(true);
@@ -4874,7 +4875,7 @@ async function downloadMonthlyExcel(mk){
   const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
   if(!toDate)return;
   setLoading(true);
-  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select('*').gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').range(from,to));
+  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').range(from,to));
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
   setLoading(false);
@@ -6982,7 +6983,12 @@ async function showPaymentDetail(pm,dateKey){
   document.getElementById('paymentDetailTitle').textContent=`${labels[pm]||pm} — ${dateStr(dk+'T12:00:00')}`;
   document.getElementById('paymentDetailContent').innerHTML='<div style="text-align:center;padding:20px;color:#ccc">Loading...</div>';
   document.getElementById('paymentDetailModal').classList.add('open');
-  const txns=await sbGetTransactions(dk);
+  // This popup shows the payment PROOF photos, so (unlike the bulk loads) fetch just THIS one day WITH photos.
+  let txns=[];
+  try{
+    const{data:withPhotos,error:photoErr}=await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',dk+'T00:00:00.000Z').lte('ts',dk+'T23:59:59.999Z').order('ts');
+    txns=(!photoErr&&withPhotos)?withPhotos:await sbGetTransactions(dk);
+  }catch(e){txns=await sbGetTransactions(dk);}
   const filtered=txns.filter(t=>t.payment_method===pm);
   const total=filtered.reduce((s,t)=>s+(t.total||0),0);
   if(!filtered.length){document.getElementById('paymentDetailContent').innerHTML=`<div style="text-align:center;padding:30px;color:#ccc">No ${pm} transactions for this date</div>`;return;}
