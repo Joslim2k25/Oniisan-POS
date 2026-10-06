@@ -2725,6 +2725,40 @@ async function sbPaginateAll(buildQuery){
 // select('*') over a week (~22 MB) was timing out -> HTTP 500 errors in the Dashboard/Sales. Photos are fetched
 // only for ONE day, when a detail popup is opened.
 const TXN_LIGHT_COLS='id,created_at,or_num,ts,table_name,items,subtotal,discount,discount_amount,total,payment_method,branch,card_last4,card_type,discount_name,discount_id_num,is_voided,voided_at,cash_tendered,change_given,cashier_name,vatable_sales,vat_amount,vat_exempt,kitchen_status,kitchen_started_at,kitchen_done_at,voided_by,void_reason,void_device';
+// ══════ AUTO-UPDATE NOTICE ══════
+// The Admin / POS pages stay open for days and the browser never re-downloads the app by itself, so a tab kept open keeps
+// running OLD code (a 23-hour-old Monthly Report was still on screen long after the fix was deployed). At load we remember
+// this page's version stamp (the ETag / size of index.html); every 2 minutes and whenever the tab is shown again we ask the
+// server for it once more, and show a red banner as soon as it has changed.
+let __appStamp=null,__updateShown=false;
+async function __fetchAppStamp(){
+  try{
+    const r=await fetch(location.pathname,{method:'HEAD',cache:'no-store'});
+    if(!r.ok) return null;
+    const st=(r.headers.get('etag')||'')+'|'+(r.headers.get('last-modified')||'')+'|'+(r.headers.get('content-length')||'');
+    return st==='||'?null:st;
+  }catch(e){return null;}
+}
+function showAppUpdateBanner(){
+  if(document.getElementById('appUpdateBanner')) return;
+  const b=document.createElement('div');
+  b.id='appUpdateBanner';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#c0392b;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:13px;font-weight:800;box-shadow:0 2px 12px rgba(0,0,0,.35)';
+  b.innerHTML='<span>🔄 May bagong bersyon ng app. I-update para makita ang tamang numero.</span><button onclick="location.reload()" style="background:#fff;color:#c0392b;border:none;border-radius:8px;padding:7px 14px;font-weight:900;font-size:13px;cursor:pointer">I-UPDATE NGAYON</button>';
+  document.body.appendChild(b);
+}
+async function checkForAppUpdate(){
+  if(__updateShown||!navigator.onLine) return;
+  const now=await __fetchAppStamp();
+  if(!now) return;
+  if(__appStamp===null){__appStamp=now;return;}      // first reading = the version this page was loaded with
+  if(now!==__appStamp){__updateShown=true;showAppUpdateBanner();}
+}
+checkForAppUpdate();
+setInterval(checkForAppUpdate,120000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForAppUpdate();});
+window.addEventListener('online',checkForAppUpdate);
+
 // ══════ NET SALES — ONE formula used by every screen ══════
 // NET SALES = Gross (before discount) − Discount − VAT − Cashless (GCash, Maya, GoTyme, GrabFood, FoodPanda, Card)
 //             − Expenses − SM Rental (− other manual deductions)
