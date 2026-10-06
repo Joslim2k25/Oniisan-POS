@@ -2703,11 +2703,17 @@ function stopSalesLogAutoRefresh(){
 // span a full month (or more) of transactions can exceed that once volume grows, silently
 // dropping the newest rows (since queries here are ordered oldest-first via .order('ts')).
 // This helper pages through in batches of 1000 until every matching row is retrieved.
+// Reads ALL rows page by page. Callers MUST give the query a unique ORDER BY (e.g. .order('ts').order('id')), otherwise rows can be
+// repeated or skipped between pages and the totals come out wrong. A page that fails is retried; if it still fails this THROWS,
+// instead of quietly returning only the earlier pages (which would silently understate Gross).
 async function sbPaginateAll(buildQuery){
   const pageSize=1000; let all=[]; let from=0;
   while(true){
-    const{data,error}=await buildQuery(from, from+pageSize-1);
-    if(error||!data||data.length===0)break;
+    let res=await buildQuery(from, from+pageSize-1);
+    if(res.error){ res=await buildQuery(from, from+pageSize-1); }
+    const{data,error}=res;
+    if(error) throw error;
+    if(!data||data.length===0)break;
     all=all.concat(data);
     if(data.length<pageSize)break;
     from+=pageSize;
@@ -2923,13 +2929,15 @@ async function renderDashboard(){
   // Load data
   const[txnsDay, txnsMon, expsDay, expsMon, smRentalDay, smRentalMon, txnsWeek] = await Promise.all([
     sbGetTransactions(today),
-    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>null),
     sbGetExpenses(today),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r.data||[]).catch(()=>[]),
     sb.from('sm_rental').select('amount').eq('date_key',today).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('amount').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).eq('branch','SM Bicutan').then(r=>r.data||[]).catch(()=>[]),
-    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',weekAgoKey+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').range(from,to)).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',weekAgoKey+'T00:00:00.000Z').lte('ts',today+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>[]),
   ]);
+  // If the month's sales could not be loaded, say so — never show a quiet ₱0 / partial Gross.
+  if(txnsMon===null){document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#c0392b;font-weight:700">⚠️ Hindi na-load ang mga benta (mahina ang koneksyon). I-refresh ang pahina at subukan ulit — hindi ito ipinapakita nang kulang para hindi magkamali ang Gross.</div>';return;}
 
   // Daily metrics
   const dGross=txnsDay.reduce((s,t)=>s+(t.total||0),0);
@@ -3581,7 +3589,7 @@ async function generateItemsReport(){
   __itemsReportSearch='';
   document.getElementById('itemsReportResult').innerHTML='<div style="text-align:center;padding:30px;color:#ccc">Loading...</div>';
   setLoading(true);
-  const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').range(f,t));
+  const txns=await sbPaginateAll((f,t)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z').order('ts').order('id').range(f,t));
   setLoading(false);
 
   const itemMap={};
@@ -4005,12 +4013,13 @@ async function renderMonthly(monthKey){
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
   const lastDayStr=String(lastDay).padStart(2,'0');
   const[allTxns,{data:allReps},{data:allExps},{data:allCash},{data:allSmRental}]=await Promise.all([
-    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').range(from,to)).catch(()=>null),
+    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>null),
     sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
     sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
   ]);
+  if(allTxns===null){document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#c0392b;font-weight:700">⚠️ Hindi na-load ang mga benta (mahina ang koneksyon). I-refresh ang pahina at subukan ulit — hindi ito ipinapakita nang kulang para hindi magkamali ang Gross.</div>';return;}
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
   const smRentalMap={};
   smRentals.forEach(s=>{ const k=String(s.date_key).slice(0,10); smRentalMap[k]=s; });
@@ -4919,7 +4928,7 @@ async function downloadMonthlyExcel(mk){
   const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
   if(!toDate)return;
   setLoading(true);
-  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').range(from,to));
+  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to));
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allSm}=await sb.from('sm_rental').select('date_key,amount').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
