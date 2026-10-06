@@ -604,6 +604,7 @@ button{cursor:pointer;font-family:inherit}
       <div class="tab" data-tab="monthly">Monthly</div>
       <div class="tab" data-tab="itemsreport">Items Report</div>
       <div class="tab" data-tab="shortages">Cashier Shortages</div>
+      <div class="tab" data-tab="proofaudit">🔎 Proof Audit</div>
       <div class="tab" data-tab="xread">X Reading</div>
       <div class="tab" data-tab="zread">Z Reading</div>
       <div class="tab" data-tab="dtr">DTR</div>
@@ -2654,6 +2655,310 @@ function cancelCam(){
   }
 }
 
+// ══════ PROOF AUDIT — read the payment screenshots and compare them with the sale ══════
+// Each cashless sale can carry a screenshot of the customer's payment (GCash, Maya, GoTyme, card slip). This tab reads those pictures with
+// OCR — inside THIS browser, the images never leave the device — finds the amount, date, time and reference number printed in them, and
+// compares them with what the POS recorded. Anything that does not match is listed so a person can look at the picture.
+// OCR is a screening tool, not a verdict: a blurry photo can be misread, which is why every flagged row has a button to view the picture.
+const PA_MONTHS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+const PA_TIME_TOLERANCE_MIN=30;   // the customer pays a little before/after the cashier rings it up
+const PA_KEY='pa_results_v1';
+
+function paMoney(s){return parseFloat(String(s).replace(/,/g,''));}
+
+// Every money-looking number in the OCR text, in reading order: 250.00 / 1,250.00 / ₱250 / PHP 250
+function paFindAmounts(text){
+  const out=[];
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    const lower=line.toLowerCase();
+    const keyword=/\b(amount|total|sent|send|paid|payment|received)\b/.test(lower);
+    // only the number that comes right after the word balance / fee is NOT the payment (other numbers on the same line still count)
+    const isSkip=idx=>/balance|\bfee\b|service charge/.test(lower.slice(Math.max(0,idx-30),idx));
+    let m;
+    const reA=/(?<![\d:/.,-])(?:₱|PHP|Php|P)?\s?(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})(?!\d)/g;
+    while((m=reA.exec(line))){
+      if(/^\s*(am|pm)\b/i.test(line.slice(m.index+m[0].length))) continue;          // "7.15 PM" is a time, not money
+      out.push({value:paMoney(m[1]+'.'+m[2]),skip:isSkip(m.index),keyword});
+    }
+    const reB=/(?:₱|PHP|Php)\s?(\d{1,3}(?:,\d{3})+|\d+)(?![\d.,])/g;
+    while((m=reB.exec(line))) out.push({value:paMoney(m[1]),skip:isSkip(m.index),keyword,whole:true});
+  });
+  return out;
+}
+// The amount that is most likely THE payment: a line that says amount/total/sent/paid first, otherwise the first number on the screen.
+function paPrimaryAmount(amounts){
+  const ok=(amounts||[]).filter(a=>!a.skip);
+  return ok.find(a=>a.keyword)||ok[0]||null;
+}
+
+function paMakeDT(y,mo,d,h,mi,ampm){
+  if(!(mo>=1&&mo<=12&&d>=1&&d<=31&&y>=2000)) return null;
+  const o={y,mo,d,h:0,mi:0,hasTime:false};
+  if(h!=null&&h!==undefined&&h!==''){
+    let hh=+h; const mm=+mi;
+    const ap=(ampm||'').toLowerCase().replace(/\./g,'');
+    if(ap==='pm'&&hh<12) hh+=12; if(ap==='am'&&hh===12) hh=0;
+    if(hh>23||mm>59) return o;
+    o.h=hh;o.mi=mm;o.hasTime=true;
+  }
+  return o;
+}
+// First date (and time) printed in the picture: "Oct 3, 2026 7:15 PM", "03 Oct 2026 07:15 PM", "2026-10-03 19:15", "10/03/2026"
+function paParseDateTime(text){
+  const t=String(text||'').replace(/\s+/g,' ');
+  const mon='(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  const time='(?:[,\\s]*(?:at\\s+)?(\\d{1,2})[:.](\\d{2})(?::(\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?)?)?';
+  const cands=[]; let m;
+  const m3=s=>PA_MONTHS[s.toLowerCase().slice(0,3)];
+  const r1=new RegExp(mon+'\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(20\\d{2})'+time,'ig');
+  while((m=r1.exec(t))) cands.push(paMakeDT(+m[3],m3(m[1]),+m[2],m[4],m[5],m[7]));
+  const r2=new RegExp('(\\d{1,2})\\s+'+mon+'\\.?,?\\s+(20\\d{2})'+time,'ig');
+  while((m=r2.exec(t))) cands.push(paMakeDT(+m[3],m3(m[2]),+m[1],m[4],m[5],m[7]));
+  const r3=/(20\d{2})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/g;
+  while((m=r3.exec(t))) cands.push(paMakeDT(+m[1],+m[2],+m[3],m[4],m[5],''));
+  const r4=new RegExp('(\\d{1,2})/(\\d{1,2})/(20\\d{2})'+time,'ig');
+  while((m=r4.exec(t))){const a=+m[1],b=+m[2];cands.push(paMakeDT(+m[3],a>12?b:a,a>12?a:b,m[4],m[5],m[7]));}
+  const good=cands.filter(Boolean);
+  return good.find(c=>c.hasTime)||good[0]||null;
+}
+// "Ref No. 1234 567 890123" -> "1234567890123" (used to catch one payment being shown for two sales)
+function paParseRef(text){
+  const m=String(text||'').match(/ref(?:erence)?\.?\s*(?:no\.?|number|#)?\s*[:.]?\s*((?:\d[\s-]?){10,16})/i);
+  return m?m[1].replace(/\D/g,''):null;
+}
+function paManilaHM(ts){
+  const s=new Date(ts).toLocaleTimeString('en-GB',{timeZone:'Asia/Manila',hour12:false,hour:'2-digit',minute:'2-digit'});
+  const [h,mi]=s.split(':').map(Number); return [h%24,mi];
+}
+const pad2=n=>String(n).padStart(2,'0');
+// sale = {ts,total}; read = {amounts,dt}. Returns every problem found; status = the most important one.
+function paCompare(sale,read){
+  const money=(read.amounts||[]).filter(a=>!a.skip);
+  const primary=paPrimaryAmount(read.amounts);
+  const out={amountStatus:'unreadable',dtStatus:'nodt',flags:[],status:'ok',readAmount:primary?primary.value:null,readDt:null,minDiff:null};
+  if(money.length) out.amountStatus=money.some(a=>Math.abs(a.value-sale.total)<0.005)?'ok':'mismatch';
+  if(read.dt){
+    const dk=`${read.dt.y}-${pad2(read.dt.mo)}-${pad2(read.dt.d)}`;
+    out.readDt=dk+(read.dt.hasTime?` ${pad2(read.dt.h)}:${pad2(read.dt.mi)}`:'');
+    if(dk!==manilaDateKey(sale.ts)) out.dtStatus='date_diff';
+    else if(read.dt.hasTime){
+      const [sh,sm]=paManilaHM(sale.ts);
+      out.minDiff=Math.abs((read.dt.h*60+read.dt.mi)-(sh*60+sm));
+      out.dtStatus=out.minDiff>PA_TIME_TOLERANCE_MIN?'time_diff':'ok';
+    } else out.dtStatus='ok';
+  }
+  if(out.amountStatus==='mismatch') out.flags.push('amount');
+  if(out.dtStatus==='date_diff') out.flags.push('date');
+  if(out.dtStatus==='time_diff') out.flags.push('time');
+  if(out.amountStatus==='unreadable') out.flags.push('unreadable');
+  out.status=out.flags[0]||'ok';
+  return out;
+}
+
+// ---------- OCR engine (loaded the first time it is needed) ----------
+let __paScheduler=null,__paLoading=null;
+async function paEnsureOcr(){
+  if(__paScheduler) return __paScheduler;
+  if(!__paLoading){
+    __paLoading=(async()=>{
+      if(!window.Tesseract){
+        await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=res;s.onerror=()=>rej(new Error('Hindi ma-load ang OCR — kailangan ng internet.'));document.head.appendChild(s);});
+      }
+      const sch=Tesseract.createScheduler();
+      for(let i=0;i<2;i++){sch.addWorker(await Tesseract.createWorker('eng',1,{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int',gzip:true}));}   // same language data the offline test used
+      return (__paScheduler=sch);
+    })();
+  }
+  try{return await __paLoading;}finally{__paLoading=null;}
+}
+// Scale to a sensible width, white background; dark-mode screenshots (light text on dark) are inverted so the OCR can read them.
+function paPrepImage(dataUrl,maxW){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const sc=Math.min(1,(maxW||1100)/img.width),c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));
+      const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
+      try{
+        const sm=document.createElement('canvas');sm.width=40;sm.height=40;sm.getContext('2d').drawImage(c,0,0,40,40);
+        const d=sm.getContext('2d').getImageData(0,0,40,40).data;let sum=0;for(let i=0;i<d.length;i+=4)sum+=(d[i]+d[i+1]+d[i+2])/3;
+        if(sum/(d.length/4)<110){g.globalCompositeOperation='difference';g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);}
+      }catch(e){}
+      res(c);
+    };
+    img.onerror=()=>rej(new Error('Hindi mabasa ang larawan'));
+    img.src=dataUrl;
+  });
+}
+
+// ---------- state + one transaction ----------
+let __pa={running:false,stop:false,all:[],items:[],results:null,done:0,total:0,method:'gcash'};
+function paResults(){if(!__pa.results)__pa.results=LS.get(PA_KEY,{});return __pa.results;}
+async function paProcessOne(t,sch){
+  const{data,error}=await sb.from('transactions').select('cashless_proof_photo').eq('id',t.id).maybeSingle();
+  if(error) throw error;
+  if(!data||!data.cashless_proof_photo){paResults()[t.id]={status:'nophoto',flags:['nophoto'],checkedAt:Date.now()};return;}
+  const canvas=await paPrepImage(data.cashless_proof_photo,1100);
+  const r=await sch.addJob('recognize',canvas);
+  const text=(r&&r.data&&r.data.text)||'';
+  const read={amounts:paFindAmounts(text),dt:paParseDateTime(text)};
+  const cmp=paCompare({ts:t.ts,total:t.total},read);
+  paResults()[t.id]={...cmp,read,ref:paParseRef(text),text:text.slice(0,600),checkedAt:Date.now()};
+}
+function paSetStatus(msg){const e=document.getElementById('paStatus');if(e)e.textContent=msg||'';}
+function paUpdateProgress(){
+  const bar=document.getElementById('paBar'),lbl=document.getElementById('paProg');
+  const pct=__pa.total?Math.round(__pa.done/__pa.total*100):0;
+  if(bar)bar.style.width=pct+'%';
+  if(lbl)lbl.textContent=`${__pa.done} / ${__pa.total} (${pct}%)`;
+}
+function paSyncButtons(){
+  const run=document.getElementById('paRunBtn'),stop=document.getElementById('paStopBtn');
+  if(run){run.disabled=__pa.running;run.style.opacity=__pa.running?.5:1;}
+  if(stop){stop.disabled=!__pa.running;stop.style.opacity=__pa.running?1:.5;}
+}
+async function paRun(){
+  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng gumamit nito.');return;}
+  if(__pa.running)return;
+  if(!navigator.onLine){showToast('⚠️ Kailangan ng internet.');return;}
+  const from=document.getElementById('paFrom').value,to=document.getElementById('paTo').value,method=document.getElementById('paMethod').value;
+  if(!from||!to||from>to){showToast('Piliin ang tamang petsa.');return;}
+  __pa.running=true;__pa.stop=false;__pa.method=method;paSyncButtons();paSetStatus('Kinukuha ang listahan ng mga benta…');
+  try{
+    const mk=onlyProof=>sbPaginateAll((a,b)=>{
+      let q=sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).eq('payment_method',method).gte('ts',from+'T00:00:00.000Z').lte('ts',to+'T23:59:59.999Z');
+      if(onlyProof)q=q.not('cashless_proof_photo','is',null);
+      return q.order('ts').order('id').range(a,b);
+    });
+    const [all,withProof]=await Promise.all([mk(false),mk(true)]);
+    __pa.all=all;__pa.items=withProof;
+    const res=paResults();
+    const todo=withProof.filter(t=>!res[t.id]);                // already read earlier → skipped, so you can stop and continue later
+    __pa.total=withProof.length;__pa.done=withProof.length-todo.length;
+    paRenderResults();paUpdateProgress();
+    if(todo.length){
+      paSetStatus('Inihahanda ang OCR (unang beses: ilang segundo hanggang isang minuto)…');
+      const sch=await paEnsureOcr();
+      paSetStatus('Binabasa ang mga screenshot… puwede mong ihinto at ituloy mamaya.');
+      let idx=0;
+      const worker=async()=>{
+        while(!__pa.stop){
+          const i=idx++;if(i>=todo.length)return;
+          const t=todo[i];
+          try{await paProcessOne(t,sch);}catch(e){res[t.id]={status:'error',flags:['error'],note:String((e&&e.message)||e),checkedAt:Date.now()};}
+          __pa.done++;paUpdateProgress();
+          if(__pa.done%4===0){LS.set(PA_KEY,res);paRenderResults();}
+        }
+      };
+      await Promise.all([worker(),worker()]);
+    }
+    LS.set(PA_KEY,paResults());
+    paSetStatus(__pa.stop?'Naihinto. Pindutin ang Simulan para ituloy.':`Tapos na: ${__pa.done} larawan ang nabasa.`);
+  }catch(e){
+    paSetStatus('⚠️ May problema: '+String((e&&e.message)||e));
+  }
+  __pa.running=false;paSyncButtons();paRenderResults();
+}
+function paStop(){__pa.stop=true;paSetStatus('Ihinto na…');}
+function paClear(){
+  if(!confirm('Burahin ang lahat ng nabasang resulta? (Hindi nito binubura ang mga larawan o benta.)'))return;
+  __pa.results={};LS.set(PA_KEY,{});paRenderResults();showToast('Nabura ang mga resulta.');
+}
+
+// ---------- display ----------
+const PA_BADGE={ok:['✅ Tugma','#16a34a'],amount:['⚠️ Iba ang halaga','#c0392b'],date:['⚠️ Iba ang petsa','#c0392b'],time:['⚠️ Malayo ang oras','#d97706'],unreadable:['❓ Hindi nabasa ang halaga','#6b7280'],nophoto:['❓ Walang larawan','#6b7280'],error:['⚠️ Error sa pagbasa','#6b7280'],pending:['⏳ Hindi pa nababasa','#9ca3af']};
+function paDup(){   // the same reference number shown for two different sales
+  const map={};__pa.items.forEach(t=>{const r=paResults()[t.id];if(r&&r.ref){(map[r.ref]=map[r.ref]||[]).push(t);}});
+  const dup={};Object.keys(map).forEach(k=>{if(map[k].length>1)map[k].forEach(t=>{dup[t.id]=map[k].filter(x=>x.id!==t.id).map(x=>x.or_num).join(', ');});});
+  return dup;
+}
+function paDaily(){
+  const days={};
+  const get=k=>days[k]||(days[k]={k,n:0,sys:0,proof:0,noProof:0,noProofAmt:0,readN:0,sysRead:0,scr:0,issues:0});
+  __pa.all.forEach(t=>{const d=get(manilaDateKey(t.ts));d.n++;d.sys+=t.total||0;});
+  const proofIds=new Set(__pa.items.map(t=>t.id));
+  __pa.all.forEach(t=>{if(!proofIds.has(t.id)){const d=get(manilaDateKey(t.ts));d.noProof++;d.noProofAmt+=t.total||0;}});
+  __pa.items.forEach(t=>{
+    const d=get(manilaDateKey(t.ts));d.proof++;
+    const r=paResults()[t.id];if(!r)return;
+    if(r.flags&&r.flags.some(f=>f!=='unreadable'&&f!=='nophoto'&&f!=='error'))d.issues++;
+    if(r.amountStatus&&r.amountStatus!=='unreadable'){d.readN++;d.sysRead+=t.total||0;d.scr+=(r.amountStatus==='ok'?t.total:(r.readAmount||0));}
+  });
+  return Object.values(days).sort((a,b)=>a.k<b.k?-1:1);
+}
+function paRenderResults(){
+  const box=document.getElementById('paResults');if(!box)return;
+  const res=paResults(),dup=paDup();
+  const cnt={ok:0,amount:0,date:0,time:0,unreadable:0,other:0,pending:0};
+  __pa.items.forEach(t=>{const r=res[t.id];if(!r){cnt.pending++;return;}
+    if(r.flags&&r.flags.length){['amount','date','time'].forEach(f=>{if(r.flags.includes(f))cnt[f]++;});if(r.flags.includes('unreadable'))cnt.unreadable++;if(!r.flags.some(f=>['amount','date','time','unreadable'].includes(f)))cnt.other++;}
+    else cnt.ok++;});
+  const card=(label,n,color)=>`<div style="flex:1;min-width:110px;background:#fff;border:1px solid var(--border);border-top:4px solid ${color};border-radius:10px;padding:10px 12px"><div style="font-size:20px;font-weight:900;color:${color}">${n}</div><div style="font-size:10px;color:var(--muted);font-weight:700">${label}</div></div>`;
+  const noProofN=__pa.all.length-__pa.items.length,noProofAmt=__pa.all.filter(t=>!__pa.items.some(x=>x.id===t.id)).reduce((s,t)=>s+(t.total||0),0);
+  const onlyIssues=(document.getElementById('paOnlyIssues')||{checked:true}).checked;
+  const daily=paDaily();
+  const dailyRows=daily.map(d=>{const diff=d.scr-d.sysRead;return `<tr><td>${d.k}</td><td class="num">${d.n}</td><td class="num">${fmt(d.sys)}</td><td class="num">${d.proof}</td><td class="num">${d.readN}</td><td class="num">${fmt(d.sysRead)}</td><td class="num">${fmt(d.scr)}</td><td class="num" style="color:${Math.abs(diff)<0.005?'#16a34a':'#c0392b'};font-weight:800">${Math.abs(diff)<0.005?'—':fmt(diff)}</td><td class="num" style="color:${d.issues?'#c0392b':'#16a34a'};font-weight:800">${d.issues||'—'}</td><td class="num">${d.noProof?d.noProof+' ('+fmt(d.noProofAmt)+')':'—'}</td></tr>`;}).join('');
+  const rows=__pa.items.filter(t=>{const r=res[t.id];if(!onlyIssues)return true;if(!r)return false;return r.flags&&r.flags.length;}).map(t=>{
+    const r=res[t.id]||{};const key=(r.flags&&r.flags[0])||(r.status&&PA_BADGE[r.status]?r.status:'pending');
+    const badges=(r.flags&&r.flags.length?r.flags:[res[t.id]?'ok':'pending']).map(f=>`<span style="display:inline-block;margin:1px 2px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:800;color:#fff;background:${(PA_BADGE[f]||PA_BADGE.pending)[1]}">${(PA_BADGE[f]||PA_BADGE.pending)[0]}</span>`).join('');
+    const when=new Date(t.ts).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const dupTxt=dup[t.id]?`<div style="color:#c0392b;font-size:10px;font-weight:800">⚠️ Parehong Ref No. sa ${escHtml(dup[t.id])}</div>`:'';
+    return `<tr><td>${when}</td><td>${escHtml(t.or_num)}</td><td>${escHtml(t.cashier_name||'—')}</td><td class="num">${fmt(t.total)}</td><td class="num" style="font-weight:800">${r.readAmount!=null?fmt(r.readAmount):'—'}</td><td>${r.readDt?escHtml(r.readDt):'<span style="color:#9ca3af">walang nabasa</span>'}${r.minDiff!=null?`<div style="font-size:10px;color:var(--muted)">${r.minDiff} min ang pagitan</div>`:''}</td><td>${badges}${dupTxt}</td><td><button onclick="paShowPhoto('${t.id}')" style="padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer">🖼️ Tingnan</button></td></tr>`;}).join('');
+  box.innerHTML=`
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    ${card('✅ Tugma',cnt.ok,'#16a34a')}${card('⚠️ Iba ang halaga',cnt.amount,'#c0392b')}${card('⚠️ Iba ang petsa',cnt.date,'#c0392b')}${card('⚠️ Malayo ang oras',cnt.time,'#d97706')}${card('❓ Hindi nabasa',cnt.unreadable,'#6b7280')}${card('⏳ Hindi pa nababasa',cnt.pending,'#9ca3af')}${card('Walang larawan',noProofN+(noProofN?' · '+fmt(noProofAmt):''),'#6b7280')}
+  </div>
+  <div class="card" style="margin-bottom:14px;overflow-x:auto"><div class="card-title"><div class="red-bar"></div>Bawat araw — halaga ng benta vs halaga sa screenshot</div>
+    <table class="tbl" style="width:100%;font-size:11px"><thead><tr><th>Petsa</th><th class="num">Benta</th><th class="num">Halaga (system)</th><th class="num">May larawan</th><th class="num">Nabasa</th><th class="num">System (nabasa)</th><th class="num">Ayon sa screenshot</th><th class="num">Pagkakaiba</th><th class="num">May problema</th><th class="num">Walang larawan</th></tr></thead><tbody>${dailyRows||'<tr><td colspan="10" style="text-align:center;color:#ccc;padding:14px">Wala pang datos.</td></tr>'}</tbody></table></div>
+  <div class="card" style="overflow-x:auto"><div class="card-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:6px"><span class="red-bar"></span>Mga benta at screenshot</span>
+    <label style="font-size:11px;font-weight:700;cursor:pointer"><input type="checkbox" id="paOnlyIssues" ${onlyIssues?'checked':''} onchange="paRenderResults()"/> Ipakita lang ang may problema</label></div>
+    <table class="tbl" style="width:100%;font-size:11px"><thead><tr><th>Petsa/Oras (benta)</th><th>OR #</th><th>Cashier</th><th class="num">Halaga (system)</th><th class="num">Halaga sa screenshot</th><th>Petsa/Oras sa screenshot</th><th>Resulta</th><th>Larawan</th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#ccc;padding:18px">${__pa.items.length?(onlyIssues?'Walang nakitang problema sa mga nabasa na.':'Wala pang nabasa.'):'Wala pang datos. I-click ang Simulan.'}</td></tr>`}</tbody></table></div>`;
+}
+async function paShowPhoto(id){
+  showToast('Kinukuha ang larawan…');
+  const{data}=await sb.from('transactions').select('cashless_proof_photo,or_num,total,ts,cashier_name').eq('id',id).maybeSingle();
+  if(!data||!data.cashless_proof_photo){showToast('Walang larawan.');return;}
+  const old=document.getElementById('paPhotoOv');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='paPhotoOv';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;cursor:pointer';
+  ov.onclick=()=>ov.remove();
+  const when=new Date(data.ts).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  ov.innerHTML=`<div style="color:#fff;font-size:13px;font-weight:800;margin-bottom:8px;text-align:center">${escHtml(data.or_num)} · ${fmt(data.total)} · ${escHtml(when)} · ${escHtml(data.cashier_name||'')}<br><span style="font-weight:600;opacity:.8;font-size:11px">I-click kahit saan para isara</span></div><img src="${data.cashless_proof_photo}" style="max-width:95vw;max-height:84vh;border-radius:8px;background:#fff"/>`;
+  document.body.appendChild(ov);
+}
+function paDownloadCSV(){
+  const res=paResults();const dup=paDup();
+  const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const lines=[['Petsa','Oras','OR #','Cashier','Halaga (system)','Halaga sa screenshot','Petsa/Oras sa screenshot','Pagitan (min)','Resulta','Ref No.','Parehong Ref No. sa'].map(q).join(',')];
+  __pa.items.forEach(t=>{const r=res[t.id]||{};const d=new Date(t.ts);
+    lines.push([manilaDateKey(t.ts),d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}),t.or_num,t.cashier_name||'',t.total,r.readAmount!=null?r.readAmount:'',r.readDt||'',r.minDiff!=null?r.minDiff:'',(r.flags&&r.flags.length?r.flags.map(f=>(PA_BADGE[f]||PA_BADGE.pending)[0]).join(' + '):(r.status?'✅ Tugma':'Hindi pa nababasa')),r.ref||'',dup[t.id]||''].map(q).join(','));});
+  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`proof_audit_${__pa.method}_${getTodayKey()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+function renderProofAudit(){
+  if(!isAdminRole(currentRole)){document.getElementById('adminBody').innerHTML='<div style="padding:40px;text-align:center;color:#c0392b;font-weight:700">⛔ Admin lang.</div>';return;}
+  const today=getTodayKey();
+  const d7=new Date(Date.now()-6*86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
+  document.getElementById('adminBody').innerHTML=`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;flex:1"><div class="red-bar"></div>Proof Audit — basahin ang mga screenshot at ikumpara sa benta</div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Binabasa nito ang halaga, petsa at oras sa bawat screenshot gamit ang OCR, at ikinukumpara sa benta. <b>Tumatakbo ito sa device mo — hindi lumalabas ang mga larawan.</b> Pagsala lang ito: kung malabo ang larawan, puwedeng magkamali ang pagbasa, kaya may <b>🖼️ Tingnan</b> sa bawat hilera. Una mong gamitin, mga 15 MB ang ida-download at mga 5 segundo ang bawat larawan, kaya magsimula sa isang linggo. Puwede mong ihinto at ituloy.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div><div class="input-label">Mula</div><input type="date" class="inp" id="paFrom" value="${d7}" max="${today}"/></div>
+      <div><div class="input-label">Hanggang</div><input type="date" class="inp" id="paTo" value="${today}" max="${today}"/></div>
+      <div><div class="input-label">Uri ng bayad</div><select class="inp" id="paMethod"><option value="gcash">GCash</option><option value="maya">Maya</option><option value="gotyme">GoTyme</option><option value="card">Card</option></select></div>
+      <button class="btn-green" id="paRunBtn" onclick="paRun()" style="padding:9px 18px">▶ Simulan ang pagbasa</button>
+      <button id="paStopBtn" onclick="paStop()" disabled style="padding:9px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;opacity:.5">⏸ Ihinto</button>
+      <button onclick="paDownloadCSV()" style="padding:9px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📥 Download CSV</button>
+      <button onclick="paClear()" style="padding:9px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:#c0392b">🗑 Burahin ang resulta</button>
+    </div>
+    <div style="margin-top:12px"><div style="height:10px;background:#eee;border-radius:6px;overflow:hidden"><div id="paBar" style="height:100%;width:0;background:#16a34a;transition:width .3s"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span id="paStatus"></span><span id="paProg"></span></div></div>
+  </div>
+  <div id="paResults"></div>`;
+  paRenderResults();
+}
+
 // ══════ ADMIN TABS ══════
 function setActiveTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));}
 document.getElementById('adminTabs').addEventListener('click',e=>{
@@ -2672,6 +2977,7 @@ function renderTabContent(tab){
   else if(tab==='monthly')renderMonthly();
   else if(tab==='itemsreport')renderItemsReport();
   else if(tab==='shortages')renderShortagesReport();
+  else if(tab==='proofaudit')renderProofAudit();
   else if(tab==='xread')renderXReading();
   else if(tab==='zread')renderZReading();
   else if(tab==='dtr')renderDTR();
