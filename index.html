@@ -1139,10 +1139,13 @@ button{cursor:pointer;font-family:inherit}
 </div>
 <div class="modal-overlay" id="expModal">
   <div class="modal">
-    <div class="modal-title">Add Expense</div>
+    <div class="modal-title" id="expModalTitle">Add Expense</div>
+    <div class="input-group"><div class="input-label">Petsa</div><input class="inp" id="expModalDate" type="date"/></div>
     <div class="input-group"><div class="input-label">Category</div>
       <select class="inp" id="expModalCat">
+        <option value="COS/Food Ingredients">COS/Food Ingredients</option>
         <option value="Cost of Sales">Cost of Sales</option>
+        <option value="Office Supplies/Xerox">Office Supplies/Xerox</option>
         <option value="Shipping Fee">Shipping Fee</option>
         <option value="Office Supplies">Office Supplies</option>
         <option value="Utilities">Utilities</option>
@@ -1164,7 +1167,6 @@ button{cursor:pointer;font-family:inherit}
         style="display:none;width:100%;max-height:130px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid var(--gold)"/>
       <div id="expReceiptStatusAdmin" style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">No receipt photo yet</div>
     </div>
-    <input type="hidden" id="expModalDate"/>
     <div class="modal-btns">
       <button class="mbtn secondary" onclick="closeExpModal()">Cancel</button>
       <button class="mbtn primary" onclick="saveExpense()">Save</button>
@@ -2301,7 +2303,7 @@ async function saveCashierExpense(){
   // SM Rental must NEVER be logged as an Expense — it has its own dedicated field in Cash
   // Declaration. Checks description text since this form has no 'Rent' category option, but
   // staff could still type "rental"/"rent" in the description under any category.
-  if(desc.toLowerCase().includes('rent')){
+  if(isRentExpense('',desc)){
     showToast('⚠️ Hindi dito nilalagay ang SM Rental! Gamitin ang SM Rental field sa Cash Declaration.');
     return;
   }
@@ -2313,6 +2315,7 @@ async function saveCashierExpense(){
     amount: total,
     vat_amount: vat,
     net_amount: amt,
+    entered_by: (currentLoginEmp&&currentLoginEmp.name)||'Cashier',
     receipt_photo: (expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,
     branch: 'SM Bicutan'
   };
@@ -2866,6 +2869,7 @@ async function renderExpenses(dateKey){
   const key=dateKey||getTodayKey();
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const exps=await sbGetExpenses(key);
+  window.__adminExps=exps; // used by the edit button
   const total=exps.reduce((s,e)=>s+(e.amount||0),0);
   const byCat={};exps.forEach(e=>{byCat[e.category]=(byCat[e.category]||0)+(e.amount||0);});
 
@@ -2885,66 +2889,154 @@ async function renderExpenses(dateKey){
   <div class="card">
     <div class="card-title"><div class="red-bar"></div>Expense Log</div>
     ${exps.length?`<table class="tbl">
-      <thead><tr><th>Time</th><th>Category</th><th>Description</th><th style="text-align:center">Receipt</th><th class="num">Amount</th><th></th></tr></thead>
+      <thead><tr><th>Time</th><th>Category</th><th>Description</th><th>By</th><th style="text-align:center">Receipt</th><th class="num">Amount</th><th></th></tr></thead>
       <tbody>${exps.map(e=>`<tr>
         <td style="font-size:11px;color:var(--muted)">${timeStr(e.created_at)}</td>
         <td><span class="exp-cat">${e.category}</span></td>
         <td>${e.description||'—'}</td>
+        <td style="font-size:10px;color:var(--muted);line-height:1.4">${expByLabel(e)}</td>
         <td style="text-align:center">${e.receipt_photo?`<img src="${e.receipt_photo}" onclick="zoomImage(this.src)" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" title="Click to view full size"/>`:'<span style="color:#ccc;font-size:10px">No photo</span>'}</td>
         <td class="num re">${fmt(e.amount)}</td>
-        <td><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
+        <td style="white-space:nowrap"><span title="I-edit" onclick="openExpModal('${key}','${e.id}')" style="cursor:pointer;margin-right:10px;font-size:14px">✏️</span><span class="exp-del" onclick="deleteExpense('${e.id}','${key}')">×</span></td>
       </tr>`).join('')}</tbody>
     </table>`:'<div style="text-align:center;padding:20px;color:#ccc;font-size:12px">No expenses logged today</div>'}
   </div>`;
 }
 
-function openExpModal(dateKey){
-  document.getElementById('expModalDate').value=dateKey||getTodayKey();
-  document.getElementById('expModalAmt').value='';
-  document.getElementById('expModalDesc').value='';
+// Admin: add an expense that was forgotten (any date, even after the cashier closed), or EDIT one that is already in the log.
+let editingExpenseId=null;
+function openExpModal(dateKey,expId){
+  editingExpenseId=expId||null;
+  const exp=expId?(window.__adminExps||[]).find(e=>String(e.id)===String(expId)):null;
+  if(expId&&!exp){showToast('Hindi mahanap ang expense. I-refresh ang listahan.');editingExpenseId=null;return;}
+  const cat=document.getElementById('expModalCat');
+  document.getElementById('expModalTitle').textContent=exp?'Edit Expense':'Add Expense';
+  document.getElementById('expModalDate').value=exp?exp.date_key:(dateKey||getTodayKey());
+  if(exp&&![...cat.options].some(o=>o.value===exp.category)){const o=document.createElement('option');o.value=exp.category;o.textContent=exp.category;cat.appendChild(o);}
+  if(exp)cat.value=exp.category;
+  document.getElementById('expModalAmt').value=exp?exp.amount:'';
+  document.getElementById('expModalDesc').value=exp?(exp.description||''):'';
   expenseReceiptPhotoData=null;
   resetExpenseReceiptUI('admin');
+  if(exp&&exp.receipt_photo){
+    const pv=document.getElementById('expReceiptPreviewAdmin'),st=document.getElementById('expReceiptStatusAdmin');
+    if(pv){pv.src=exp.receipt_photo;pv.style.display='block';}
+    if(st){st.textContent='May receipt na — i-capture ulit lang kung papalitan';st.style.color='var(--green)';}
+  }
   document.getElementById('expModal').classList.add('open');
 }
-function closeExpModal(){document.getElementById('expModal').classList.remove('open');}
+function closeExpModal(){editingExpenseId=null;document.getElementById('expModal').classList.remove('open');}
+
+// SM Rental has its own field in Cash Declaration — logging it as an expense double-subtracts it (found Sept 17).
+// Whole-word match, so words like "current", "different" or "parent" are NOT blocked.
+function isRentExpense(cat,desc){return /^rent$/i.test(cat||'')||/sm\s*rental/i.test(cat||'')||/\brent(al|als)?\b/i.test(desc||'');}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// "By" column of the Expense Log: who declared it, and whether the Admin changed it afterwards.
+function expByLabel(e){
+  let h=escHtml(e.entered_by||'—');
+  if(e.edited_by){
+    const when=e.edited_at?new Date(e.edited_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+    const was=(e.original_amount!=null&&+e.original_amount!==+e.amount)?` · dati ₱${(+e.original_amount).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}`:'';
+    h+=`<br><span style="color:#b45309;font-weight:700">✏️ na-edit ni ${escHtml(e.edited_by)}</span><br><span style="color:#b45309">${escHtml(when)}${was}</span>`;
+  }
+  return h;
+}
+// Every add / edit / delete done from the Admin is written to expense_audit (insert-only with the public key). Never blocks the action.
+function stripReceipt(o){if(!o)return null;const c={...o};delete c.receipt_photo;return c;}
+async function logExpenseAudit(action,expenseId,dateKey,before,after){
+  try{
+    const isUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(expenseId||''));
+    await sb.from('expense_audit').insert([{action,expense_id:isUuid?expenseId:null,date_key:dateKey,by_name:(currentLoginEmp&&currentLoginEmp.name)||'Admin',device:getDeviceId(),before:stripReceipt(before),after:stripReceipt(after)}]);
+  }catch(e){}
+}
+// After an expense is added / edited / deleted, re-compute that day's SAVED expected cash and variance, so the Cashier Shortages
+// tab agrees with the Monthly Report (which already recalculates live). expected = non-cashless sales − expenses − rent paid from the drawer.
+async function recalcCashDeclaration(dateKey){
+  try{
+    const{data:cd}=await sb.from('cash_declarations').select('id,declared_amount').eq('date_key',dateKey).eq('branch','SM Bicutan').limit(1).maybeSingle();
+    if(!cd)return false;
+    const txns=await sbGetTransactions(dateKey);
+    const cashSales=txns.filter(t=>!CASHLESS_METHODS.includes(t.payment_method)).reduce((s,t)=>s+(t.total||0),0);
+    const{data:exps}=await sb.from('expenses').select('amount').eq('date_key',dateKey).eq('branch','SM Bicutan');
+    const expTotal=(exps||[]).reduce((s,e)=>s+(+e.amount||0),0);
+    const{data:sms}=await sb.from('sm_rental').select('amount,paid_from_drawer').eq('date_key',dateKey).eq('branch','SM Bicutan');
+    const rent=(sms||[]).filter(r=>r.paid_from_drawer!==false).reduce((s,r)=>s+(+r.amount||0),0);
+    const expected=cashSales-expTotal-rent;
+    await sb.from('cash_declarations').update({expected_amount:expected,variance:roundCents(cd.declared_amount-expected)}).eq('id',cd.id);
+    return true;
+  }catch(e){return false;}
+}
 
 async function saveExpense(){
+  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-add/edit ng expenses dito.');return;}
   const cat=document.getElementById('expModalCat').value;
   const desc=document.getElementById('expModalDesc').value.trim();
   const amt=+document.getElementById('expModalAmt').value||0;
   const dateKey=document.getElementById('expModalDate').value;
   if(!amt){showToast('Enter an amount.');return;}
-  // SM Rental must NEVER be logged as an Expense — it has its own dedicated field in Cash
-  // Declaration. Logging it both ways double-subtracts the same payment from Expected Cash,
-  // making the cashier look falsely SHORT by that exact amount (found & confirmed Sept 17).
-  // Checks both category AND description text, since staff could type "rental" in the
-  // description under any category, not just select a 'Rent' category.
-  const descLower=desc.toLowerCase();
-  if(cat==='Rent'||cat.toLowerCase().includes('sm rental')||descLower.includes('rent')){
-    showToast('⚠️ Hindi dito nilalagay ang SM Rental! Gamitin ang SM Rental field sa Cash Declaration.');
+  if(!dateKey){showToast('Piliin ang petsa.');return;}
+  if(isRentExpense(cat,desc)){
+    showToast('⚠️ Hindi dito nilalagay ang SM Rental! Gamitin ang SM Rental field (Monthly Report / Cash Declaration).');
     return;
   }
-  const rec={date_key:dateKey,category:cat,description:desc,amount:amt,receipt_photo:(expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,branch:'SM Bicutan'};
+  const who=(currentLoginEmp&&currentLoginEmp.name)||'Admin';
+  if(editingExpenseId){await saveExpenseEdit(editingExpenseId,{cat,desc,amt,dateKey,who});return;}
+  const rec={date_key:dateKey,category:cat,description:desc,amount:amt,entered_by:who+' (admin)',receipt_photo:(expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')?expenseReceiptPhotoData:null,branch:'SM Bicutan'};
   setLoading(true);
+  let newId=null,saved=false;
   try{
-    const{error}=await sb.from('expenses').insert([rec]);
+    const{data,error}=await sb.from('expenses').insert([rec]).select('id').single();
     if(error){addToQueue('expense',rec);showToast('⚠️ Naka-queue lang — i-Sync Now kapag may internet.');}
-    else showToast('Expense saved!');
+    else{saved=true;newId=data&&data.id;showToast('Expense saved!');}
   }catch(e){
     addToQueue('expense',rec);showToast('⚠️ Naka-queue lang — i-Sync Now kapag may internet.');
   }
+  if(saved){await logExpenseAudit('add',newId,dateKey,null,rec);await recalcCashDeclaration(dateKey);}
   // update local cache
-  const cache=LS.get('exp_'+dateKey,[]);cache.push({...rec,id:Date.now(),created_at:new Date().toISOString()});LS.set('exp_'+dateKey,cache);
+  const cache=LS.get('exp_'+dateKey,[]);cache.push({...rec,id:newId||Date.now(),created_at:new Date().toISOString()});LS.set('exp_'+dateKey,cache);
   setLoading(false);
   expenseReceiptPhotoData=null;
   closeExpModal();
   renderExpenses(dateKey);
 }
 
+async function saveExpenseEdit(id,{cat,desc,amt,dateKey,who}){
+  if(!navigator.onLine){showToast('⚠️ Kailangan ng internet para mag-edit ng expense.');return;}
+  const found=(window.__adminExps||[]).find(e=>String(e.id)===String(id));
+  if(!found){showToast('Hindi mahanap ang expense. I-refresh ang listahan.');return;}
+  const before={...found}; // snapshot of how it was, for the audit trail
+  const oldDate=before.date_key;
+  const upd={category:cat,description:desc,amount:amt,date_key:dateKey,edited_by:who,edited_at:new Date().toISOString(),
+    original_amount:before.original_amount!=null?before.original_amount:before.amount,
+    original_description:before.original_description!=null?before.original_description:(before.description||'')};
+  // cashier-declared expenses split the amount into VAT + net; keep that split proportional to the new amount
+  if(+before.vat_amount>0&&+before.amount>0){upd.vat_amount=roundCents(amt*before.vat_amount/before.amount);upd.net_amount=roundCents(amt-upd.vat_amount);}
+  if(expenseReceiptPhotoData&&expenseReceiptPhotoData!=='NO_CAMERA')upd.receipt_photo=expenseReceiptPhotoData;
+  setLoading(true);
+  let err=null;
+  try{const r=await sb.from('expenses').update(upd).eq('id',id);err=r.error;}catch(e){err=e;}
+  if(err){setLoading(false);showToast('⚠️ Hindi na-save ang edit. Subukan ulit.');return;}
+  await logExpenseAudit('edit',id,dateKey,before,{...before,...upd});
+  await recalcCashDeclaration(dateKey);
+  if(oldDate&&oldDate!==dateKey)await recalcCashDeclaration(oldDate);
+  setLoading(false);
+  expenseReceiptPhotoData=null;
+  closeExpModal();
+  showToast('Na-update ang expense!');
+  renderExpenses(dateKey);
+}
+
 async function deleteExpense(id,dateKey){
-  if(!confirm('Delete this expense?'))return;
-  try{ await sb.from('expenses').delete().eq('id',id); }catch(e){ showToast('⚠️ Hindi na-delete online, subukan ulit kapag may internet.'); }
+  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-delete ng expense.');return;}
+  const foundExp=(window.__adminExps||[]).find(e=>String(e.id)===String(id));
+  const before=foundExp?{...foundExp}:null;
+  if(!confirm(before?`Burahin ang expense na "${before.description||before.category}" (${fmt(before.amount)})?`:'Delete this expense?'))return;
+  let err=null;
+  try{const r=await sb.from('expenses').delete().eq('id',id);err=r.error;}catch(e){err=e;}
+  if(err){showToast('⚠️ Hindi na-delete online, subukan ulit kapag may internet.');return;}
+  await logExpenseAudit('delete',id,dateKey,before,null);
   const cache=LS.get('exp_'+dateKey,[]).filter(e=>String(e.id)!==String(id));LS.set('exp_'+dateKey,cache);
+  await recalcCashDeclaration(dateKey);
   renderExpenses(dateKey);
 }
 
