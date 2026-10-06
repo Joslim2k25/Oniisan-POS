@@ -2110,7 +2110,7 @@ async function computeCashVariance(){
   const cashExpenses = exps.reduce((s,e)=>s+(e.amount||0),0);
   expectedCashSales = cashSales - cashExpenses;
 
-  const variance = declared - expectedCashSales;
+  const variance = roundCents(declared - expectedCashSales);
   box.style.display='block';
   document.getElementById('expectedCashAmt').textContent = fmt(expectedCashSales);
   document.getElementById('declaredCashAmt').textContent = fmt(declared);
@@ -2155,7 +2155,7 @@ async function saveCashDeclaration(){
   const cashExpenses = exps.reduce((s,e)=>s+(e.amount||0),0);
   // smRentalToday already known from the input field above — no need to re-fetch.
   expectedCashSales = cashSales - cashExpenses - smRentalToday;
-  const variance = declared - expectedCashSales;
+  const variance = roundCents(declared - expectedCashSales);
 
   const rec={
     date_key: getTodayKey(),
@@ -2728,6 +2728,9 @@ const TXN_LIGHT_COLS='id,created_at,or_num,ts,table_name,items,subtotal,discount
 //   PWD / Senior: 62.5% discount (20% off the VAT-exclusive price) + 37.5% VAT exemption  (reduction = price × 0.32/1.12)
 //   Staff meal:   100% discount, no VAT exemption
 // All SM Rental logged for the day counts here, whether it was paid from the cash drawer or outside it.
+// Sale totals carry sub-centavo decimals (20% PWD/Senior math), so a day can be short/over by 0.004. Round the variance to
+// whole centavos before deciding EXACT / OVER / SHORT, otherwise a perfectly counted day shows "SHORT ₱0.00".
+const roundCents=n=>Math.round((n+Number.EPSILON)*100)/100;
 const CASHLESS_METHODS=['gcash','maya','gotyme','card','grabfood','foodpanda'];
 const cashlessTotalOf=txns=>txns.filter(t=>CASHLESS_METHODS.includes(t.payment_method)).reduce((s,t)=>s+(t.total||0),0);
 function discountSplit(t){
@@ -4048,7 +4051,7 @@ async function renderMonthly(monthKey){
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
     const expectedCash=g-cashlessTotal-dayExps-smRentalDrawer;
-    const variance=cashDecl?(cashDecl.declared_amount-expectedCash):null;
+    const variance=cashDecl?roundCents(cashDecl.declared_amount-expectedCash):null;
     mGross+=grossPre;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
     return{dk,gross:grossPre,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
   });
@@ -4349,7 +4352,7 @@ async function saveCashOnHand(dk){
   const vat=discount/1.12*0.12;
   const expTotal=exps.reduce((s,e)=>s+(e.amount||0),0);
   const expected=gross-cashless-expTotal-smRentalAmt;
-  const variance=declared-expected;
+  const variance=roundCents(declared-expected);
   // preserve existing bank_deposited flag if a declaration already exists
   const{data:existing}=await sb.from('cash_declarations').select('bank_deposited').eq('date_key',dk).eq('branch','SM Bicutan').limit(1).maybeSingle().then(r=>r).catch(()=>({data:null}));
   const rec={date_key:dk,declared_amount:declared,expected_amount:expected,variance,declared_by:currentLoginEmp?.name||'Admin',branch:'SM Bicutan',bank_deposited:existing?existing.bank_deposited:false};
@@ -4942,8 +4945,8 @@ async function downloadMonthlyExcel(mk){
     const net=computeNetSales({gross:grossPre,discount,vat:vatEx,cashless:gcash+maya+gotyme+foodpanda+grabfood+card,expenses:dayExps,smRental:daySm}); // gross (t.total) is already net of discount — don't subtract it again
     const cashDecl=cashDecls.find(c=>c.date_key===dk);
     const declared=cashDecl?cashDecl.declared_amount:'';
-    const variance=cashDecl?cashDecl.variance:'';
-    const status=cashDecl?(cashDecl.variance===0?'EXACT':cashDecl.variance>0?'OVER':'SHORT'):'';
+    const variance=cashDecl?roundCents(cashDecl.variance):'';
+    const status=cashDecl?(variance===0?'EXACT':variance>0?'OVER':'SHORT'):'';
     csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status].join(','));
   });
   const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
