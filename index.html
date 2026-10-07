@@ -599,12 +599,12 @@ button{cursor:pointer;font-family:inherit}
       <div class="tab" data-tab="pos">POS</div>
       <div class="tab" data-tab="kitchen">Kitchen</div>
       <div class="tab" data-tab="sales">Sales Log</div>
+      <div class="tab" data-tab="proofaudit">🔎 Proof Audit</div>
       <div class="tab" data-tab="daily">Daily Report</div>
       <div class="tab" data-tab="expenses">Expenses</div>
       <div class="tab" data-tab="monthly">Monthly</div>
       <div class="tab" data-tab="itemsreport">Items Report</div>
       <div class="tab" data-tab="shortages">Cashier Shortages</div>
-      <div class="tab" data-tab="proofaudit">🔎 Proof Audit</div>
       <div class="tab" data-tab="xread">X Reading</div>
       <div class="tab" data-tab="zread">Z Reading</div>
       <div class="tab" data-tab="dtr">DTR</div>
@@ -2731,6 +2731,13 @@ function paManilaHM(ts){
   const [h,mi]=s.split(':').map(Number); return [h%24,mi];
 }
 const pad2=n=>String(n).padStart(2,'0');
+function paSplitDT(s){ // "2026-10-03 19:15" -> {date:'2026-10-03',time:'7:15 PM'}
+  if(!s)return{date:'',time:''};
+  const [d,t]=String(s).split(' ');let time='';
+  if(t){const [h,m]=t.split(':').map(Number);time=`${((h+11)%12)+1}:${pad2(m)} ${h>=12?'PM':'AM'}`;}
+  return{date:d,time};
+}
+const paSaleTime=ts=>new Date(ts).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
 // sale = {ts,total}; read = {amounts,dt}. Returns every problem found; status = the most important one.
 function paCompare(sale,read){
   const money=(read.amounts||[]).filter(a=>!a.skip);
@@ -2901,9 +2908,10 @@ function paRenderResults(){
   const rows=__pa.items.filter(t=>{const r=res[t.id];if(!onlyIssues)return true;if(!r)return false;return r.flags&&r.flags.length;}).map(t=>{
     const r=res[t.id]||{};const key=(r.flags&&r.flags[0])||(r.status&&PA_BADGE[r.status]?r.status:'pending');
     const badges=(r.flags&&r.flags.length?r.flags:[res[t.id]?'ok':'pending']).map(f=>`<span style="display:inline-block;margin:1px 2px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:800;color:#fff;background:${(PA_BADGE[f]||PA_BADGE.pending)[1]}">${(PA_BADGE[f]||PA_BADGE.pending)[0]}</span>`).join('');
-    const when=new Date(t.ts).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const sdt=paSplitDT(r.readDt);
+    const dateBad=r.flags&&r.flags.includes('date'),timeBad=r.flags&&r.flags.includes('time'),amtBad=r.flags&&r.flags.includes('amount');
     const dupTxt=dup[t.id]?`<div style="color:#c0392b;font-size:10px;font-weight:800">⚠️ Parehong Ref No. sa ${escHtml(dup[t.id])}</div>`:'';
-    return `<tr><td>${when}</td><td>${escHtml(t.or_num)}</td><td>${escHtml(t.cashier_name||'—')}</td><td class="num">${fmt(t.total)}</td><td class="num" style="font-weight:800">${r.readAmount!=null?fmt(r.readAmount):'—'}</td><td>${r.readDt?escHtml(r.readDt):'<span style="color:#9ca3af">walang nabasa</span>'}${r.minDiff!=null?`<div style="font-size:10px;color:var(--muted)">${r.minDiff} min ang pagitan</div>`:''}</td><td>${badges}${dupTxt}</td><td><button onclick="paShowPhoto('${t.id}')" style="padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer">🖼️ Tingnan</button></td></tr>`;}).join('');
+    return `<tr><td>${manilaDateKey(t.ts)}</td><td>${paSaleTime(t.ts)}</td><td>${escHtml(t.or_num)}</td><td>${escHtml(t.cashier_name||'—')}</td><td class="num">${fmt(t.total)}</td><td class="num" style="font-weight:800;${amtBad?'color:#c0392b':''}">${r.readAmount!=null?fmt(r.readAmount):'—'}</td><td style="${dateBad?'color:#c0392b;font-weight:800':''}">${sdt.date?escHtml(sdt.date):'<span style="color:#9ca3af">walang nabasa</span>'}</td><td style="${timeBad?'color:#d97706;font-weight:800':''}">${sdt.time?escHtml(sdt.time):'<span style="color:#9ca3af">—</span>'}</td><td class="num">${r.minDiff!=null?r.minDiff+' min':'—'}</td><td>${badges}${dupTxt}</td><td><button onclick="paShowPhoto('${t.id}')" style="padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer">🖼️ Tingnan</button></td></tr>`;}).join('');
   box.innerHTML=`
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     ${card('✅ Tugma',cnt.ok,'#16a34a')}${card('⚠️ Iba ang halaga',cnt.amount,'#c0392b')}${card('⚠️ Iba ang petsa',cnt.date,'#c0392b')}${card('⚠️ Malayo ang oras',cnt.time,'#d97706')}${card('❓ Hindi nabasa',cnt.unreadable,'#6b7280')}${card('⏳ Hindi pa nababasa',cnt.pending,'#9ca3af')}${card('Walang larawan',noProofN+(noProofN?' · '+fmt(noProofAmt):''),'#6b7280')}
@@ -2912,7 +2920,7 @@ function paRenderResults(){
     <table class="tbl" style="width:100%;font-size:11px"><thead><tr><th>Petsa</th><th class="num">Benta</th><th class="num">Halaga (system)</th><th class="num">May larawan</th><th class="num">Nabasa</th><th class="num">System (nabasa)</th><th class="num">Ayon sa screenshot</th><th class="num">Pagkakaiba</th><th class="num">May problema</th><th class="num">Walang larawan</th></tr></thead><tbody>${dailyRows||'<tr><td colspan="10" style="text-align:center;color:#ccc;padding:14px">Wala pang datos.</td></tr>'}</tbody></table></div>
   <div class="card" style="overflow-x:auto"><div class="card-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:6px"><span class="red-bar"></span>Mga benta at screenshot</span>
     <label style="font-size:11px;font-weight:700;cursor:pointer"><input type="checkbox" id="paOnlyIssues" ${onlyIssues?'checked':''} onchange="paRenderResults()"/> Ipakita lang ang may problema</label></div>
-    <table class="tbl" style="width:100%;font-size:11px"><thead><tr><th>Petsa/Oras (benta)</th><th>OR #</th><th>Cashier</th><th class="num">Halaga (system)</th><th class="num">Halaga sa screenshot</th><th>Petsa/Oras sa screenshot</th><th>Resulta</th><th>Larawan</th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#ccc;padding:18px">${__pa.items.length?(onlyIssues?'Walang nakitang problema sa mga nabasa na.':'Wala pang nabasa.'):'Wala pang datos. I-click ang Simulan.'}</td></tr>`}</tbody></table></div>`;
+    <table class="tbl" style="width:100%;font-size:11px"><thead><tr><th>Petsa (benta)</th><th>Oras (benta)</th><th>OR #</th><th>Cashier</th><th class="num">Halaga (system)</th><th class="num">Halaga sa screenshot</th><th>Petsa sa screenshot</th><th>Oras sa screenshot</th><th class="num">Pagitan</th><th>Resulta</th><th>Larawan</th></tr></thead><tbody>${rows||`<tr><td colspan="11" style="text-align:center;color:#ccc;padding:18px">${__pa.items.length?(onlyIssues?'Walang nakitang problema sa mga nabasa na.':'Wala pang nabasa.'):'Wala pang datos. I-click ang Simulan.'}</td></tr>`}</tbody></table></div>`;
 }
 async function paShowPhoto(id){
   showToast('Kinukuha ang larawan…');
@@ -2929,9 +2937,9 @@ async function paShowPhoto(id){
 function paDownloadCSV(){
   const res=paResults();const dup=paDup();
   const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const lines=[['Petsa','Oras','OR #','Cashier','Halaga (system)','Halaga sa screenshot','Petsa/Oras sa screenshot','Pagitan (min)','Resulta','Ref No.','Parehong Ref No. sa'].map(q).join(',')];
+  const lines=[['Petsa','Oras','OR #','Cashier','Halaga (system)','Halaga sa screenshot','Petsa sa screenshot','Oras sa screenshot','Pagitan (min)','Resulta','Ref No.','Parehong Ref No. sa'].map(q).join(',')];
   __pa.items.forEach(t=>{const r=res[t.id]||{};const d=new Date(t.ts);
-    lines.push([manilaDateKey(t.ts),d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}),t.or_num,t.cashier_name||'',t.total,r.readAmount!=null?r.readAmount:'',r.readDt||'',r.minDiff!=null?r.minDiff:'',(r.flags&&r.flags.length?r.flags.map(f=>(PA_BADGE[f]||PA_BADGE.pending)[0]).join(' + '):(r.status?'✅ Tugma':'Hindi pa nababasa')),r.ref||'',dup[t.id]||''].map(q).join(','));});
+    lines.push([manilaDateKey(t.ts),d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}),t.or_num,t.cashier_name||'',t.total,r.readAmount!=null?r.readAmount:'',paSplitDT(r.readDt).date,paSplitDT(r.readDt).time,r.minDiff!=null?r.minDiff:'',(r.flags&&r.flags.length?r.flags.map(f=>(PA_BADGE[f]||PA_BADGE.pending)[0]).join(' + '):(r.status?'✅ Tugma':'Hindi pa nababasa')),r.ref||'',dup[t.id]||''].map(q).join(','));});
   const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`proof_audit_${__pa.method}_${getTodayKey()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }
