@@ -1873,7 +1873,50 @@ function openPosOrAdmin(){
     showToast('🔒 Day is closed. Cannot open POS.');
     return;
   }
-  goScreen('posScreen');renderMenu();
+  askPosPin().then(ok=>{ if(ok){goScreen('posScreen');renderMenu();} });
+}
+
+// Separate POS PIN (different from the personal PIN used for login/DTR). Asked once each time the cashier opens the POS.
+function askPosPin(){
+  return new Promise(resolve=>{
+    const emp=currentLoginEmp; if(!emp){resolve(false);return;}
+    const old=document.getElementById('posPinModal'); if(old) old.remove();
+    const m=document.createElement('div'); m.id='posPinModal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px;width:100%;max-width:320px;text-align:center">
+      <div style="font-size:16px;font-weight:800;margin-bottom:4px">POS PIN</div>
+      <div style="font-size:12px;color:#777;margin-bottom:12px">${emp.name} — ilagay ang POS PIN (hindi ang personal PIN)</div>
+      <input id="posPinInp" type="password" inputmode="numeric" maxlength="4" autocomplete="off" style="width:100%;font-size:26px;letter-spacing:10px;text-align:center;padding:10px;border:2px solid #ddd;border-radius:10px">
+      <div id="posPinErr" style="color:#c0392b;font-size:12px;min-height:18px;margin:8px 0"></div>
+      <div style="display:flex;gap:8px"><button id="posPinCancel" style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-weight:700">Cancel</button>
+      <button id="posPinOk" style="flex:1;padding:11px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-weight:800">OK</button></div></div>`;
+    document.body.appendChild(m);
+    const inp=document.getElementById('posPinInp'), err=document.getElementById('posPinErr'); inp.focus();
+    const done=v=>{m.remove();resolve(v);};
+    async function submit(){
+      const pin=inp.value.trim(); if(pin.length<4){err.textContent='4-digit PIN';return;}
+      let res='offline';
+      try{
+        if(navigator.onLine){
+          const{data,error}=await sb.rpc('verify_pos_pin',{p_emp_id:emp.id,p_pin:pin});
+          if(!error&&data){
+            if(data.ok){ const all=LS.get('pos_pin_verifiers',{}); if(!data.no_pos_pin){all[emp.id]=await pinVerifier('pos:'+emp.id,pin);LS.set('pos_pin_verifiers',all);} res='ok'; }
+            else res=data.error==='locked'?'locked':'wrong';
+          }
+        }
+      }catch(e){}
+      if(res==='offline'){
+        const mine=(LS.get('pos_pin_verifiers',{}))[emp.id];
+        res=(mine&&(await pinVerifier('pos:'+emp.id,pin))===mine)?'ok':'wrong';
+      }
+      if(res==='ok') return done(true);
+      inp.value='';
+      err.textContent=res==='locked'?'🔒 Masyadong maraming mali. Subukan ulit pagkatapos ng 10 minuto.':'Maling POS PIN.';
+    }
+    document.getElementById('posPinOk').onclick=submit;
+    document.getElementById('posPinCancel').onclick=()=>done(false);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+  });
 }
 
 function goBackFromPOS(){
