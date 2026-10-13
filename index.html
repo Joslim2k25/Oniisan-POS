@@ -2554,6 +2554,7 @@ async function renderRecentOrders(){
         <div style="font-size:13px;font-weight:800;color:var(--green)">${fmt(t.total||0)}</div>
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted)">${t.payment_method||'cash'}</div>
       </div>
+      ${t.id?`<button onclick="voidTransaction('${t.id}','${t.or_num}')" style="padding:3px 8px;background:var(--red-light);color:var(--red);border:1px solid #f5b7b1;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer">VOID</button>`:''}
     </div>`).join('');
 }
 
@@ -3967,7 +3968,7 @@ async function renderSalesLog(dateKey,silent){
 }
 
 async function voidTransaction(id, orNum){
-  if(!isAdminRole(currentRole)){showToast('⛔ Admin lang ang puwedeng mag-void.');return;}
+  if(!currentLoginEmp){showToast('Mag-login muna.');return;}
   if(!id||id===orNum){showToast('Hindi ma-void: walang transaction ID. I-refresh ang Sales Log at subukan ulit.');return;}
   // A SECOND code is required to void. It is checked by the database (void_transaction), not here, so it
   // cannot be bypassed from the browser. The voider's name, reason, machine and time are recorded.
@@ -3978,7 +3979,7 @@ async function voidTransaction(id, orNum){
   overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px;text-align:center;max-width:320px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
     <div style="font-size:34px;margin-bottom:4px">🔒</div>
     <div style="font-size:15px;font-weight:900;color:#1a1a1a;margin-bottom:2px">VOID ${orNum}?</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Kailangan ng Void Approval Code. Itatala ang pangalan mo, dahilan, at oras.</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Manager lang (Joann o Aimee) ang puwedeng mag-void. Ilagay ang PIN ng manager, o i-request sa manager.</div>
     <select id="voidReason" style="width:100%;padding:10px;font-size:13px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:8px;box-sizing:border-box">
       <option value="">— Piliin ang dahilan —</option>
       <option>Maling order / maling item</option>
@@ -3989,12 +3990,13 @@ async function voidTransaction(id, orNum){
       <option>Iba pa</option>
     </select>
     <input id="voidReasonNote" type="text" maxlength="120" placeholder="Dagdag na detalye (kung kailangan)" style="width:100%;padding:10px;font-size:13px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:8px;box-sizing:border-box"/>
-    <input type="password" inputmode="numeric" maxlength="8" id="voidApprovalPin" placeholder="Void Approval Code" style="width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:6px;box-sizing:border-box"/>
+    <input type="password" inputmode="numeric" maxlength="8" id="voidApprovalPin" placeholder="PIN ng Manager" style="width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:6px;box-sizing:border-box"/>
     <div id="voidApprovalError" style="color:var(--red);font-size:11px;font-weight:700;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;gap:8px">
       <button onclick="document.getElementById('voidApprovalOverlay').remove()" style="flex:1;padding:11px;background:#f1f5f9;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">Cancel</button>
       <button id="voidApprovalBtn" onclick="submitVoidApproval('${id}','${orNum}')" style="flex:1;padding:11px;background:#c0392b;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer">VOID</button>
     </div>
+    ${isAdminRole(currentRole)?'':`<button id="voidRequestBtn" onclick="submitVoidRequest('${id}','${orNum}')" style="width:100%;margin-top:8px;padding:10px;background:#fff7e6;color:#9a6700;border:1px solid #f0d49a;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer">🔔 I-request sa manager (walang PIN)</button>`}
   </div>`;
   document.body.appendChild(overlay);
   document.getElementById('voidReason').focus();
@@ -4008,7 +4010,7 @@ async function submitVoidApproval(id, orNum){
   const btn=document.getElementById('voidApprovalBtn');
   if(!sel){errBox.textContent='Piliin ang dahilan ng void.';return;}
   if(sel==='Iba pa'&&!note){errBox.textContent='Isulat ang dahilan sa "Dagdag na detalye".';return;}
-  if(!pin){errBox.textContent='Ilagay ang Void Approval Code.';return;}
+  if(!pin){errBox.textContent='Ilagay ang PIN ng manager.';return;}
   const reason=note?`${sel}: ${note}`:sel;
   errBox.textContent='Checking...';btn.disabled=true;
   try{
@@ -4020,12 +4022,13 @@ async function submitVoidApproval(id, orNum){
     if(error)throw error;
     if(data&&data.ok){
       document.getElementById('voidApprovalOverlay').remove();
-      showToast(`${orNum} voided!`);
-      renderSalesLog();
+      showToast(`${orNum} voided — approved ni ${data.approver||'manager'}`);
+      if(isAdminRole(currentRole)){try{renderSalesLog();}catch(e){}} else {try{renderRecentOrders();refreshCashierSales();}catch(e){}}
+      checkVoidRequests();
       return;
     }
     const msgs={
-      wrong_pin:'❌ Maling Void Approval Code.',
+      wrong_pin:'❌ Maling PIN ng manager.',
       locked:'🔒 Masyadong maraming maling code. Subukan ulit pagkatapos ng 10 minuto.',
       reason_required:'Ilagay ang dahilan ng void.',
       not_found_or_already_voided:'Na-void na ito, o hindi mahanap ang transaction.'
@@ -4037,6 +4040,55 @@ async function submitVoidApproval(id, orNum){
   }
   btn.disabled=false;
 }
+
+// Cashier asks the manager to void (no PIN). The manager sees a red alert and approves with their own PIN.
+async function submitVoidRequest(id, orNum){
+  const sel=document.getElementById('voidReason').value;
+  const note=(document.getElementById('voidReasonNote').value||'').trim();
+  const errBox=document.getElementById('voidApprovalError');
+  if(!sel){errBox.textContent='Piliin ang dahilan ng void.';return;}
+  if(sel==='Iba pa'&&!note){errBox.textContent='Isulat ang dahilan sa "Dagdag na detalye".';return;}
+  const reason=note?`${sel}: ${note}`:sel;
+  errBox.textContent='Sending...';
+  try{
+    const{data,error}=await sb.rpc('request_void',{p_id:id,p_by:(currentLoginEmp&&currentLoginEmp.name)||'',p_reason:reason});
+    if(error)throw error;
+    if(data&&data.ok){ document.getElementById('voidApprovalOverlay').remove(); showToast('🔔 Naipaalam na sa manager ang void request para sa '+orNum+'.'); return; }
+    errBox.textContent='Na-void na ito, o hindi mahanap ang transaction.';
+  }catch(e){ errBox.textContent='Walang internet — hindi maipadala. Tawagin ang manager.'; }
+}
+
+// Red alert for managers (admin accounts, and Aimee) when a cashier asks for a void.
+let __voidReqSeen=new Set(), __voidReqTimer=null;
+function isVoidManager(){
+  if(!currentLoginEmp) return false;
+  return isAdminRole(currentRole) || /aimee/i.test(currentLoginEmp.name||'');
+}
+function voidBeep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); [0,0.25,0.5].forEach(t=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.value=0.2;o.connect(g);g.connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+0.15);}); }catch(e){} }
+async function checkVoidRequests(){
+  let bar=document.getElementById('voidReqBar');
+  if(!isVoidManager()||!navigator.onLine){ if(bar) bar.remove(); return; }
+  try{
+    const{data,error}=await sb.rpc('pending_void_requests');
+    if(error) return;
+    const list=Array.isArray(data)?data:[];
+    if(!list.length){ if(bar) bar.remove(); return; }
+    let isNew=false; list.forEach(r=>{ if(!__voidReqSeen.has(r.id)){__voidReqSeen.add(r.id);isNew=true;} });
+    if(!bar){ bar=document.createElement('div'); bar.id='voidReqBar'; bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:#c0392b;color:#fff;padding:8px 12px;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,.3)'; document.body.appendChild(bar); }
+    const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    bar.innerHTML='<div style="font-weight:900;margin-bottom:4px">🔔 VOID REQUEST ('+list.length+')</div>'+list.map(r=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.25)">
+      <div style="flex:1"><b>${esc(r.or_num)}</b> · ${esc(r.requested_by)} — ${esc(r.reason)}</div>
+      <button onclick="voidTransaction('${esc(r.transaction_id)}','${esc(r.or_num)}')" style="padding:5px 10px;background:#fff;color:#c0392b;border:none;border-radius:6px;font-weight:900;font-size:11px;cursor:pointer">VOID</button>
+      <button onclick="dismissVoidRequest(${Number(r.id)})" style="padding:5px 10px;background:rgba(255,255,255,.2);color:#fff;border:1px solid #fff;border-radius:6px;font-weight:800;font-size:11px;cursor:pointer">Huwag</button></div>`).join('');
+    if(isNew) voidBeep();
+  }catch(e){}
+}
+async function dismissVoidRequest(rid){
+  const pin=prompt('PIN ng manager para i-dismiss ang request:'); if(!pin) return;
+  try{ const{data}=await sb.rpc('dismiss_void_request',{p_id:rid,p_pin:pin}); if(data&&data.ok){showToast('Na-dismiss.');} else {showToast('❌ Maling PIN.');} }catch(e){}
+  checkVoidRequests();
+}
+if(!__voidReqTimer) __voidReqTimer=setInterval(checkVoidRequests,20000);
 
 // ══════ DAILY REPORT ══════
 async function renderDailyReportForm(dateKey){
