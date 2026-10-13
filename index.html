@@ -7404,8 +7404,8 @@ function promptManagerApprovalForDiscount(pendingDiscType){
   overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px 22px;text-align:center;max-width:300px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
     <div style="font-size:36px;margin-bottom:6px">🔒</div>
     <div style="font-size:15px;font-weight:900;color:#1a1a1a;margin-bottom:4px">Manager/Supervisor Approval</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Kailangan ng PIN ng Manager/Owner (sariling PIN niya) bago mag-apply ng discount.</div>
-    <input type="password" inputmode="numeric" maxlength="4" id="mgrApprovalPin" placeholder="Manager PIN" autofocus
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Kailangan ng Approval PIN (6 digit) bago mag-apply ng discount.</div>
+    <input type="password" inputmode="numeric" maxlength="6" id="mgrApprovalPin" placeholder="Approval PIN" autofocus
       style="width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:8px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:6px;box-sizing:border-box"/>
     <div id="mgrApprovalError" style="color:var(--red);font-size:11px;font-weight:700;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;gap:8px">
@@ -7442,7 +7442,7 @@ async function submitManagerApproval(pendingDiscType){
     errBox.textContent='🔒 Masyadong maraming maling PIN. Subukan ulit pagkatapos ng 10 minuto.';
     document.getElementById('mgrApprovalPin').value='';
   } else {
-    errBox.textContent='❌ Maling PIN ng Manager. (Hindi pwedeng sariling PIN ng cashier.)';
+    errBox.textContent='❌ Maling Approval PIN.';
     document.getElementById('mgrApprovalPin').value='';
   }
 }
