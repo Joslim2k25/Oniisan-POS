@@ -1877,9 +1877,24 @@ function openPosOrAdmin(){
 }
 
 // Separate POS PIN (different from the personal PIN used for login/DTR). Asked once each time the cashier opens the POS.
+async function posPinRequired(empId){
+  const map=LS.get('pos_pin_required',{});
+  try{
+    if(navigator.onLine){
+      const{data,error}=await sb.rpc('has_pos_pin',{p_emp_id:empId});
+      if(!error&&typeof data==='boolean'){ map[empId]=data; LS.set('pos_pin_required',map); return data; }
+    }
+  }catch(e){}
+  // offline / unknown: use what we remembered; if never known, only ask when this device has a verifier for them
+  if(typeof map[empId]==='boolean') return map[empId];
+  return !!(LS.get('pos_pin_verifiers',{}))[empId];
+}
 function askPosPin(){
-  return new Promise(resolve=>{
+  return new Promise(async resolve=>{
     const emp=currentLoginEmp; if(!emp){resolve(false);return;}
+    // Employees WITHOUT a POS PIN are not asked (nothing changes for them). Remember the answer for offline use.
+    const need=await posPinRequired(emp.id);
+    if(!need){resolve(true);return;}
     const old=document.getElementById('posPinModal'); if(old) old.remove();
     const m=document.createElement('div'); m.id='posPinModal';
     m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
