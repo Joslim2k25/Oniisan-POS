@@ -434,6 +434,7 @@ button{cursor:pointer;font-family:inherit}
         <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
           <div style="font-size:24px;font-weight:900;color:var(--green)" id="cashierTotalSales">₱0.00</div>
           <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Total Gross Sales</div>
+          <div id="cashierSalesBreakdown" style="font-size:10px;color:var(--muted);margin-top:4px;font-weight:700"></div>
         </div>
         <div style="text-align:center;background:#fff;border-radius:10px;padding:12px;border:1px solid #a9cce3">
           <div style="font-size:24px;font-weight:900;color:var(--blue)" id="cashierTotalTxns">0</div>
@@ -1421,29 +1422,55 @@ const LS={
 // ══════ OFFLINE QUEUE ══════
 const QUEUE_KEY='oniisan_offline_q';
 function addToQueue(type,data){const q=LS.get(QUEUE_KEY,[]);q.push({type,data,ts:new Date().toISOString()});LS.set(QUEUE_KEY,q);updateSyncBadge();}
-function updateSyncBadge(){const q=LS.get(QUEUE_KEY,[]);const b=document.getElementById('syncBadge');if(b)b.textContent=q.length+' pending';}
-async function syncQueue(){
+function updateSyncBadge(){
   const q=LS.get(QUEUE_KEY,[]);
-  if(!q.length){showToast('All data synced!');return;}
-  setLoading(true);
+  const b=document.getElementById('syncBadge');if(b)b.textContent=q.length+' pending';
+  // A sale that is NOT in the database must never be silent: show a red bar on every screen until it is synced.
+  let bar=document.getElementById('pendingSyncBar');
+  if(!bar&&q.length&&document.body){
+    bar=document.createElement('div');bar.id='pendingSyncBar';
+    bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:100000;background:#c0392b;color:#fff;font-weight:800;font-size:13px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:center;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)';
+    bar.innerHTML='<span id="pendingSyncText"></span><button onclick="syncQueue()" style="background:#fff;color:#c0392b;border:none;border-radius:8px;padding:6px 12px;font-weight:900;cursor:pointer">I-SYNC NGAYON</button>';
+    document.body.appendChild(bar);
+  }
+  if(bar){
+    if(q.length){bar.style.display='flex';const t=document.getElementById('pendingSyncText');if(t)t.textContent='⚠️ '+q.length+' benta/record ang HINDI PA NASA DATABASE. Huwag mag-logout o i-clear ang browser.';}
+    else bar.style.display='none';
+  }
+}
+let _syncing=false;
+async function syncQueue(silent){
+  if(_syncing)return;
+  const q=LS.get(QUEUE_KEY,[]);
+  if(!q.length){if(silent!==true)showToast('All data synced!');return;}
+  _syncing=true;
+  if(silent!==true)setLoading(true);
   const failed=[];
   for(const item of q){
     try{
-      if(item.type==='txn'){const{error}=await sb.from('transactions').insert([item.data]);if(error)failed.push(item);}
+      if(item.type==='txn'){const{error}=await sb.from('transactions').insert([item.data]);if(error&&error.code!=='23505')failed.push(item);}
       else if(item.type==='dtr'){const{error}=await sb.from('time_records').insert([item.data]);if(error)failed.push(item);}
       else if(item.type==='expense'){const{error}=await sb.from('expenses').insert([item.data]);if(error)failed.push(item);}
       else if(item.type==='sm_rental'){const{error}=await sb.from('sm_rental').upsert([item.data],{onConflict:'date_key,branch'});if(error)failed.push(item);}
       else if(item.type==='cash_declaration'){const{error}=await sb.from('cash_declarations').upsert([item.data],{onConflict:'date_key,branch'});if(error)failed.push(item);}
     }catch(e){failed.push(item);}
   }
-  LS.set(QUEUE_KEY,failed);
-  setLoading(false);
+  // keep anything that was queued while we were syncing
+  const nowQ=LS.get(QUEUE_KEY,[]);
+  const added=nowQ.slice(q.length);
+  LS.set(QUEUE_KEY,failed.concat(added));
+  _syncing=false;
+  if(silent!==true)setLoading(false);
   updateSyncBadge();
   const synced=q.length-failed.length;
-  showToast(synced>0?`Synced ${synced} records!`:'Sync failed — check connection');
+  if(synced>0)showToast(`Synced ${synced} records!`);
+  else if(silent!==true)showToast('Sync failed — check connection');
 }
 
 // Online/offline events
+// retry every 30 seconds in the background, and once on start-up
+setInterval(()=>{try{if(LS.get(QUEUE_KEY,[]).length&&navigator.onLine!==false)syncQueue(true);}catch(e){}},30000);
+setTimeout(()=>{try{updateSyncBadge();syncQueue(true);}catch(e){}},4000);
 window.addEventListener('online',()=>{
   document.getElementById('offlineBanner').classList.remove('show');
   showToast('Back online! Syncing...');
@@ -2077,6 +2104,47 @@ function clearCashDeclaration(){
   }
 }
 
+function showCashResultModal(declared,expected,variance,smRental){
+  const old=document.getElementById('cashResultModal');if(old)old.remove();
+  const v=roundCents(variance);
+  const col=v===0?'#1e8449':v>0?'#2471a3':'#c0392b';
+  const bg=v===0?'#eafaf1':v>0?'#eaf2f8':'#fdedec';
+  const head=v===0?'✅ EXACT — tama ang cash!':v>0?('⬆️ OVER — sobra ng '+fmt(v)):('⬇️ SHORT — kulang ng '+fmt(Math.abs(v)));
+  const note=v===0?'':v>0?'Sobra ang cash kaysa sa dapat. Bilangin ulit at sabihin sa admin.':'Kulang ang cash kaysa sa dapat. Bilangin ulit at sabihin agad sa admin.';
+  const d=document.createElement('div');
+  d.id='cashResultModal';
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.4)">
+    <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#777;margin-bottom:12px;text-align:center">CASH DECLARATION RESULT</div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span style="color:#777">Expected Cash</span><b>${fmt(expected)}</b></div>
+    ${smRental>0?`<div style="font-size:11px;color:#777;margin-bottom:6px">kasama na ang SM Rental na ${fmt(smRental)}</div>`:''}
+    <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px"><span style="color:#777">Declared Cash</span><b>${fmt(declared)}</b></div>
+    <div style="background:${bg};border:2px solid ${col};border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:18px;font-weight:900;color:${col}">${head}</div>
+      ${note?`<div style="font-size:12px;color:${col};margin-top:6px;font-weight:700">${note}</div>`:''}
+    </div>
+    <button onclick="document.getElementById('cashResultModal').remove()" style="width:100%;margin-top:14px;padding:12px;background:${col};color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer">OK</button>
+  </div>`;
+  document.body.appendChild(d);
+}
+// When the day is already closed (page reloaded / re-login), show the SAVED result again instead of leaving the box empty.
+async function showSavedCashResult(){
+  try{
+    const{data}=await sb.from('cash_declarations').select('declared_amount,expected_amount,variance,sm_rental_deducted').eq('date_key',getTodayKey()).eq('branch','SM Bicutan').order('created_at',{ascending:false}).limit(1);
+    const r=data&&data[0];if(!r)return;
+    const v=roundCents(+r.variance||0);
+    const box=document.getElementById('cashVarianceBox');if(!box)return;
+    box.style.display='block';
+    box.style.background=v===0?'var(--green-light)':v>0?'var(--blue-light)':'var(--red-light)';
+    box.style.border='2px solid '+(v===0?'var(--green)':v>0?'var(--blue)':'var(--red)');
+    document.getElementById('expectedCashAmt').textContent=fmt(+r.expected_amount||0);
+    document.getElementById('declaredCashAmt').textContent=fmt(+r.declared_amount||0);
+    document.getElementById('varianceAmt').textContent=fmt(Math.abs(v));
+    document.getElementById('varianceLabel').textContent=v===0?'VARIANCE':v>0?'OVER by':'SHORT by';
+    document.getElementById('varianceStatus').innerHTML=v===0?'<span style="color:var(--green);font-size:18px">✅ EXACT — Cash is correct!</span>':v>0?`<span style="color:var(--blue);font-size:16px">⬆️ OVER — Extra ${fmt(v)}</span>`:`<span style="color:var(--red);font-size:16px">⬇️ SHORT — Missing ${fmt(Math.abs(v))}</span>`;
+  }catch(e){}
+}
+
 async function loadExpectedCash(){
   const txns = await sbGetTransactions();
   const cashSales = txns.filter(t=>t.payment_method==='cash').reduce((s,t)=>s+(t.total||0),0);
@@ -2098,6 +2166,7 @@ async function loadExpectedCash(){
     const submitBtn=document.querySelector('[onclick="saveCashDeclaration()"]');
     if(cashInput) cashInput.disabled=true;
     if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='✅ Already Submitted';submitBtn.style.background='#aaa';}
+    showSavedCashResult();
   }
 }
 
@@ -2134,6 +2203,9 @@ async function computeCashVariance(){
 }
 
 async function saveCashDeclaration(){
+  try{await syncQueue(true);}catch(e){}
+  const _pend=LS.get(QUEUE_KEY,[]).length;
+  if(_pend>0){alert('May '+_pend+' benta/record na HINDI PA NASA DATABASE.\nI-sync muna (pindutin ang I-SYNC NGAYON sa pulang bar) bago mag-close ng araw, para kumpleto ang expected cash.');return;}
   const declared = +document.getElementById('cashOnHandAmt').value||0;
   if(!declared){showToast('Enter your cash on hand amount.');return;}
   if(!cashDeclSigData){showToast('Kailangan munang pumirma bago i-submit ang Cash Declaration — para sa accountability.');return;}
@@ -2185,6 +2257,9 @@ async function saveCashDeclaration(){
   }
   setLoading(false);
 
+  // Big pop-up FIRST (before any other screen work) so the SHORT / OVER result can never be missed or hidden below the button.
+  try{showCashResultModal(declared,expectedCashSales,variance,smRentalToday);}catch(e){console.warn('cash result modal',e);}
+
   // ALWAYS show result — this is the critical part for the cashier
   const box=document.getElementById('cashVarianceBox');
   box.style.display='block';
@@ -2215,6 +2290,8 @@ async function saveCashDeclaration(){
     document.getElementById('varianceAmt').style.color='var(--red)';
     document.getElementById('varianceStatus').innerHTML=`<span style="color:var(--red);font-size:16px">⬇️ SHORT — Missing ${fmt(Math.abs(variance))}</span>`;
   }
+
+  try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
 
   // Disable input after submit — recorded na
   document.getElementById('cashOnHandAmt').disabled=true;
@@ -2375,11 +2452,15 @@ async function renderCashierExpList(){
 
 async function refreshCashierSales(){
   const txns=await sbGetTransactions();
-  const total=txns.reduce((s,t)=>s+(t.total||0),0);
+  const paid=txns.reduce((s,t)=>s+(t.total||0),0);
+  const gross=grossBeforeDiscount(txns); // SAME Gross as the Monthly Report / Dashboard (before discount)
+  const disc=roundCents(gross-paid);
   const count=txns.length;
   const salesEl=document.getElementById('cashierTotalSales');
   const txnsEl=document.getElementById('cashierTotalTxns');
-  if(salesEl) salesEl.textContent=fmt(total);
+  const bdEl=document.getElementById('cashierSalesBreakdown');
+  if(bdEl) bdEl.textContent=disc>0?('Discount −'+fmt(disc)+' · Nabayaran '+fmt(paid)):'';
+  if(salesEl) salesEl.textContent=fmt(gross);
   if(txnsEl) txnsEl.textContent=count;
 }
 
@@ -3135,6 +3216,8 @@ async function sbSaveTxn(txn){
     cash_tendered:txn.cashTendered||null,
     change_given:txn.change||null,
     cashier_name:currentLoginEmp?.name||null,
+    discount_approved_by:txn.discountApprovedBy||null,
+    discount_approved_at:txn.discountApprovedBy?new Date().toISOString():null,
     branch:'SM Bicutan'
   };
   // Save to local cache immediately
@@ -3150,7 +3233,7 @@ async function sbSaveTxn(txn){
   let saved=false;
   try{
     const{error}=await sb.from('transactions').insert([row]);
-    if(error){addToQueue('txn',row);} else {saved=true;}
+    if(error){ if(error.code==='23505'){saved=true;} else {addToQueue('txn',row);} } else {saved=true;} // 23505 = this OR number is already in the database (already saved)
   }catch(e){
     addToQueue('txn',row);
   }
@@ -5368,7 +5451,7 @@ async function downloadMonthlyExcel(mk){
   const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
   if(!toDate)return;
   setLoading(true);
-  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to));
+  const allTxns=await sbPaginateAll((from,to)=>sb.from('transactions').select(TXN_LIGHT_COLS).eq('is_voided',false).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to));
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allSm}=await sb.from('sm_rental').select('date_key,amount').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
@@ -6764,7 +6847,7 @@ function selectDiscItem(id){
 function addItem(id){const item=MENU.find(i=>String(i.id)===String(id));if(!item)return;if(!order[id])order[id]={...item,qty:0};order[id].qty++;renderOrderPanel();}
 function removeItemQty(id){if(order[id]){order[id].qty--;if(order[id].qty<=0){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;}}renderOrderPanel();}
 function deleteItem(id){delete order[id];if(String(discItemKey)===String(id))discItemKey=null;renderOrderPanel();}
-function clearOrder(){order={};discItemKey=null;approvedDiscountThisTxn=false;const ds=document.getElementById('discountSelect');if(ds)ds.value='none';renderOrderPanel();}
+function clearOrder(){order={};discItemKey=null;approvedDiscountThisTxn=false;approvedByName=null;const ds=document.getElementById('discountSelect');if(ds)ds.value='none';renderOrderPanel();}
 
 function renderOrderPanel(){
   const items=Object.values(order);
@@ -6886,9 +6969,35 @@ function resetDenom(){
   updateConfirmBtn();
 }
 
-function nextOR(){orCounter++;LS.set('or_counter',orCounter);return 'OR-'+String(orCounter).padStart(4,'0');}
+// ══════ OR NUMBERS — ONE counter in the database for every tablet ══════
+// Before: each tablet kept its own counter, so two tablets could issue the same OR number, a new browser
+// restarted at OR-1001, and opening the payment screen used up a number even if the sale was cancelled.
+// Now: the number comes from the database (reserve_or_numbers). A number that was handed out but not yet used
+// (cashier closed the payment screen) is HELD and reused, so cancelled screens leave no gap.
+// Offline: the tablet uses a few numbers it reserved earlier. If it has none, it refuses rather than risk a duplicate.
+let heldOR=null;
+function orFmt(n){return 'OR-'+String(n).padStart(4,'0');}
+async function topUpOrBlock(){
+  try{
+    const blk=LS.get('or_block',[]);
+    if(blk.length>=5)return;
+    const{data,error}=await sb.rpc('reserve_or_numbers',{p_count:5});
+    if(!error&&data&&data.first){for(let i=0;i<data.count;i++)blk.push(data.first+i);LS.set('or_block',blk);}
+  }catch(e){}
+}
+async function allocateOR(){
+  if(heldOR)return heldOR;
+  try{
+    const r=await Promise.race([sb.rpc('reserve_or_numbers',{p_count:1}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))]);
+    if(r&&!r.error&&r.data&&r.data.first){heldOR=orFmt(r.data.first);topUpOrBlock();return heldOR;}
+  }catch(e){}
+  const blk=LS.get('or_block',[]);
+  if(blk.length){const n=blk.shift();LS.set('or_block',blk);heldOR=orFmt(n);return heldOR;}
+  return null;
+}
 
-function openCharge(){
+async function openCharge(){
+  if(window._openingCharge)return;
   const items=Object.values(order);if(!items.length){alert('No items in order.');return;}
   const disc=getDisc();
   if((disc==='pwd'||disc==='senior')&&!discItemKey){alert('Policy: 1 customer, 1 ID, 1 food only.\nTap "Pick as 1 food" on the ID-holder\'s single item before charging.');return;}
@@ -6898,7 +7007,11 @@ function openCharge(){
   const rebateApplied=loyaltyRebateToUse>0?Math.min(loyaltyRebateToUse,afterDisc):0;
   const total=Math.max(0,afterDisc-rebateApplied);
   currentOrderTotal=total;cashTendered=0;currentPayMethod=selectedPM;
-  const d=new Date();const orNum=nextOR();
+  window._openingCharge=true;
+  let orNum=null;
+  try{orNum=await allocateOR();}finally{window._openingCharge=false;}
+  if(!orNum){alert('Walang koneksyon at walang nakareserbang OR number sa tablet na ito.\nKumonekta muna sa internet bago mag-charge — para hindi magkaroon ng dobleng OR number.');return;}
+  const d=new Date();
   document.getElementById('receiptDate').textContent=d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('receiptOrNum').textContent='OR: '+orNum;
   document.getElementById('receiptItemsList').innerHTML=items.map(i=>`<div class="receipt-item-row"><span>${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('');
@@ -7291,7 +7404,7 @@ function promptManagerApprovalForDiscount(pendingDiscType){
   overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px 22px;text-align:center;max-width:300px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
     <div style="font-size:36px;margin-bottom:6px">🔒</div>
     <div style="font-size:15px;font-weight:900;color:#1a1a1a;margin-bottom:4px">Manager/Supervisor Approval</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Kailangan ng PIN ng Manager/Admin bago mag-apply ng discount.</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Kailangan ng PIN ng Manager/Owner (sariling PIN niya) bago mag-apply ng discount.</div>
     <input type="password" inputmode="numeric" maxlength="4" id="mgrApprovalPin" placeholder="Manager PIN" autofocus
       style="width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:8px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:6px;box-sizing:border-box"/>
     <div id="mgrApprovalError" style="color:var(--red);font-size:11px;font-weight:700;min-height:16px;margin-bottom:8px"></div>
@@ -7304,29 +7417,32 @@ function promptManagerApprovalForDiscount(pendingDiscType){
   document.getElementById('mgrApprovalPin').focus();
   document.getElementById('mgrApprovalPin').addEventListener('keydown',e=>{if(e.key==='Enter')submitManagerApproval(pendingDiscType);});
 }
+let approvedByName=null; // the manager who approved this sale's discount (saved on the sale)
 async function submitManagerApproval(pendingDiscType){
   const pin=document.getElementById('mgrApprovalPin').value.trim();
   const errBox=document.getElementById('mgrApprovalError');
   if(!pin){errBox.textContent='Ilagay ang PIN.';return;}
+  if(navigator.onLine===false){errBox.textContent='Walang internet. Kailangan ng koneksyon para ma-approve ang discount.';return;}
   errBox.textContent='Checking...';
-  let correctPin=null;
+  // Each manager has their OWN PIN, checked by the server (no shared code is downloaded to the tablet any more).
+  let res=null;
   try{
-    const{data}=await sb.from('app_settings').select('value').eq('key','discount_approval_pin').single().then(r=>r).catch(()=>({data:null}));
-    correctPin=data?.value||null;
-    if(correctPin) localStorage.setItem('discount_approval_pin_cache',correctPin);
-  }catch(e){ /* fall through to cached PIN below */ }
-  // Offline fallback: if the live lookup failed (no internet), use the last successfully
-  // fetched PIN cached locally — so discount approval keeps working even without connection,
-  // instead of always rejecting the correct PIN just because it couldn't be re-verified live.
-  if(!correctPin) correctPin=localStorage.getItem('discount_approval_pin_cache');
-  if(correctPin && pin===correctPin){
+    const{data,error}=await sb.rpc('verify_manager_pin',{p_pin:pin,p_cashier_id:currentLoginEmp?.id||null});
+    if(error)throw error;
+    res=data;
+  }catch(e){errBox.textContent='Hindi ma-check ang PIN ngayon. Subukan ulit.';return;}
+  if(res&&res.ok){
     approvedDiscountThisTxn=true;
+    approvedByName=res.approver_name||'Manager';
     document.getElementById('mgrApprovalOverlay').remove();
     document.getElementById('discountSelect').value=pendingDiscType;
-    showToast('✅ Discount Approved');
+    showToast('✅ Discount Approved — '+approvedByName);
     onDiscountChange();
+  } else if(res&&res.error==='locked'){
+    errBox.textContent='🔒 Masyadong maraming maling PIN. Subukan ulit pagkatapos ng 10 minuto.';
+    document.getElementById('mgrApprovalPin').value='';
   } else {
-    errBox.textContent='❌ Maling Discount Approval PIN.';
+    errBox.textContent='❌ Maling PIN ng Manager. (Hindi pwedeng sariling PIN ng cashier.)';
     document.getElementById('mgrApprovalPin').value='';
   }
 }
@@ -7383,11 +7499,12 @@ async function confirmCharge(){
   const cardType=currentPayMethod==='card'?document.getElementById('cardType').value:'';
   const discountName=document.getElementById('discountName').value.trim();
   const discountIdNum=document.getElementById('discountIdNum').value.trim();
-  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum,discountIdPhoto:(discountIdPhotoData&&discountIdPhotoData!=='NO_CAMERA')?discountIdPhotoData:null,cashlessProofPhoto:(cashlessProofPhotoData&&cashlessProofPhotoData!=='NO_CAMERA')?cashlessProofPhotoData:null};
+  const txn={orNum,ts:tsNow(),table,items:[...items],subtotal:sub,discount:disc,discountAmount:discAmt,total,paymentMethod:currentPayMethod,cashTendered:currentPayMethod==='cash'?cashTendered:total,change:currentPayMethod==='cash'?Math.max(0,cashTendered-total):0,cardLast4,cardType,discountName,discountIdNum,discountIdPhoto:(discountIdPhotoData&&discountIdPhotoData!=='NO_CAMERA')?discountIdPhotoData:null,cashlessProofPhoto:(cashlessProofPhotoData&&cashlessProofPhotoData!=='NO_CAMERA')?cashlessProofPhotoData:null,discountApprovedBy:(disc!=='none'?approvedByName:null)};
   kitchenTickets.unshift({id:kitchenTickets.length+1,table,items:[...items],time:timeStr(txn.ts),status:'new'});
   LS.set('kitchen_tickets',kitchenTickets);
   const loyaltyPhone=document.getElementById('loyaltyPhoneInput')?document.getElementById('loyaltyPhoneInput').value.trim():'';
-  order={};approvedDiscountThisTxn=false;const dsEl=document.getElementById('discountSelect');if(dsEl)dsEl.value='none';renderOrderPanel();closeReceipt();
+  order={};approvedDiscountThisTxn=false;approvedByName=null;const dsEl=document.getElementById('discountSelect');if(dsEl)dsEl.value='none';renderOrderPanel();closeReceipt();
+  heldOR=null; // this OR number is now used
   await sbSaveTxn(txn);
   if(loyaltyPhone){
     document.getElementById('loyaltyPhoneInput').value='';

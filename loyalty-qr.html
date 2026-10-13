@@ -3313,7 +3313,7 @@ async function downloadMonthlyExcel(mk){
   const toDate=prompt('To date (YYYY-MM-DD):', mk+'-'+String(lastDay).padStart(2,'0'));
   if(!toDate)return;
   setLoading(true);
-  const{data:allTxns}=await sb.from('transactions').select('*').gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts');
+  const{data:allTxns}=await sb.from('transactions').select('*').eq('is_voided',false).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts');
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
   setLoading(false);
