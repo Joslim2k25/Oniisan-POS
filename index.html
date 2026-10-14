@@ -4659,12 +4659,14 @@ async function renderMonthly(monthKey){
   document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#ccc">Loading...</div>';
   const lastDay=new Date(+mk.split('-')[0],+mk.split('-')[1],0).getDate();
   const lastDayStr=String(lastDay).padStart(2,'0');
-  const[allTxns,{data:allReps},{data:allExps},{data:allCash},{data:allSmRental}]=await Promise.all([
+  const[allTxns,{data:allReps},{data:allExps},{data:allCash},{data:allSmRental},allVoids]=await Promise.all([
     sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,total,payment_method,discount,discount_amount,discount_name,discount_id_num,items,is_voided,cashier_name').eq('is_voided',false).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>null),
     sb.from('daily_reports').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
     sb.from('expenses').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
     sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
+    // VOIDED orders: shown for visibility only (Voids columns). They are NEVER added to Gross / Cash / Discount / VAT / Net.
+    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,subtotal,total,discount_amount,is_voided').eq('is_voided',true).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>[]),
   ]);
   if(allTxns===null){document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#c0392b;font-weight:700">⚠️ Hindi na-load ang mga benta (mahina ang koneksyon). I-refresh ang pahina at subukan ulit — hindi ito ipinapakita nang kulang para hindi magkamali ang Gross.</div>';return;}
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
@@ -4673,8 +4675,12 @@ async function renderMonthly(monthKey){
 
   const dayMap={};
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
+  // Voided orders per day (visibility only). A day that only had voids still gets a row so the voids are not hidden.
+  const voidMap={};
+  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMap[d]){voidMap[d]={n:0,amt:0};}voidMap[d].n+=1;voidMap[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}});
   const days=Object.keys(dayMap).sort();
 
+  let mVoidN=0,mVoidAmt=0;
   let mGross=0,mGcash=0,mMaya=0,mGotyme=0,mFoodpanda=0,mGrabfood=0,mCard=0,mDiscount=0,mExpenses=0,mSmRental=0,mNet=0,mTxns=0;
 
   const rows=days.map(dk=>{
@@ -4708,8 +4714,9 @@ async function renderMonthly(monthKey){
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
     const expectedCash=g-cashlessTotal-dayExps-smRentalDrawer;
     const variance=cashDecl?roundCents(cashDecl.declared_amount-expectedCash):null;
+    const voidN=(voidMap[dk]||{}).n||0,voidAmt=(voidMap[dk]||{}).amt||0;mVoidN+=voidN;mVoidAmt+=voidAmt;
     mGross+=grossPre;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
-    return{dk,gross:grossPre,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
+    return{dk,gross:grossPre,voidN,voidAmt,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
   });
 
   const months=[];
@@ -4741,9 +4748,9 @@ async function renderMonthly(monthKey){
     <div class="metric"><div class="metric-val go">${fmtn(mNet)}</div><div class="metric-lbl">NET</div></div>
     <div class="metric"><div class="metric-val bl">${mTxns}</div><div class="metric-lbl">Txns</div></div>
   </div>
-  <div style="font-size:11px;color:var(--muted);margin:-4px 0 10px">NET SALES = Gross − GCash − Maya − GoTyme − FoodPanda − GrabFood − Card − Discount − VAT − Expenses − SM Rental</div>
+  <div style="font-size:11px;color:var(--muted);margin:-4px 0 10px">NET SALES = Gross − GCash − Maya − GoTyme − FoodPanda − GrabFood − Card − Discount − VAT − Expenses − SM Rental<br>Voided orders are NOT included in Gross / Cash / Net (walang pera na pumasok). Makikita sila sa <b>Voids</b> at <b>Void ₱</b> columns para sa visibility — Month total: <b style="color:#f87171">${mVoidN} void${mVoidN===1?'':'s'} · ${fmt(mVoidAmt)}</b></div>
   <div style="border-radius:12px;overflow:hidden;border:1px solid #333;overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1200px">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1320px">
       <thead>
         <tr style="background:#1a1a2e;color:#fff">
           <th style="padding:12px 10px;text-align:left;white-space:nowrap">📅 Date</th>
@@ -4759,6 +4766,8 @@ async function renderMonthly(monthKey){
           <th style="padding:12px 8px;text-align:right;color:#f87171">Expenses</th>
           <th style="padding:12px 8px;text-align:right;color:#f472b6">🏢 SM Rental</th>
           <th style="padding:12px 8px;text-align:right;color:#fbbf24">NET SALES</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171" title="Voided orders (hindi kasama sa Gross/Net)">🚫 Voids</th>
+          <th style="padding:12px 8px;text-align:right;color:#f87171" title="Halaga ng voided orders (hindi kasama sa Gross/Net)">Void ₱</th>
           <th style="padding:12px 8px;text-align:center;color:#fff">Cash on Hand</th>
           <th style="padding:12px 8px;text-align:center;color:#fff">Status</th>
         </tr>
@@ -4803,6 +4812,8 @@ async function renderMonthly(monthKey){
             <td style="padding:10px;text-align:right">${r.expenses>0?`<span onclick="event.stopPropagation();showMonthlyExpenseDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${fmtExp(r.expenses)}</span>`:fmtExp(r.expenses)}</td>
             <td style="padding:10px;text-align:right" onclick="event.stopPropagation()">${smRentalCell}</td>
             <td style="padding:10px;text-align:right;color:${isDeposited?'#22c55e':'#fbbf24'};font-weight:900;${isDeposited?'font-size:13px':''}">${fmt(r.net)}${isDeposited?' ✅':''}</td>
+            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?r.voidN:'—'}</td>
+            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?fmt(r.voidAmt):'—'}</td>
             <td style="padding:10px">${cashInput}</td>
             <td style="padding:10px;text-align:center">${varStr}</td>
           </tr>`;
@@ -4823,6 +4834,8 @@ async function renderMonthly(monthKey){
           <td style="padding:12px 8px;text-align:right">-${fmt(mExpenses)}</td>
           <td style="padding:12px 8px;text-align:right;color:#f472b6">-${fmt(mSmRental)}</td>
           <td style="padding:12px 8px;text-align:right;color:#fbbf24">${fmt(mNet)}</td>
+          <td style="padding:12px 8px;text-align:right">${mVoidN}</td>
+          <td style="padding:12px 8px;text-align:right">${fmt(mVoidAmt)}</td>
           <td colspan="2"></td>
         </tr>
       </tfoot>
@@ -5579,11 +5592,16 @@ async function downloadMonthlyExcel(mk){
   const{data:allExps}=await sb.from('expenses').select('*').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allSm}=await sb.from('sm_rental').select('date_key,amount').gte('date_key',fromDate).lte('date_key',toDate);
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
+  // Voided orders: reported in their own columns only; never added to Gross / Cash / Discount / VAT / Net.
+  let allVoids=[];
+  try{ allVoids=await sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,subtotal,total,discount_amount,is_voided').eq('is_voided',true).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to)); }catch(e){ allVoids=[]; }
   setLoading(false);
   const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];const smRows=allSm||[];
   const dayMap={};
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
-  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status'];
+  const voidMapX={};
+  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMapX[d]){voidMapX[d]={n:0,amt:0};}voidMapX[d].n+=1;voidMapX[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]=[];}});
+  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status','Voids','Void Amount'];
   const csvRows=[headers.join(',')];
   Object.keys(dayMap).sort().forEach(dk=>{
     const dayTxns=dayMap[dk];
@@ -5603,7 +5621,7 @@ async function downloadMonthlyExcel(mk){
     const declared=cashDecl?cashDecl.declared_amount:'';
     const variance=cashDecl?roundCents(cashDecl.variance):'';
     const status=cashDecl?(variance===0?'EXACT':variance>0?'OVER':'SHORT'):'';
-    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status].join(','));
+    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status,(voidMapX[dk]||{}).n||0,(voidMapX[dk]||{}).amt||0].join(','));
   });
   const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
