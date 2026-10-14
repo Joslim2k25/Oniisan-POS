@@ -4666,7 +4666,7 @@ async function renderMonthly(monthKey){
     sb.from('cash_declarations').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:null})),
     sb.from('sm_rental').select('*').gte('date_key',mk+'-01').lte('date_key',mk+'-'+lastDayStr).then(r=>r).catch(()=>({data:null})),
     // VOIDED orders: shown for visibility only (Voids columns). They are NEVER added to Gross / Cash / Discount / VAT / Net.
-    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,subtotal,total,discount_amount,is_voided').eq('is_voided',true).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>[]),
+    sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,subtotal,total,discount_amount,payment_method,is_voided,voided_at,voided_by,void_reason,cashier_name').eq('is_voided',true).gte('ts',mk+'-01T00:00:00.000Z').lte('ts',mk+'-'+lastDayStr+'T23:59:59.999Z').order('ts').order('id').range(from,to)).catch(()=>[]),
   ]);
   if(allTxns===null){document.getElementById('adminBody').innerHTML='<div style="text-align:center;padding:40px;color:#c0392b;font-weight:700">⚠️ Hindi na-load ang mga benta (mahina ang koneksyon). I-refresh ang pahina at subukan ulit — hindi ito ipinapakita nang kulang para hindi magkamali ang Gross.</div>';return;}
   const txns=allTxns||[];const reps=allReps||[];const exps=allExps||[];const cashDecls=allCash||[];const smRentals=allSmRental||[];
@@ -4677,7 +4677,7 @@ async function renderMonthly(monthKey){
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}dayMap[d].txns.push(t);dayMap[d].gross+=(t.total||0);});
   // Voided orders per day (visibility only). A day that only had voids still gets a row so the voids are not hidden.
   const voidMap={};
-  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMap[d]){voidMap[d]={n:0,amt:0};}voidMap[d].n+=1;voidMap[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}});
+  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMap[d]){voidMap[d]={n:0,amt:0,cashiers:[]};}if(t.cashier_name&&voidMap[d].cashiers.indexOf(t.cashier_name)<0)voidMap[d].cashiers.push(t.cashier_name);voidMap[d].n+=1;voidMap[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]={txns:[],gross:0};}});
   const days=Object.keys(dayMap).sort();
 
   let mVoidN=0,mVoidAmt=0;
@@ -4714,9 +4714,9 @@ async function renderMonthly(monthKey){
     // Expected = Gross - Cashless - Discount - VAT - Expenses - SM Rental (NET SALES)
     const expectedCash=g-cashlessTotal-dayExps-smRentalDrawer;
     const variance=cashDecl?roundCents(cashDecl.declared_amount-expectedCash):null;
-    const voidN=(voidMap[dk]||{}).n||0,voidAmt=(voidMap[dk]||{}).amt||0;mVoidN+=voidN;mVoidAmt+=voidAmt;
+    const voidN=(voidMap[dk]||{}).n||0,voidAmt=(voidMap[dk]||{}).amt||0,voidCashiers=(voidMap[dk]||{}).cashiers||[];mVoidN+=voidN;mVoidAmt+=voidAmt;
     mGross+=grossPre;mGcash+=gcash;mMaya+=maya;mGotyme+=gotyme;mFoodpanda+=foodpanda;mGrabfood+=grabfood;mCard+=card;mDiscount+=discount;mExpenses+=dayExps;mSmRental+=smRentalAmt;mNet+=net;mTxns+=dayTxns.length;
-    return{dk,gross:grossPre,voidN,voidAmt,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
+    return{dk,gross:grossPre,voidN,voidAmt,voidCashiers,txns:dayTxns.length,gcash,maya,gotyme,foodpanda,grabfood,card,discount,vat,expenses:dayExps,expensesList:dayExpsList,smRental,net,cashDecl,variance,dayTxns};
   });
 
   const months=[];
@@ -4724,6 +4724,7 @@ async function renderMonthly(monthKey){
 
   window.__monthlyRows=rows; // expose for click-to-detail modal
   window.__monthlyAllTxns=txns; // expose full month txns for Discount ID Log
+  window.__monthlyVoids=allVoids||[]; // voided orders (visibility only) for the Voids detail popup
 
   const fmtCell=v=>v>0?`<span style="color:#4ade80;font-weight:700">${fmt(v)}</span>`:v<0?`<span style="color:#f87171;font-weight:700">${fmt(v)}</span>`:'<span style="color:#555">—</span>';
   const fmtDisc=v=>v>0?`<span style="color:#f87171;font-weight:700">-${fmt(v)}</span>`:'<span style="color:#555">—</span>';
@@ -4812,8 +4813,8 @@ async function renderMonthly(monthKey){
             <td style="padding:10px;text-align:right">${r.expenses>0?`<span onclick="event.stopPropagation();showMonthlyExpenseDetail('${r.dk}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${fmtExp(r.expenses)}</span>`:fmtExp(r.expenses)}</td>
             <td style="padding:10px;text-align:right" onclick="event.stopPropagation()">${smRentalCell}</td>
             <td style="padding:10px;text-align:right;color:${isDeposited?'#22c55e':'#fbbf24'};font-weight:900;${isDeposited?'font-size:13px':''}">${fmt(r.net)}${isDeposited?' ✅':''}</td>
-            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?r.voidN:'—'}</td>
-            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?fmt(r.voidAmt):'—'}</td>
+            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}" ${r.voidN>0?`onclick="event.stopPropagation();showMonthlyVoidDetail('${r.dk}')" title="Pindutin para makita ang listahan ng void"`:''}>${r.voidN>0?`<span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${r.voidN}</span><div style="font-size:9px;font-weight:700;color:#fca5a5;white-space:nowrap">👤 ${escHtml(r.voidCashiers.join(', '))}</div>`:'—'}</td>
+            <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}" ${r.voidN>0?`onclick="event.stopPropagation();showMonthlyVoidDetail('${r.dk}')"`:''}>${r.voidN>0?`<span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${fmt(r.voidAmt)}</span>`:'—'}</td>
             <td style="padding:10px">${cashInput}</td>
             <td style="padding:10px;text-align:center">${varStr}${r.cashDecl&&r.cashDecl.declared_by?`<div style="font-size:10px;color:#93c5fd;font-weight:700;margin-top:3px;white-space:nowrap" title="Cashier na nag-close / nag-declare ng cash">👤 ${escHtml(r.cashDecl.declared_by)}</div>`:''}${r.cashDecl&&r.cashDecl.edited_by?`<div style="font-size:9px;color:#fbbf24;white-space:nowrap" title="In-edit ang declared cash">✏️ ${escHtml(r.cashDecl.edited_by)}</div>`:''}</td>
           </tr>`;
@@ -4903,6 +4904,36 @@ async function showMonthlyPaymentDetail(dk,type){
       </tr></tfoot>
     </table>`
     : '<div style="text-align:center;color:#ccc;padding:30px">No matching transactions found.</div>';
+  document.getElementById('paymentDetailModal').classList.add('open');
+}
+
+// Click-to-detail: every VOIDED order of a day (visibility only — never part of Gross / Net)
+function showMonthlyVoidDetail(dk){
+  const list=(window.__monthlyVoids||[]).filter(t=>manilaDateKey(t.ts)===dk);
+  const total=list.reduce((s,t)=>s+grossBeforeDiscount([t]),0);
+  const th='text-align:left;padding:6px 8px;color:var(--muted);font-size:10px;text-transform:uppercase';
+  const tm=v=>v?new Date(v).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}):'—';
+  document.getElementById('paymentDetailTitle').textContent=`🚫 Voided orders — ${dk} (${list.length})`;
+  document.getElementById('paymentDetailContent').innerHTML=list.length?`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Hindi kasama sa Gross / Cash / Net — walang pera na pumasok.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="${th}">OR #</th><th style="${th}">Time</th><th style="${th}">Table</th><th style="${th}">Cashier</th>
+        <th style="${th}">Voided by</th><th style="${th}">Voided at</th><th style="${th}">Reason</th>
+        <th style="${th};text-align:right">Amount</th>
+      </tr></thead>
+      <tbody>${list.map(t=>`<tr style="border-bottom:1px solid #f5f5f5">
+        <td style="padding:6px 8px">${escHtml(t.or_num||'—')}</td>
+        <td style="padding:6px 8px">${tm(t.ts)}</td>
+        <td style="padding:6px 8px">${escHtml(t.table_name||'—')}</td>
+        <td style="padding:6px 8px;font-weight:700">${escHtml(t.cashier_name||'—')}</td>
+        <td style="padding:6px 8px">${escHtml(t.voided_by||'—')}</td>
+        <td style="padding:6px 8px">${tm(t.voided_at)}</td>
+        <td style="padding:6px 8px">${escHtml(t.void_reason||'—')}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(grossBeforeDiscount([t]))}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--border);font-weight:800"><td colspan="7" style="padding:8px">TOTAL VOIDED</td><td style="padding:8px;text-align:right">${fmt(total)}</td></tr></tfoot>
+    </table>`:'<div style="text-align:center;color:#ccc;padding:30px">Walang void sa araw na ito.</div>';
   document.getElementById('paymentDetailModal').classList.add('open');
 }
 
@@ -5594,15 +5625,15 @@ async function downloadMonthlyExcel(mk){
   const{data:allCash}=await sb.from('cash_declarations').select('*').gte('date_key',fromDate).lte('date_key',toDate).order('created_at',{ascending:false});
   // Voided orders: reported in their own columns only; never added to Gross / Cash / Discount / VAT / Net.
   let allVoids=[];
-  try{ allVoids=await sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,subtotal,total,discount_amount,is_voided').eq('is_voided',true).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to)); }catch(e){ allVoids=[]; }
+  try{ allVoids=await sbPaginateAll((from,to)=>sb.from('transactions').select('id,or_num,ts,table_name,subtotal,total,discount_amount,payment_method,is_voided,voided_at,voided_by,void_reason,cashier_name').eq('is_voided',true).gte('ts',fromDate+'T00:00:00.000Z').lte('ts',toDate+'T23:59:59.999Z').order('ts').order('id').range(from,to)); }catch(e){ allVoids=[]; }
   setLoading(false);
   const txns=allTxns||[];const exps=allExps||[];const cashDecls=allCash||[];const smRows=allSm||[];
   const dayMap={};
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
   const voidMapX={};
-  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMapX[d]){voidMapX[d]={n:0,amt:0};}voidMapX[d].n+=1;voidMapX[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]=[];}});
+  (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMapX[d]){voidMapX[d]={n:0,amt:0,cashiers:[]};}if(t.cashier_name&&voidMapX[d].cashiers.indexOf(t.cashier_name)<0)voidMapX[d].cashiers.push(t.cashier_name);voidMapX[d].n+=1;voidMapX[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]=[];}});
   const csvText=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"'; // quoted so names with commas can't shift columns
-  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status','Voids','Void Amount','Closed By','Edited By'];
+  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status','Voids','Void Amount','Closed By','Edited By','Void Cashiers'];
   const csvRows=[headers.join(',')];
   Object.keys(dayMap).sort().forEach(dk=>{
     const dayTxns=dayMap[dk];
@@ -5622,7 +5653,7 @@ async function downloadMonthlyExcel(mk){
     const declared=cashDecl?cashDecl.declared_amount:'';
     const variance=cashDecl?roundCents(cashDecl.variance):'';
     const status=cashDecl?(variance===0?'EXACT':variance>0?'OVER':'SHORT'):'';
-    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status,(voidMapX[dk]||{}).n||0,(voidMapX[dk]||{}).amt||0,csvText(cashDecl?cashDecl.declared_by:''),csvText(cashDecl?cashDecl.edited_by:'')].join(','));
+    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status,(voidMapX[dk]||{}).n||0,(voidMapX[dk]||{}).amt||0,csvText(cashDecl?cashDecl.declared_by:''),csvText(cashDecl?cashDecl.edited_by:''),csvText(((voidMapX[dk]||{}).cashiers||[]).join('; '))].join(','));
   });
   const blob=new Blob(['\ufeff'+csvRows.join('\n')],{type:'text/csv;charset=utf-8'}); // BOM so Ñ/accents open correctly in Excel
   const url=URL.createObjectURL(blob);
