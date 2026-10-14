@@ -4769,7 +4769,7 @@ async function renderMonthly(monthKey){
           <th style="padding:12px 8px;text-align:right;color:#f87171" title="Voided orders (hindi kasama sa Gross/Net)">🚫 Voids</th>
           <th style="padding:12px 8px;text-align:right;color:#f87171" title="Halaga ng voided orders (hindi kasama sa Gross/Net)">Void ₱</th>
           <th style="padding:12px 8px;text-align:center;color:#fff">Cash on Hand</th>
-          <th style="padding:12px 8px;text-align:center;color:#fff">Status</th>
+          <th style="padding:12px 8px;text-align:center;color:#fff">Status / Closed by</th>
         </tr>
       </thead>
       <tbody>
@@ -4815,7 +4815,7 @@ async function renderMonthly(monthKey){
             <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?r.voidN:'—'}</td>
             <td style="padding:10px;text-align:right;color:${r.voidN>0?'#f87171':'#555'};font-weight:${r.voidN>0?'800':'400'}">${r.voidN>0?fmt(r.voidAmt):'—'}</td>
             <td style="padding:10px">${cashInput}</td>
-            <td style="padding:10px;text-align:center">${varStr}</td>
+            <td style="padding:10px;text-align:center">${varStr}${r.cashDecl&&r.cashDecl.declared_by?`<div style="font-size:10px;color:#93c5fd;font-weight:700;margin-top:3px;white-space:nowrap" title="Cashier na nag-close / nag-declare ng cash">👤 ${escHtml(r.cashDecl.declared_by)}</div>`:''}${r.cashDecl&&r.cashDecl.edited_by?`<div style="font-size:9px;color:#fbbf24;white-space:nowrap" title="In-edit ang declared cash">✏️ ${escHtml(r.cashDecl.edited_by)}</div>`:''}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -5601,7 +5601,8 @@ async function downloadMonthlyExcel(mk){
   txns.forEach(t=>{const d=manilaDateKey(t.ts);if(!dayMap[d]){dayMap[d]=[];}dayMap[d].push(t);});
   const voidMapX={};
   (allVoids||[]).forEach(t=>{const d=manilaDateKey(t.ts);if(!voidMapX[d]){voidMapX[d]={n:0,amt:0};}voidMapX[d].n+=1;voidMapX[d].amt+=grossBeforeDiscount([t]);if(!dayMap[d]){dayMap[d]=[];}});
-  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status','Voids','Void Amount'];
+  const csvText=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"'; // quoted so names with commas can't shift columns
+  const headers=['Date','Orders','Gross','Cash','GCash','Maya','GoTyme','FoodPanda','GrabFood','Card','Discount','VAT','Expenses','SM Rental','NET SALES','Cash Declared','Variance','Status','Voids','Void Amount','Closed By','Edited By'];
   const csvRows=[headers.join(',')];
   Object.keys(dayMap).sort().forEach(dk=>{
     const dayTxns=dayMap[dk];
@@ -5621,9 +5622,9 @@ async function downloadMonthlyExcel(mk){
     const declared=cashDecl?cashDecl.declared_amount:'';
     const variance=cashDecl?roundCents(cashDecl.variance):'';
     const status=cashDecl?(variance===0?'EXACT':variance>0?'OVER':'SHORT'):'';
-    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status,(voidMapX[dk]||{}).n||0,(voidMapX[dk]||{}).amt||0].join(','));
+    csvRows.push([dk,dayTxns.length,grossPre,cash,gcash,maya,gotyme,foodpanda,grabfood,card,-discount,-vatEx,-dayExps,-daySm,net,declared,variance,status,(voidMapX[dk]||{}).n||0,(voidMapX[dk]||{}).amt||0,csvText(cashDecl?cashDecl.declared_by:''),csvText(cashDecl?cashDecl.edited_by:'')].join(','));
   });
-  const blob=new Blob([csvRows.join('\n')],{type:'text/csv'});
+  const blob=new Blob(['\ufeff'+csvRows.join('\n')],{type:'text/csv;charset=utf-8'}); // BOM so Ñ/accents open correctly in Excel
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download=`oniisan-monthly-${fromDate}-to-${toDate}.csv`;
