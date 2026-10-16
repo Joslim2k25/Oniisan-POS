@@ -5239,8 +5239,8 @@ async function renderPayroll(){
   <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue)">
     ${isLockedPeriod(selEnd)?'<div style="margin-bottom:6px;font-weight:700;color:#b45309">🔒 Naka-lock ang period na ito (bago Sept 26, 2026) — hindi mababago ang mga naka-save na payroll record.</div>':''}
     <strong>Period:</strong> ${selStart} to ${selEnd} &nbsp;|&nbsp;
-    <strong>Daily Rate:</strong> ${isLockedPeriod(selEnd)?'ayon sa naka-save na payroll':'₱'+dailyRateFor(selStart)} &nbsp;|&nbsp;
-    <strong>OT Rate:</strong> ${isLockedPeriod(selEnd)?'ayon sa naka-save':'₱'+otRateFor(selStart).toFixed(2)+'/hr'} (w/ approval) &nbsp;|&nbsp;
+    <strong>Daily Rate:</strong> ₱${dailyRateFor(selStart)} &nbsp;|&nbsp;
+    <strong>OT Rate:</strong> ₱${otRateFor(selStart).toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
     <strong>Deductions:</strong> SSS ₱450 + PhilHealth ₱200 + Pag-IBIG ₱200 = ₱850 (every 30th)
   </div>
   <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click 🔄 Compute to generate payroll for this period</div></div>
@@ -5328,17 +5328,6 @@ async function computePayroll(start,end){
     const totalDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
     const netPay=grossPay-totalDed;
     payrollRows.push({empId,name:emp.name,daysWorked,totalHours:totalHours.toFixed(1),otHours:otHours.toFixed(1),basicPay,otPay,holidayPay,grossPay,totalDed,netPay});
-  }
-  // 🔒 PAST PERIOD (ends before 2026-09-26): show the SAVED / already-paid figures — never a recomputation with any rate.
-  if(isLockedPeriod(end)){
-    try{
-      const{data:sv}=await sb.from('payroll_records').select('*').eq('period_start',start).eq('period_end',end);
-      const byName={};(sv||[]).forEach(x=>{byName[String(x.emp_name||'').trim().toLowerCase()]=x;});
-      payrollRows.forEach(r=>{
-        const x=byName[String(r.name||'').trim().toLowerCase()];
-        if(x){r.daysWorked=+x.days_worked;r.totalHours=(+x.total_hours).toFixed(1);r.otHours=(+x.ot_hours).toFixed(1);r.basicPay=+x.basic_pay;r.otPay=+x.ot_pay;r.holidayPay=+x.holiday_pay;r.grossPay=+x.gross_pay;r.totalDed=+x.total_deduction;r.netPay=+x.net_pay;}
-      });
-    }catch(e){console.error('locked payroll lookup failed',e);}
   }
   setLoading(false);
   if(!payrollRows.length){document.getElementById('payrollTable').innerHTML='<div class="card" style="text-align:center;padding:30px;color:#ccc">No time records found for this period</div>';return;}
