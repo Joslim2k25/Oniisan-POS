@@ -5496,13 +5496,8 @@ function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPa
       try{
         const{data:ex}=await sb.from('payroll_records').select('*').eq('emp_name',name).eq('period_start',start).eq('period_end',end).limit(1);
         if(ex&&ex.length){
-          const sv=ex[0];
-          // show the SAVED (already paid) figures, not a recomputation
-          daysWorked=+sv.days_worked;totalHours=+sv.total_hours;otHours=+sv.ot_hours;basicPay=+sv.basic_pay;otPay=+sv.ot_pay;holidayPay=+sv.holiday_pay;
-          grossPay=+sv.gross_pay;statutoryDed=+sv.statutory_deduction;totalDed=+sv.total_deduction;netPay=+sv.net_pay;
-          customDedLabel=sv.custom_deduction_label;customDedAmt=+sv.custom_deduction_amount||0;
-          if(daysWorked>0)dr=Math.round(basicPay/daysWorked);
-          showToast('🔒 Naka-lock ang nakaraang payroll — ipinakita ang naka-save, hindi binago.');
+          // (nothing is written; the saved record stays exactly as it is)
+          showToast('🔒 Naka-lock ang nakaraang payroll — hindi binago ang naka-save na record.');
         }else{
           const rec={emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,total_deduction:totalDed,net_pay:netPay,source:source||'manual',generated_by:currentLoginEmp?.name||'Admin'};
           const{error}=await sb.from('payroll_records').insert([rec]);
