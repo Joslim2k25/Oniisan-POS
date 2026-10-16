@@ -5194,7 +5194,12 @@ async function toggleBankDeposit(dk){
 }
 
 // ══════ PAYROLL ══════
-const DAILY_RATE=755;
+// DAILY RATE BY EFFECTIVE DATE: ₱755 takes effect from Sept 26, 2026 onward; any earlier date stays at ₱695,
+// so already-saved / re-opened older payroll periods are NOT changed.
+const RATE_CHANGE_DATE='2026-09-26',OLD_DAILY_RATE=695,NEW_DAILY_RATE=755;
+const dailyRateFor=dk=>(dk&&String(dk).slice(0,10)>=RATE_CHANGE_DATE)?NEW_DAILY_RATE:OLD_DAILY_RATE;
+const otRateFor=dk=>dailyRateFor(dk)/8*1.25;
+const DAILY_RATE=NEW_DAILY_RATE; // latest rate (reference only)
 const OT_RATE=DAILY_RATE/8*1.25;
 const TOTAL_DEDUCTIONS=850;
 const APPROVERS=['Owner','Aimee'];
@@ -5231,8 +5236,8 @@ async function renderPayroll(){
   </div>
   <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue)">
     <strong>Period:</strong> ${selStart} to ${selEnd} &nbsp;|&nbsp;
-    <strong>Daily Rate:</strong> ₱${DAILY_RATE} &nbsp;|&nbsp;
-    <strong>OT Rate:</strong> ₱${OT_RATE.toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
+    <strong>Daily Rate:</strong> ₱${dailyRateFor(selStart)} &nbsp;|&nbsp;
+    <strong>OT Rate:</strong> ₱${otRateFor(selStart).toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
     <strong>Deductions:</strong> SSS ₱450 + PhilHealth ₱200 + Pag-IBIG ₱200 = ₱850 (every 30th)
   </div>
   <div id="payrollTable"><div style="text-align:center;padding:30px;color:#ccc;background:#fff;border-radius:10px">Click 🔄 Compute to generate payroll for this period</div></div>
@@ -5300,23 +5305,21 @@ async function computePayroll(start,end){
     const emp=empMap[empId];
     const dayMap={};
     emp.records.forEach(r=>{const dk=manilaDateKey(r.ts);if(!dayMap[dk])dayMap[dk]=[];dayMap[dk].push(r);});
-    let daysWorked=0,totalHours=0,otHours=0,holidayPay=0;
+    let daysWorked=0,totalHours=0,otHours=0,holidayPay=0,basicPay=0,otPay=0;
     Object.keys(dayMap).forEach(dk=>{
       const outRec=dayMap[dk].find(r=>r.action==='out');
       const inRec=dayMap[dk].find(r=>r.action==='in');
       if(!inRec)return; // FIX: only skip if no IN at all; no longer requires an OUT
-      daysWorked++;
+      daysWorked++;basicPay+=dailyRateFor(dk);
       if(outRec){totalHours+=(outRec.total_work||0)/3600000;}
       // OT approval logic — unchanged, still requires separate approval
       const approvedOT=ots.find(o=>o.emp_id===empId&&o.date_key===dk);
-      if(approvedOT)otHours+=approvedOT.ot_hours;
+      if(approvedOT){otHours+=approvedOT.ot_hours;otPay+=approvedOT.ot_hours*otRateFor(dk);}
       if(holidayMap[dk]){
         const h=holidayMap[dk];
-        holidayPay+=h.type==='regular'?DAILY_RATE:DAILY_RATE*0.30;
+        holidayPay+=h.type==='regular'?dailyRateFor(dk):dailyRateFor(dk)*0.30;
       }
     });
-    const basicPay=daysWorked*DAILY_RATE;
-    const otPay=otHours*OT_RATE;
     const grossPay=basicPay+otPay+holidayPay;
     const isDeductionPeriod=new Date(end).getDate()>=25;
     const totalDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
@@ -5402,8 +5405,8 @@ function computeManualPayslip(start,end){
   const customDedAmt=+document.getElementById('manualPayrollCustomDedAmt').value||0;
   if(!name){showToast('Select an employee.');return;}
   if(daysWorked<=0){showToast('Enter days worked.');return;}
-  const basicPay=daysWorked*DAILY_RATE;
-  const otPay=otHours*OT_RATE;
+  const basicPay=daysWorked*dailyRateFor(start);
+  const otPay=otHours*otRateFor(start);
   const grossPay=basicPay+otPay+holidayPay;
   const isDeductionPeriod=new Date(end).getDate()>=25;
   const statutoryDed=isDeductionPeriod?TOTAL_DEDUCTIONS:0;
@@ -5414,6 +5417,7 @@ function computeManualPayslip(start,end){
 }
 
 function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt,source){
+  const dr=dailyRateFor(start);
   // Open the window synchronously first (browsers block popups opened after an await).
   const w=window.open('','_blank','width=420,height=650');
   // Save this payslip permanently — this is what 13th month pay computation will read from
@@ -5449,10 +5453,10 @@ function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPa
   <div class="divider"></div>
   <div class="row"><span>Employee:</span><span class="b">${name}</span></div>
   <div class="row"><span>Period:</span><span>${start} to ${end}</span></div>
-  <div class="row"><span>Daily Rate:</span><span>₱${DAILY_RATE}.00</span></div>
+  <div class="row"><span>Daily Rate:</span><span>₱${dr}.00</span></div>
   <div class="divider"></div>
   <div class="b" style="margin:6px 0 4px">EARNINGS</div>
-  <div class="row"><span>Basic Pay (${daysWorked} days × ₱${DAILY_RATE})</span><span>₱${basicPay.toFixed(2)}</span></div>
+  <div class="row"><span>Basic Pay (${daysWorked} days × ₱${dr})</span><span>₱${basicPay.toFixed(2)}</span></div>
   ${otHours>0?`<div class="row"><span>OT Pay (${otHours} hrs approved)</span><span>₱${otPay.toFixed(2)}</span></div>`:''}
   ${holidayPay>0?`<div class="row"><span>Holiday Pay</span><span>₱${holidayPay.toFixed(2)}</span></div>`:''}
   <div class="row b"><span>GROSS PAY</span><span>₱${grossPay.toFixed(2)}</span></div>
