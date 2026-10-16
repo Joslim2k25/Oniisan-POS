@@ -5199,6 +5199,8 @@ async function toggleBankDeposit(dk){
 const RATE_CHANGE_DATE='2026-09-26',OLD_DAILY_RATE=695,NEW_DAILY_RATE=755;
 const dailyRateFor=dk=>(dk&&String(dk).slice(0,10)>=RATE_CHANGE_DATE)?NEW_DAILY_RATE:OLD_DAILY_RATE;
 const otRateFor=dk=>dailyRateFor(dk)/8*1.25;
+// LOCK: payroll periods that END before the rate change date are history — already paid. Their saved records are never overwritten.
+const isLockedPeriod=end=>String(end||'').slice(0,10)<RATE_CHANGE_DATE;
 const DAILY_RATE=NEW_DAILY_RATE; // latest rate (reference only)
 const OT_RATE=DAILY_RATE/8*1.25;
 const TOTAL_DEDUCTIONS=850;
@@ -5235,6 +5237,7 @@ async function renderPayroll(){
     </div>
   </div>
   <div style="background:var(--blue-light);border:1px solid #a9cce3;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue)">
+    ${isLockedPeriod(selEnd)?'<div style="margin-bottom:6px;font-weight:700;color:#b45309">🔒 Naka-lock ang period na ito (bago Sept 26, 2026) — hindi mababago ang mga naka-save na payroll record.</div>':''}
     <strong>Period:</strong> ${selStart} to ${selEnd} &nbsp;|&nbsp;
     <strong>Daily Rate:</strong> ₱${dailyRateFor(selStart)} &nbsp;|&nbsp;
     <strong>OT Rate:</strong> ₱${otRateFor(selStart).toFixed(2)}/hr (w/ approval) &nbsp;|&nbsp;
@@ -5373,11 +5376,12 @@ async function savePayrollRecords(start,end){
   if(!rows||!rows.length){showToast('Wala pang na-compute na payroll. I-click muna ang Compute.');return;}
   const btn=document.getElementById('savePayrollBtn');
   if(btn){btn.disabled=true;btn.textContent='Sinasave...';}
-  let okCount=0,failCount=0;
+  let okCount=0,failCount=0,lockedCount=0;
   for(const r of rows){
     try{
       const{data:ex,error:selErr}=await sb.from('payroll').select('id').eq('emp_id',r.empId).eq('cutoff_start',start).eq('cutoff_end',end).limit(1);
       if(selErr)throw selErr;
+      if(ex&&ex.length&&isLockedPeriod(end)){lockedCount++;continue;} // 🔒 already-saved past payroll: leave untouched
       const rec={emp_id:r.empId,emp_name:r.name,cutoff_start:start,cutoff_end:end,days_worked:r.daysWorked,total_hours:+r.totalHours,ot_hours:+r.otHours,ot_pay:r.otPay,holiday_pay:r.holidayPay,basic_pay:r.basicPay,gross_pay:r.grossPay,sss:r.totalDed>0?450:0,philhealth:r.totalDed>0?200:0,pagibig:r.totalDed>0?200:0,total_deductions:r.totalDed,net_pay:r.netPay,branch:'SM Bicutan'};
       let err;
       if(ex&&ex.length){({error:err}=await sb.from('payroll').update(rec).eq('id',ex[0].id));}
@@ -5390,7 +5394,8 @@ async function savePayrollRecords(start,end){
     }
   }
   if(btn){btn.disabled=false;btn.textContent='💾 I-save ang Payroll Records';}
-  if(failCount===0)showToast(`✅ Na-save ang payroll ng ${okCount} empleyado!`);
+  if(lockedCount>0)showToast(`🔒 ${lockedCount} record ang naka-lock (bago Sept 26, 2026) — hindi binago ang naka-save.`);
+  else if(failCount===0)showToast(`✅ Na-save ang payroll ng ${okCount} empleyado!`);
   else showToast(`⚠️ ${okCount} na-save, ${failCount} nabigo — tingnan ang console para sa detalye.`);
 }
 
@@ -5417,30 +5422,13 @@ function computeManualPayslip(start,end){
 }
 
 function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPay,grossPay,statutoryDed,totalDed,netPay,start,end,customDedLabel,customDedAmt,source){
-  const dr=dailyRateFor(start);
+  let dr=dailyRateFor(start);
   // Open the window synchronously first (browsers block popups opened after an await).
   const w=window.open('','_blank','width=420,height=650');
   // Save this payslip permanently — this is what 13th month pay computation will read from
   // later, so it must not depend only on the payslip window staying open.
-  (async()=>{
-    const rec={
-      emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,
-      total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,
-      holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,
-      custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,
-      total_deduction:totalDed,net_pay:netPay,source:source||'manual',
-      generated_by:currentLoginEmp?.name||'Admin'
-    };
-    // FIX: previously always INSERTed, so re-generating the same employee's payslip for the
-    // same period (e.g. after a rate correction) created duplicate records instead of
-    // replacing the old one — check for an existing record first and update it if found.
-    const{data:ex}=await sb.from('payroll_records').select('id').eq('emp_name',name).eq('period_start',start).eq('period_end',end).limit(1).then(r=>r).catch(()=>({data:null}));
-    let error;
-    if(ex&&ex.length){({error}=await sb.from('payroll_records').update(rec).eq('id',ex[0].id));}
-    else{({error}=await sb.from('payroll_records').insert([rec]));}
-    if(!error)showToast('✅ Na-save ang payslip para sa 13th month pay records');
-    else showToast('⚠️ Hindi na-save ang payslip record: '+error.message);
-  })();
+  const lockedPeriod=isLockedPeriod(end);
+  const render=()=>{
   w.document.write(`<!DOCTYPE html><html><head><title>Payslip - ${name}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:24px;max-width:380px}
   .c{text-align:center}.b{font-weight:900}.r{color:#c0392b}
@@ -5479,6 +5467,52 @@ function showPayslip(name,daysWorked,totalHours,otHours,basicPay,otPay,holidayPa
   <button onclick="window.print()" style="width:100%;margin-top:16px;padding:10px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨️ Print Payslip</button>
   </body></html>`);
   w.document.close();
+  };
+
+  if(!lockedPeriod){
+  (async()=>{
+    const rec={
+      emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,
+      total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,
+      holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,
+      custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,
+      total_deduction:totalDed,net_pay:netPay,source:source||'manual',
+      generated_by:currentLoginEmp?.name||'Admin'
+    };
+    // FIX: previously always INSERTed, so re-generating the same employee's payslip for the
+    // same period (e.g. after a rate correction) created duplicate records instead of
+    // replacing the old one — check for an existing record first and update it if found.
+    const{data:ex}=await sb.from('payroll_records').select('id').eq('emp_name',name).eq('period_start',start).eq('period_end',end).limit(1).then(r=>r).catch(()=>({data:null}));
+    let error;
+    if(ex&&ex.length){({error}=await sb.from('payroll_records').update(rec).eq('id',ex[0].id));}
+    else{({error}=await sb.from('payroll_records').insert([rec]));}
+    if(!error)showToast('✅ Na-save ang payslip para sa 13th month pay records');
+    else showToast('⚠️ Hindi na-save ang payslip record: '+error.message);
+  })();
+    render();
+  }else{
+    // 🔒 PAST PERIOD (before Sept 26, 2026): never overwrite what is already saved/paid.
+    (async()=>{
+      try{
+        const{data:ex}=await sb.from('payroll_records').select('*').eq('emp_name',name).eq('period_start',start).eq('period_end',end).limit(1);
+        if(ex&&ex.length){
+          const sv=ex[0];
+          // show the SAVED (already paid) figures, not a recomputation
+          daysWorked=+sv.days_worked;totalHours=+sv.total_hours;otHours=+sv.ot_hours;basicPay=+sv.basic_pay;otPay=+sv.ot_pay;holidayPay=+sv.holiday_pay;
+          grossPay=+sv.gross_pay;statutoryDed=+sv.statutory_deduction;totalDed=+sv.total_deduction;netPay=+sv.net_pay;
+          customDedLabel=sv.custom_deduction_label;customDedAmt=+sv.custom_deduction_amount||0;
+          if(daysWorked>0)dr=Math.round(basicPay/daysWorked);
+          showToast('🔒 Naka-lock ang nakaraang payroll — ipinakita ang naka-save, hindi binago.');
+        }else{
+          const rec={emp_name:name,period_start:start,period_end:end,days_worked:daysWorked,total_hours:+totalHours,ot_hours:otHours,basic_pay:basicPay,ot_pay:otPay,holiday_pay:holidayPay,gross_pay:grossPay,statutory_deduction:statutoryDed,custom_deduction_label:customDedLabel||null,custom_deduction_amount:customDedAmt||0,total_deduction:totalDed,net_pay:netPay,source:source||'manual',generated_by:currentLoginEmp?.name||'Admin'};
+          const{error}=await sb.from('payroll_records').insert([rec]);
+          if(!error)showToast('✅ Na-save ang payslip para sa 13th month pay records');
+          else showToast('⚠️ Hindi na-save ang payslip record: '+error.message);
+        }
+      }catch(e){ showToast('⚠️ Hindi ma-check ang naka-save na payroll — walang binago.'); }
+      render();
+    })();
+  }
 }
 
 async function loadOTApprovals(){
